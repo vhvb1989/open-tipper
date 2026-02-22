@@ -1,0 +1,256 @@
+// Sport Predictor — Prisma Schema
+// See SPEC.md §12 for the full entity model.
+// Models are added incrementally in each cycle.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Cycle 2: Auth (NextAuth.js / Auth.js) — User, Account, Session
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime? @map("email_verified")
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+  memberships Membership[]
+  predictions Prediction[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// Cycle 1: Contest, Team, Match
+// ---------------------------------------------------------------------------
+
+enum ContestStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+}
+
+enum MatchStatus {
+  SCHEDULED
+  TIMED
+  IN_PLAY
+  PAUSED
+  FINISHED
+  SUSPENDED
+  POSTPONED
+  CANCELLED
+  AWARDED
+}
+
+model Team {
+  id         String   @id @default(cuid())
+  externalId Int      @unique /// football-data.org team ID
+  name       String
+  shortName  String?
+  tla        String? /// Three-letter abbreviation
+  crest      String? /// URL to team crest/logo
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  homeMatches Match[] @relation("HomeTeam")
+  awayMatches Match[] @relation("AwayTeam")
+
+  @@map("teams")
+}
+
+model Contest {
+  id         String        @id @default(cuid())
+  externalId Int           @unique /// football-data.org competition ID
+  name       String
+  code       String /// e.g. CL, WC
+  season     String /// e.g. "2025" or "2025/26"
+  type       String? /// LEAGUE, CUP, etc.
+  emblem     String? /// URL to competition emblem
+  status     ContestStatus @default(UPCOMING)
+  startDate  DateTime?
+  endDate    DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  matches Match[]
+  groups  Group[]
+
+  @@unique([code, season])
+  @@map("contests")
+}
+
+model Match {
+  id          String      @id @default(cuid())
+  externalId  Int         @unique /// football-data.org match ID
+  contestId   String
+  contest     Contest     @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  matchDay    Int? /// Round number
+  stage       String? /// GROUP_STAGE, QUARTER_FINALS, etc.
+  group       String? /// GROUP_A, GROUP_B, etc.
+  homeTeamId  String
+  homeTeam    Team        @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeamId  String
+  awayTeam    Team        @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  kickoffTime DateTime
+  status      MatchStatus @default(SCHEDULED)
+  homeGoals   Int? /// Set when match is finished (regular time)
+  awayGoals   Int? /// Set when match is finished (regular time)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  predictions Prediction[]
+
+  @@index([contestId])
+  @@index([kickoffTime])
+  @@index([status])
+  @@map("matches")
+}
+
+// ---------------------------------------------------------------------------
+// Cycle 3: Groups, Membership, Scoring Rules
+// ---------------------------------------------------------------------------
+
+enum GroupVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum MemberRole {
+  ADMIN
+  MEMBER
+}
+
+enum AccumulationMode {
+  ACCUMULATE
+  HIGHEST_ONLY
+}
+
+model Group {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  visibility  GroupVisibility @default(PRIVATE)
+  inviteCode  String          @unique @default(cuid()) @map("invite_code")
+  contestId   String          @map("contest_id")
+  contest     Contest         @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  scoringRules ScoringRules?
+  memberships  Membership[]
+  predictions  Prediction[]
+
+  @@index([contestId])
+  @@index([inviteCode])
+  @@map("groups")
+}
+
+model ScoringRules {
+  id                     String           @id @default(cuid())
+  groupId                String           @unique @map("group_id")
+  group                  Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  exactScore             Int              @default(10) @map("exact_score")
+  goalDifference         Int              @default(6) @map("goal_difference")
+  outcome                Int              @default(4)
+  oneTeamGoals           Int              @default(3) @map("one_team_goals")
+  totalGoals             Int              @default(2) @map("total_goals")
+  reverseGoalDifference  Int              @default(1) @map("reverse_goal_difference")
+  accumulationMode       AccumulationMode @default(ACCUMULATE) @map("accumulation_mode")
+  playoffMultiplier      Boolean          @default(false) @map("playoff_multiplier")
+  createdAt              DateTime         @default(now()) @map("created_at")
+  updatedAt              DateTime         @updatedAt @map("updated_at")
+
+  @@map("scoring_rules")
+}
+
+model Membership {
+  id        String     @id @default(cuid())
+  userId    String     @map("user_id")
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  groupId   String     @map("group_id")
+  group     Group      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  role      MemberRole @default(MEMBER)
+  joinedAt  DateTime   @default(now()) @map("joined_at")
+
+  @@unique([userId, groupId])
+  @@index([userId])
+  @@index([groupId])
+  @@map("memberships")
+}
+
+// ---------------------------------------------------------------------------
+// Cycle 4: Predictions
+// ---------------------------------------------------------------------------
+
+model Prediction {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  groupId       String   @map("group_id")
+  group         Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  matchId       String   @map("match_id")
+  match         Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  homeGoals     Int      @map("home_goals")
+  awayGoals     Int      @map("away_goals")
+  pointsAwarded Int?     @map("points_awarded") /// Set by scoring engine (Cycle 5)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, groupId, matchId])
+  @@index([groupId])
+  @@index([matchId])
+  @@index([userId])
+  @@map("predictions")
+}

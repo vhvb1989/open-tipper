@@ -1,0 +1,9 @@
+{
+  "appServicePlan": "plan",
+  "appService": "app",
+  "storageAccount": "st",
+  "postgresqlServer": "psql",
+  "logAnalyticsWorkspace": "log",
+  "applicationInsights": "appi",
+  "resourceGroup": "rg"
+}
