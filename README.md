@@ -124,6 +124,8 @@ This provisions:
 - **Azure Blob Storage** — avatar and asset storage
 - **Azure Application Insights** — monitoring and logging
 
+> **Note:** The App Service Plan must be **B2 or higher**. The B1 SKU does not provide enough memory (1.75 GB) for Oryx to run `npm install` and `next build` during remote deployment — the build process will be OOM-killed.
+
 To tear down all resources:
 
 ```bash

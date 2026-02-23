@@ -16,12 +16,11 @@ param appServicePlanSkuName string
 @description('Application Insights connection string')
 param applicationInsightsConnectionString string
 
-@description('Database connection string (without password)')
-param databaseUrl string
+@description('PostgreSQL server FQDN')
+param postgresHost string
 
-@secure()
-@description('PostgreSQL admin password')
-param postgresAdminPassword string
+@description('PostgreSQL database name')
+param postgresDatabaseName string
 
 @description('Storage account name')
 param storageAccountName string
@@ -88,15 +87,27 @@ resource appService 'Microsoft.Web/sites@2024-04-01' = {
       alwaysOn: true
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
-      appCommandLine: 'npm run start'
+      appCommandLine: 'node scripts/migrate-and-start.js'
       appSettings: [
         {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
           value: applicationInsightsConnectionString
         }
         {
+          name: 'AZURE_POSTGRESQL_HOST'
+          value: postgresHost
+        }
+        {
+          name: 'AZURE_POSTGRESQL_DATABASE'
+          value: postgresDatabaseName
+        }
+        {
+          name: 'AZURE_POSTGRESQL_USER'
+          value: appServiceName
+        }
+        {
           name: 'DATABASE_URL'
-          value: '${databaseUrl}${postgresAdminPassword}'
+          value: 'postgresql://${appServiceName}@${postgresHost}:5432/${postgresDatabaseName}?schema=public&sslmode=require'
         }
         {
           name: 'AUTH_SECRET'
@@ -139,16 +150,16 @@ resource appService 'Microsoft.Web/sites@2024-04-01' = {
           value: storageAccountName
         }
         {
+          name: 'AUTH_TRUST_HOST'
+          value: 'true'
+        }
+        {
           name: 'NEXT_PUBLIC_APP_URL'
           value: 'https://${appServiceName}.azurewebsites.net'
         }
         {
-          name: 'WEBSITE_NODE_DEFAULT_VERSION'
-          value: '~22'
-        }
-        {
           name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
-          value: 'false'
+          value: 'true'
         }
       ]
     }
@@ -158,3 +169,4 @@ resource appService 'Microsoft.Web/sites@2024-04-01' = {
 
 output appServiceName string = appService.name
 output appServiceUri string = 'https://${appService.properties.defaultHostName}'
+output appServicePrincipalId string = appService.identity.principalId

@@ -1,0 +1,14 @@
+# Exclude from azd deploy zip — Oryx will install/build on the server
+node_modules
+.next
+.env
+.env.local
+.env.*.local
+
+# Test & dev files not needed in production
+e2e
+*.test.ts
+*.test.tsx
+*.spec.ts
+vitest.config.ts
+playwright.config.ts

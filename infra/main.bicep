@@ -9,8 +9,10 @@ param environmentName string
 @description('Primary location for all resources')
 param location string
 
+// Minimum B2 — the B1 SKU (1.75 GB RAM) is not enough for Oryx remote build
+// (npm install + next build). The process gets OOM-killed during deployment.
 @description('Name of the App Service Plan SKU')
-param appServicePlanSkuName string = 'B1'
+param appServicePlanSkuName string = 'B2'
 
 @description('PostgreSQL administrator login name')
 param postgresAdminLogin string = 'sportpredadmin'
@@ -84,6 +86,17 @@ module monitoring 'core/monitor/appinsights.bicep' = {
   }
 }
 
+// Storage Account (for blob storage — avatars, static assets)
+module storage 'core/storage/storage.bicep' = {
+  name: 'storage'
+  scope: rg
+  params: {
+    location: location
+    tags: tags
+    storageAccountName: 'st${resourceToken}'
+  }
+}
+
 // PostgreSQL Flexible Server
 module database 'core/database/postgresql.bicep' = {
   name: 'database'
@@ -97,17 +110,8 @@ module database 'core/database/postgresql.bicep' = {
     administratorPassword: postgresAdminPassword
     skuName: postgresSkuName
     storageSizeGB: postgresStorageSizeGB
-  }
-}
-
-// Storage Account (for blob storage — avatars, static assets)
-module storage 'core/storage/storage.bicep' = {
-  name: 'storage'
-  scope: rg
-  params: {
-    location: location
-    tags: tags
-    storageAccountName: 'st${resourceToken}'
+    appServicePrincipalId: web.outputs.appServicePrincipalId
+    entraAdminName: 'app-${resourceToken}'
   }
 }
 
@@ -122,8 +126,8 @@ module web 'app/web.bicep' = {
     appServiceName: 'app-${resourceToken}'
     appServicePlanSkuName: appServicePlanSkuName
     applicationInsightsConnectionString: monitoring.outputs.applicationInsightsConnectionString
-    databaseUrl: database.outputs.connectionString
-    postgresAdminPassword: postgresAdminPassword
+    postgresHost: 'psql-${resourceToken}.postgres.database.azure.com'
+    postgresDatabaseName: 'sport_predictor'
     storageAccountName: storage.outputs.storageAccountName
     authSecret: authSecret
     authGoogleId: authGoogleId
@@ -141,4 +145,4 @@ module web 'app/web.bicep' = {
 output AZURE_LOCATION string = location
 output SERVICE_WEB_NAME string = web.outputs.appServiceName
 output SERVICE_WEB_URI string = web.outputs.appServiceUri
-output DATABASE_HOST string = database.outputs.serverFqdn
+output DATABASE_HOST string = 'psql-${resourceToken}.postgres.database.azure.com'
