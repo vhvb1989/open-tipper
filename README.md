@@ -28,7 +28,7 @@ Inspired by [tipper.io](https://tipper.io), Sport Predictor is an open-source, g
 - [Node.js](https://nodejs.org/) 22+
 - [Docker](https://www.docker.com/) (for local PostgreSQL)
 - [Azure Developer CLI (`azd`)](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd) (for Azure deployment)
-- A free [football-data.org](https://www.football-data.org/client/register) API key
+- An [API-Football](https://dashboard.api-football.com/) API key
 
 ### Local Development
 
@@ -63,7 +63,7 @@ Edit `web/.env` and fill in at minimum:
 
 | Variable | How to get it |
 |----------|---------------|
-| `FOOTBALL_API_KEY` | Sign up at [football-data.org](https://www.football-data.org/client/register) (free tier — 10 requests/min) |
+| `FOOTBALL_API_KEY` | Sign up at [API-Football](https://dashboard.api-football.com/) (free tier — 100 requests/day) |
 | `AUTH_SECRET` | Generate with `openssl rand -base64 32` |
 | `DATABASE_URL` | Pre-filled for local Docker: `postgresql://postgres:postgres@localhost:5432/sport_predictor?schema=public` |
 
@@ -83,11 +83,12 @@ This creates all required tables (`teams`, `contests`, `matches`, etc.) in your 
 npm run db:seed
 ```
 
-This fetches current Champions League and World Cup data from football-data.org and populates your database. You'll see output like:
+This fetches current Champions League, World Cup, and Liga MX data from API-Football and populates your database. You'll see output like:
 
 ```
 ✓ Synced UEFA Champions League: X teams, Y matches
 ✓ Synced FIFA World Cup: X teams, Y matches
+✓ Synced Liga MX: X teams, Y matches
 ```
 
 #### 6. Start the dev server
@@ -138,7 +139,7 @@ azd down
 |----------|-------------|----------|
 | `DATABASE_URL` | PostgreSQL connection string | Yes |
 | `AUTH_SECRET` | NextAuth.js session secret (generate with `openssl rand -base64 32`) | Yes |
-| `FOOTBALL_API_KEY` | football-data.org API key ([register here](https://www.football-data.org/client/register)) | Yes |
+| `FOOTBALL_API_KEY` | API-Football API key ([register here](https://dashboard.api-football.com/)) | Yes |
 | `AUTH_GOOGLE_ID` | Google OAuth client ID | Optional |
 | `AUTH_GOOGLE_SECRET` | Google OAuth client secret | Optional |
 | `AUTH_GITHUB_ID` | GitHub OAuth app client ID | Optional |
@@ -165,8 +166,8 @@ All commands run from the `web/` directory:
 | `npm test` | Run unit tests (Vitest) |
 | `npm run test:e2e` | Run end-to-end tests (Playwright) |
 | `npm run db:migrate` | Run Prisma migrations (`prisma migrate dev`) |
-| `npm run db:seed` | Seed the database from football-data.org |
-| `npm run db:sync` | Re-sync match data from football-data.org |
+| `npm run db:seed` | Seed the database from API-Football |
+| `npm run db:sync` | Re-sync match data from API-Football |
 
 ## Authentication Providers
 

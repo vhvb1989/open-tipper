@@ -15,19 +15,20 @@ Use this table to track progress across cycles. Update as work proceeds.
 | Cycle | Name | Status | Notes |
 |-------|------|--------|-------|
 | 0 | Project Bootstrap | **completed** | Next.js 16, Tailwind, Prisma, Vitest, Playwright, azd + Bicep, CI/CD |
-| 1 | Data Layer & Football API | **completed** | Prisma schema (Team, Contest, Match), football-data.org client, sync service, seed script, API routes |
+| 1 | Data Layer & Football API | **completed** | Prisma schema (Team, Contest, Match), API-Football client, sync service, seed script, API routes |
 | 2 | Auth & User Profiles | **completed** | NextAuth.js (Auth.js v5), multi-provider OAuth (Google/GitHub/Microsoft), Prisma adapter, sign-in/profile UI |
 | 3 | Groups (CRUD + Membership) | **completed** | Prisma models (Group, Membership, ScoringRules), CRUD API routes, Dashboard, Create Group, Group Page with tabs, Members/Settings tabs, invite link flow |
 | 4 | Predictions | **completed** | Prediction model, upsert/read/all API routes, group matches route, kickoff locking, Predictions tab UI with auto-save, match-day navigation, lock icons, 16 tests |
 | 5 | Scoring Engine | **completed** | Pure scoring algorithm (6 factors, accumulate/highest-only, playoff multiplier), scoring service, sync integration, scores API, 57 scoring tests |
 | 6 | Leaderboard & Results | **completed** | Standings API (ranked table, match-day filter), Results API (finished matches + predictions), StandingsTab UI (medals, user highlighting), ResultsTab UI (expandable match cards, point indicators), 17 new tests (123 total), 27 routes |
 | 7 | Invitation & Sharing | **completed** | Invite code (Cycle 3), join page, invite-link regeneration API, InviteSection component (copy + Web Share API + regenerate), 5 new tests (128 total), 28 routes |
+| 8 | Admin Panel & Sync | **completed** | UserRole enum, auto-admin first user, admin auth helper, competitions browser (API-Football), sync API, user management API, admin UI (competitions + users tabs), NavBar admin link, 18 new tests (146 total), 33 routes |
 | — | **MVP Complete** | — | — |
-| 8 | Polish, Landing Page & How It Works | not-started | |
-| 9 | Public Groups & Group Browser | not-started | |
-| 10 | Real-Time Updates & Live Scoring | not-started | |
-| 11 | Additional Competitions | not-started | |
-| 12 | Push Notifications | not-started | |
+| 9 | Polish, Landing Page & How It Works | not-started | |
+| 10 | Public Groups & Group Browser | not-started | |
+| 11 | Real-Time Updates & Live Scoring | not-started | |
+| 12 | Additional Competitions | not-started | |
+| 13 | Push Notifications | not-started | |
 | 13 | Stats & Analytics | not-started | |
 | 14 | i18n & Accessibility | not-started | |
 
@@ -45,7 +46,7 @@ The following tech stack was chosen and set up during Cycle 0.
 | **Database** | Azure Database for PostgreSQL (Flexible Server) | Azure Cosmos DB, Azure SQL |
 | **ORM** | Prisma | Drizzle, TypeORM, Knex |
 | **Auth** | NextAuth.js (Auth.js v5) with multi-provider OAuth (Google, GitHub, Microsoft Entra ID) | Azure AD B2C |
-| **Football API** | football-data.org (free tier) | API-Football, OpenLigaDB |
+| **Football API** | API-Football (free/paid tiers) | football-data.org, OpenLigaDB |
 | **Hosting** | Azure App Service (Web App) or Azure Static Web Apps | Azure Container Apps, Azure Kubernetes Service |
 | **Background Jobs** | Azure Functions (timer-triggered) | Azure Container Apps Jobs |
 | **Blob Storage** | Azure Blob Storage (avatars, static assets) | Azure CDN |
@@ -110,7 +111,7 @@ The following tech stack was chosen and set up during Cycle 0.
 
 **Deliverables:**
 - [x] Define Prisma schema: `Contest`, `Match`, `Team` models
-- [x] Integrate with football-data.org (or chosen API):
+- [x] Integrate with API-Football:
   - Fetch competitions (Champions League, World Cup)
   - Fetch match fixtures per competition/season
   - Fetch match results
@@ -134,7 +135,7 @@ Run the seed script → database is populated with Champions League fixtures. Hi
 - 15 unit tests passing (6 API client + 7 sync service + 2 page)
 - `npm run build` — production build succeeds
 - `npm run lint` — 0 errors
-- DB migration and seeding require Docker (PostgreSQL) and a football-data.org API key
+- DB migration and seeding require Docker (PostgreSQL) and an API-Football API key
 
 ---
 
@@ -362,7 +363,34 @@ At this point the core product is functional:
 
 ---
 
-## Cycle 8 — Polish, Landing Page & How It Works
+## Cycle 8 — Admin Panel & Sync ✅
+
+**Goal:** Platform admins can browse, sync, and manage football competitions from the API-Football API, and manage user roles — all from within the app.
+
+**Deliverables:**
+- [x] `UserRole` enum (USER / ADMIN) with Prisma migration
+- [x] First-ever user auto-promoted to ADMIN on sign-up
+- [x] Role exposed on session via Auth.js `session` callback + `createUser` event
+- [x] Admin auth helper (`requireAdmin`) for API routes
+- [x] `listCompetitions()` method on `FootballApiClient` — fetches all available competitions
+- [x] `GET /api/admin/competitions` — list available competitions, annotated with local sync status
+- [x] `POST /api/admin/sync` — trigger sync for any competition code
+- [x] `GET /api/admin/users` — list all users with roles
+- [x] `PATCH /api/admin/users/:id` — promote/demote users (prevents self-demotion)
+- [x] Admin section (`/admin`) with server-side role check, tab navigation
+- [x] Competitions page — search/filter, sync/re-sync buttons, result banners
+- [x] Users page — table with promote/demote toggle
+- [x] NavBar "Admin" link (amber, only shown for admins)
+- [x] `syncCompetition` now accepts any competition code (not just CL/WC)
+- [x] API-Football competition emblem domain added to Next.js image config
+- [x] 18 new tests (146 total), 33 routes, clean build
+
+**Testable outcome:**
+Sign up as the first user → see "Admin" link in nav → go to Admin → browse all API-Football leagues → sync Premier League → go to Create Group → see PL as an option.
+
+---
+
+## Cycle 9 — Polish, Landing Page & How It Works
 
 **Goal:** A polished public-facing experience for new visitors.
 
@@ -379,7 +407,7 @@ Visit the site without signing in → see an attractive landing page → click "
 
 ---
 
-## Cycle 9 — Public Groups & Group Browser
+## Cycle 10 — Public Groups & Group Browser
 
 **Goal:** Users can discover and join public groups.
 
@@ -395,7 +423,7 @@ Create a public group → visit the group browser → see the group listed → j
 
 ---
 
-## Cycle 10 — Real-Time Updates & Live Scoring
+## Cycle 11 — Real-Time Updates & Live Scoring
 
 **Goal:** Match results and scores update in near-real-time during live matches.
 
@@ -411,7 +439,7 @@ A match is live → the UI shows a "Live" badge → when the match finishes → 
 
 ---
 
-## Cycle 11 — Additional Competitions
+## Cycle 12 — Additional Competitions
 
 **Goal:** Expand to more leagues.
 
@@ -426,7 +454,7 @@ Create a group for Premier League → see Premier League fixtures → submit pre
 
 ---
 
-## Cycle 12 — Push Notifications
+## Cycle 13 — Push Notifications
 
 **Goal:** Remind users to submit predictions before deadlines.
 
@@ -443,7 +471,7 @@ Enable notifications → receive a browser push notification before a match day 
 
 ---
 
-## Cycle 13 — Stats & Analytics
+## Cycle 14 — Stats & Analytics
 
 **Goal:** Users can view personal and group-level statistics.
 

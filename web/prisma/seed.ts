@@ -1,5 +1,5 @@
 /**
- * Seed script — syncs all supported competitions from football-data.org.
+ * Seed script — syncs all supported competitions from API-Football.
  *
  * Usage:
  *   npx tsx prisma/seed.ts
@@ -14,7 +14,7 @@ import "dotenv/config";
 import { syncAll } from "../src/lib/sync";
 
 async function main() {
-  console.log("🌱 Seeding database from football-data.org...\n");
+  console.log("🌱 Seeding database from API-Football...\n");
 
   const results = await syncAll();
 

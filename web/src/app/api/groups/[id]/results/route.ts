@@ -39,6 +39,30 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Group not found" }, { status: 404 });
     }
 
+    // Query all available finished match days (independent of filter)
+    const allFinishedMatchDays = await prisma.match.findMany({
+      where: {
+        contestId: group.contestId,
+        status: { in: ["FINISHED", "AWARDED"] },
+        homeGoals: { not: null },
+        awayGoals: { not: null },
+        matchDay: { not: null },
+      },
+      select: { matchDay: true },
+      distinct: ["matchDay"],
+      orderBy: { matchDay: "desc" },
+    });
+    const matchDays = allFinishedMatchDays
+      .map((m) => m.matchDay)
+      .filter((d): d is number => d !== null)
+      .sort((a, b) => b - a);
+
+    // Determine which match day to show
+    // Default to the latest finished match day when no param is provided
+    const effectiveMatchDay = matchDayParam
+      ? parseInt(matchDayParam, 10)
+      : matchDays[0] ?? null;
+
     // Build match filter: finished matches in this contest
     const matchWhere: Record<string, unknown> = {
       contestId: group.contestId,
@@ -46,8 +70,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       homeGoals: { not: null },
       awayGoals: { not: null },
     };
-    if (matchDayParam) {
-      matchWhere.matchDay = parseInt(matchDayParam, 10);
+    if (effectiveMatchDay !== null) {
+      matchWhere.matchDay = effectiveMatchDay;
     }
 
     // Get finished matches with team info
@@ -118,11 +142,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       ...match,
       predictions: predsByMatch.get(match.id) ?? [],
     }));
-
-    // Available match days for filtering
-    const matchDays = [...new Set(matches.map((m) => m.matchDay).filter((d): d is number => d !== null))].sort(
-      (a, b) => b - a,
-    );
 
     return NextResponse.json({ results, matchDays });
   } catch (error) {

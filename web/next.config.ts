@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "avatars.githubusercontent.com" },
       // Microsoft / Entra ID user avatars
       { protocol: "https", hostname: "graph.microsoft.com" },
+      // Football competition emblems & team logos (API-Football / media.api-sports.io)
+      { protocol: "https", hostname: "media.api-sports.io" },
     ],
   },
 };

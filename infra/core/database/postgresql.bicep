@@ -23,11 +23,6 @@ param skuName string
 @description('Storage size in GB')
 param storageSizeGB int
 
-@description('Object ID of the App Service managed identity (for Entra ID auth)')
-param appServicePrincipalId string
-
-@description('Display name for the Entra ID admin (e.g., the App Service name)')
-param entraAdminName string
 
 // PostgreSQL Flexible Server
 resource postgresServer 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
@@ -56,17 +51,6 @@ resource postgresServer 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' =
     highAvailability: {
       mode: 'Disabled'
     }
-  }
-}
-
-// Add App Service managed identity as Entra ID admin
-resource entraAdmin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01' = {
-  parent: postgresServer
-  name: appServicePrincipalId
-  properties: {
-    principalName: entraAdminName
-    principalType: 'ServicePrincipal'
-    tenantId: subscription().tenantId
   }
 }
 

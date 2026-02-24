@@ -55,7 +55,7 @@ param authMicrosoftEntraIdSecret string = ''
 @description('Microsoft Entra ID Issuer URL (optional, for single-tenant)')
 param authMicrosoftEntraIdIssuer string = ''
 
-@description('Football Data API Key')
+@description('API-Football API Key')
 param footballApiKey string = ''
 
 // Tags for all resources
@@ -110,6 +110,20 @@ module database 'core/database/postgresql.bicep' = {
     administratorPassword: postgresAdminPassword
     skuName: postgresSkuName
     storageSizeGB: postgresStorageSizeGB
+  }
+}
+
+// Entra ID admin for PostgreSQL — deployed as a separate module so the server
+// is fully stable before we add the AD admin (avoids "not accessible" errors
+// during re-provisioning).
+module databaseEntraAdmin 'core/database/postgresql-entra-admin.bicep' = {
+  name: 'databaseEntraAdmin'
+  scope: rg
+  dependsOn: [
+    database
+  ]
+  params: {
+    serverName: 'psql-${resourceToken}'
     appServicePrincipalId: web.outputs.appServicePrincipalId
     entraAdminName: 'app-${resourceToken}'
   }

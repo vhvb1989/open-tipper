@@ -39,6 +39,14 @@ export function NavBar() {
               >
                 My Groups
               </Link>
+              {(session.user as { role?: string }).role === "ADMIN" && (
+                <Link
+                  href="/admin"
+                  className="text-sm text-amber-600 transition-colors hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
+                >
+                  Admin
+                </Link>
+              )}
               <Link
                 href="/profile"
                 className="flex items-center gap-2 text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"

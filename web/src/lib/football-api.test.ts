@@ -21,23 +21,22 @@ describe("FootballApiClient", () => {
     expect(client).toBeDefined();
   });
 
-  it("sends the API key as X-Auth-Token header", async () => {
+  it("sends the API key as x-apisports-key header", async () => {
     const mockResponse = {
-      id: 2001,
-      name: "UEFA Champions League",
-      code: "CL",
-      type: "CUP",
-      emblem: null,
-      currentSeason: {
-        id: 1,
-        startDate: "2025-09-01",
-        endDate: "2026-06-01",
-        currentMatchday: 1,
-        winner: null,
-        stages: ["GROUP_STAGE"],
-      },
-      seasons: [],
-      area: { id: 1, name: "Europe", code: "EUR" },
+      get: "leagues",
+      parameters: { id: "2" },
+      errors: [],
+      results: 1,
+      paging: { current: 1, total: 1 },
+      response: [
+        {
+          league: { id: 2, name: "UEFA Champions League", type: "Cup", logo: null },
+          country: { name: "World", code: null, flag: null },
+          seasons: [
+            { year: 2024, start: "2024-09-01", end: "2025-06-01", current: true, coverage: {} },
+          ],
+        },
+      ],
     };
 
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
@@ -48,12 +47,12 @@ describe("FootballApiClient", () => {
     );
 
     const client = new FootballApiClient("my-secret-key");
-    await client.getCompetition("CL");
+    await client.getLeague(2);
 
     expect(fetchSpy).toHaveBeenCalledWith(
-      "https://api.football-data.org/v4/competitions/CL",
+      "https://v3.football.api-sports.io/leagues?id=2",
       {
-        headers: { "X-Auth-Token": "my-secret-key" },
+        headers: { "x-apisports-key": "my-secret-key" },
       },
     );
   });
@@ -64,23 +63,19 @@ describe("FootballApiClient", () => {
     );
 
     const client = new FootballApiClient("bad-key");
-    await expect(client.getCompetition("CL")).rejects.toThrow(
-      "football-data.org API error: 403",
+    await expect(client.getLeague(2)).rejects.toThrow(
+      "API-Football error: 403",
     );
   });
 
   it("appends season query param when provided", async () => {
     const mockResponse = {
-      filters: {},
-      resultSet: { count: 0, first: "", last: "", played: 0 },
-      competition: {
-        id: 2001,
-        name: "CL",
-        code: "CL",
-        type: "CUP",
-        emblem: null,
-      },
-      matches: [],
+      get: "fixtures",
+      parameters: { league: "2", season: "2024" },
+      errors: [],
+      results: 0,
+      paging: { current: 1, total: 1 },
+      response: [],
     };
 
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
@@ -88,19 +83,20 @@ describe("FootballApiClient", () => {
     );
 
     const client = new FootballApiClient("key");
-    await client.getMatches("CL", 2024);
+    await client.getFixtures(2, 2024);
 
     expect(fetchSpy).toHaveBeenCalledWith(
-      "https://api.football-data.org/v4/competitions/CL/matches?season=2024",
+      "https://v3.football.api-sports.io/fixtures?league=2&season=2024",
       expect.any(Object),
     );
   });
 });
 
 describe("SUPPORTED_COMPETITIONS", () => {
-  it("includes Champions League and World Cup", () => {
-    const codes = SUPPORTED_COMPETITIONS.map((c) => c.code);
-    expect(codes).toContain("CL");
-    expect(codes).toContain("WC");
+  it("includes Champions League, World Cup, and Liga MX", () => {
+    const ids = SUPPORTED_COMPETITIONS.map((c) => c.id);
+    expect(ids).toContain(2); // Champions League
+    expect(ids).toContain(1); // World Cup
+    expect(ids).toContain(262); // Liga MX
   });
 });

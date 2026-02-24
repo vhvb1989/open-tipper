@@ -17,68 +17,86 @@ vi.mock("@/generated/prisma/client", () => ({
   PrismaClient: vi.fn(),
 }));
 
-import { syncCompetition } from "./sync";
+import { syncCompetition, parseRoundPrefix } from "./sync";
 import type { FootballApiClient } from "./football-api";
 import type { PrismaClient } from "@/generated/prisma/client";
 
 // ---------------------------------------------------------------------------
-// Fixtures
+// Fixtures — API-Football v3 response shapes
 // ---------------------------------------------------------------------------
 
 function makeMockApi() {
   return {
-    getCompetition: vi.fn().mockResolvedValue({
-      id: 2001,
-      name: "UEFA Champions League",
-      code: "CL",
-      type: "CUP",
-      emblem: "https://crests.football-data.org/CL.png",
-      currentSeason: {
-        id: 1,
-        startDate: "2025-09-01",
-        endDate: "2026-06-01",
-        currentMatchday: 3,
-        winner: null,
-        stages: ["GROUP_STAGE"],
-      },
-      area: { id: 1, name: "Europe", code: "EUR" },
-      seasons: [],
-    }),
-    getMatches: vi.fn().mockResolvedValue({
-      filters: {},
-      resultSet: { count: 2, first: "2025-09-16", last: "2025-09-17", played: 1 },
-      competition: { id: 2001, name: "CL", code: "CL", type: "CUP", emblem: null },
-      matches: [
+    getLeague: vi.fn().mockResolvedValue({
+      get: "leagues",
+      parameters: { id: "2" },
+      errors: [],
+      results: 1,
+      paging: { current: 1, total: 1 },
+      response: [
         {
-          id: 101,
-          utcDate: "2025-09-16T19:00:00Z",
-          status: "FINISHED",
-          matchday: 1,
-          stage: "GROUP_STAGE",
-          group: "GROUP_A",
-          homeTeam: { id: 10, name: "FC Alpha", shortName: "Alpha", tla: "ALP", crest: null },
-          awayTeam: { id: 20, name: "FC Beta", shortName: "Beta", tla: "BET", crest: null },
+          league: {
+            id: 2,
+            name: "UEFA Champions League",
+            type: "Cup",
+            logo: "https://media.api-sports.io/football/leagues/2.png",
+          },
+          country: { name: "World", code: null, flag: null },
+          seasons: [
+            {
+              year: 2025,
+              start: "2025-09-01",
+              end: "2026-06-01",
+              current: true,
+              coverage: {},
+            },
+          ],
+        },
+      ],
+    }),
+    getFixtures: vi.fn().mockResolvedValue({
+      get: "fixtures",
+      parameters: { league: "2", season: "2025" },
+      errors: [],
+      results: 2,
+      paging: { current: 1, total: 1 },
+      response: [
+        {
+          fixture: {
+            id: 101,
+            date: "2025-09-16T19:00:00+00:00",
+            status: { short: "FT", long: "Match Finished", elapsed: 90 },
+          },
+          league: { id: 2, name: "UEFA Champions League", round: "League Stage - 1" },
+          teams: {
+            home: { id: 10, name: "FC Alpha", logo: null },
+            away: { id: 20, name: "FC Beta", logo: null },
+          },
+          goals: { home: 2, away: 1 },
           score: {
-            winner: "HOME_TEAM",
-            duration: "REGULAR",
-            fullTime: { home: 2, away: 1 },
-            halfTime: { home: 1, away: 0 },
+            halftime: { home: 1, away: 0 },
+            fulltime: { home: 2, away: 1 },
+            extratime: { home: null, away: null },
+            penalty: { home: null, away: null },
           },
         },
         {
-          id: 102,
-          utcDate: "2025-09-17T19:00:00Z",
-          status: "SCHEDULED",
-          matchday: 1,
-          stage: "GROUP_STAGE",
-          group: "GROUP_B",
-          homeTeam: { id: 30, name: "FC Gamma", shortName: "Gamma", tla: "GAM", crest: null },
-          awayTeam: { id: 10, name: "FC Alpha", shortName: "Alpha", tla: "ALP", crest: null },
+          fixture: {
+            id: 102,
+            date: "2025-09-17T19:00:00+00:00",
+            status: { short: "NS", long: "Not Started", elapsed: null },
+          },
+          league: { id: 2, name: "UEFA Champions League", round: "League Stage - 1" },
+          teams: {
+            home: { id: 30, name: "FC Gamma", logo: null },
+            away: { id: 10, name: "FC Alpha", logo: null },
+          },
+          goals: { home: null, away: null },
           score: {
-            winner: null,
-            duration: "REGULAR",
-            fullTime: { home: null, away: null },
-            halfTime: { home: null, away: null },
+            halftime: { home: null, away: null },
+            fulltime: { home: null, away: null },
+            extratime: { home: null, away: null },
+            penalty: { home: null, away: null },
           },
         },
       ],
@@ -128,20 +146,20 @@ describe("syncCompetition", () => {
     mockDb = makeMockDb();
   });
 
-  it("upserts contest from competition data", async () => {
-    await syncCompetition("CL", undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
+  it("upserts contest from league data", async () => {
+    await syncCompetition(2, undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
 
-    expect(mockApi.getCompetition).toHaveBeenCalledWith("CL");
+    expect(mockApi.getLeague).toHaveBeenCalledWith(2);
     expect((mockDb as unknown as { contest: { upsert: ReturnType<typeof vi.fn> } }).contest.upsert).toHaveBeenCalledTimes(1);
 
     const upsertCall = (mockDb as unknown as { contest: { upsert: ReturnType<typeof vi.fn> } }).contest.upsert.mock.calls[0][0];
-    expect(upsertCall.create.code).toBe("CL");
+    expect(upsertCall.create.code).toBe("2");
     expect(upsertCall.create.name).toBe("UEFA Champions League");
-    expect(upsertCall.create.season).toBe("2025/2026");
+    expect(upsertCall.create.season).toBe("2025");
   });
 
-  it("extracts unique teams from matches and upserts them", async () => {
-    const result = await syncCompetition("CL", undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
+  it("extracts unique teams from fixtures and upserts them", async () => {
+    const result = await syncCompetition(2, undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
 
     // 3 unique teams: Alpha (10), Beta (20), Gamma (30)
     expect(result.teamsUpserted).toBe(3);
@@ -149,14 +167,14 @@ describe("syncCompetition", () => {
   });
 
   it("upserts all matches with correct team references", async () => {
-    const result = await syncCompetition("CL", undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
+    const result = await syncCompetition(2, undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
 
     expect(result.matchesUpserted).toBe(2);
     expect((mockDb as unknown as { match: { upsert: ReturnType<typeof vi.fn> } }).match.upsert).toHaveBeenCalledTimes(2);
   });
 
-  it("maps FINISHED status correctly", async () => {
-    await syncCompetition("CL", undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
+  it("maps FT status to FINISHED correctly", async () => {
+    await syncCompetition(2, undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
 
     const firstMatchCall = (mockDb as unknown as { match: { upsert: ReturnType<typeof vi.fn> } }).match.upsert.mock.calls[0][0];
     expect(firstMatchCall.create.status).toBe("FINISHED");
@@ -164,8 +182,8 @@ describe("syncCompetition", () => {
     expect(firstMatchCall.create.awayGoals).toBe(1);
   });
 
-  it("handles SCHEDULED matches with null scores", async () => {
-    await syncCompetition("CL", undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
+  it("handles NS (Not Started) fixtures with null scores", async () => {
+    await syncCompetition(2, undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
 
     const secondMatchCall = (mockDb as unknown as { match: { upsert: ReturnType<typeof vi.fn> } }).match.upsert.mock.calls[1][0];
     expect(secondMatchCall.create.status).toBe("SCHEDULED");
@@ -174,12 +192,12 @@ describe("syncCompetition", () => {
   });
 
   it("does not call $disconnect when db is provided", async () => {
-    await syncCompetition("CL", undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
+    await syncCompetition(2, undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
     expect((mockDb as unknown as { $disconnect: ReturnType<typeof vi.fn> }).$disconnect).not.toHaveBeenCalled();
   });
 
   it("returns a SyncResult with correct counts", async () => {
-    const result = await syncCompetition("CL", undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
+    const result = await syncCompetition(2, undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
 
     expect(result).toEqual({
       contestId: "contest-1",
@@ -187,5 +205,43 @@ describe("syncCompetition", () => {
       matchesUpserted: 2,
       predictionsScored: 0,
     });
+  });
+
+  it("sets group field from round prefix during upsert", async () => {
+    await syncCompetition(2, undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
+
+    const firstMatchCall = (mockDb as unknown as { match: { upsert: ReturnType<typeof vi.fn> } }).match.upsert.mock.calls[0][0];
+    // "League Stage - 1" → group = "League Stage"
+    expect(firstMatchCall.create.group).toBe("League Stage");
+  });
+});
+
+describe("parseRoundPrefix", () => {
+  it("extracts Apertura from Liga MX round", () => {
+    expect(parseRoundPrefix("Apertura - 1")).toBe("Apertura");
+  });
+
+  it("extracts Clausura from Liga MX round", () => {
+    expect(parseRoundPrefix("Clausura - Quarter-finals")).toBe("Clausura");
+  });
+
+  it("extracts Regular Season prefix", () => {
+    expect(parseRoundPrefix("Regular Season - 14")).toBe("Regular Season");
+  });
+
+  it("extracts League Stage prefix", () => {
+    expect(parseRoundPrefix("League Stage - 8")).toBe("League Stage");
+  });
+
+  it("returns null for Round of 16", () => {
+    expect(parseRoundPrefix("Round of 16")).toBeNull();
+  });
+
+  it("returns null for Quarter-finals", () => {
+    expect(parseRoundPrefix("Quarter-finals")).toBeNull();
+  });
+
+  it("returns null for empty string", () => {
+    expect(parseRoundPrefix("")).toBeNull();
   });
 });

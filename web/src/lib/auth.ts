@@ -5,6 +5,19 @@ import GitHub from "next-auth/providers/github";
 import MicrosoftEntraId from "next-auth/providers/microsoft-entra-id";
 import { prisma } from "./db";
 
+// Extend the session types to include role
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+      role: "USER" | "ADMIN";
+    };
+  }
+}
+
 /**
  * NextAuth.js (Auth.js v5) configuration.
  *
@@ -56,11 +69,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: {
     signIn: "/signin",
   },
+  events: {
+    async createUser({ user }) {
+      // Make the very first user an ADMIN automatically
+      const userCount = await prisma.user.count();
+      if (userCount === 1) {
+        await prisma.user.update({
+          where: { id: user.id! },
+          data: { role: "ADMIN" },
+        });
+      }
+    },
+  },
   callbacks: {
     session({ session, user }) {
-      // Expose the user ID on the session object
+      // Expose user ID and role on the session object
       if (session.user) {
         session.user.id = user.id;
+        session.user.role = (user as { role?: string }).role === "ADMIN" ? "ADMIN" : "USER";
       }
       return session;
     },

@@ -104,6 +104,8 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
     setExpandedMatch((prev) => (prev === matchId ? null : matchId));
   };
 
+  const dayIdx = matchDays.indexOf(selectedDay ?? -1);
+
   /* ---- Render ---- */
 
   if (loading && results.length === 0) {
@@ -129,23 +131,48 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
 
   return (
     <div>
-      {/* Match-day filter */}
+      {/* Match-day navigation */}
       {matchDays.length > 1 && (
-        <div className="mb-4 flex items-center gap-3">
-          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            Match Day:
-          </label>
-          <select
-            value={selectedDay ?? ""}
-            onChange={(e) => handleDayChange(Number(e.target.value))}
-            className="rounded border border-zinc-300 bg-white px-2 py-1 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
+        <div className="mb-4 flex items-center justify-between">
+          <button
+            onClick={() => dayIdx > 0 && handleDayChange(matchDays[dayIdx - 1])}
+            disabled={dayIdx <= 0}
+            className="rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
-            {matchDays.map((d) => (
-              <option key={d} value={d}>
-                MD {d}
-              </option>
-            ))}
-          </select>
+            <svg className="inline h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+            </svg>{" "}
+            Prev
+          </button>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+              Match Day {selectedDay}
+            </span>
+            <select
+              value={selectedDay ?? ""}
+              onChange={(e) => handleDayChange(Number(e.target.value))}
+              className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
+            >
+              {matchDays.map((d) => (
+                <option key={d} value={d}>
+                  MD {d}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            onClick={() =>
+              dayIdx < matchDays.length - 1 &&
+              handleDayChange(matchDays[dayIdx + 1])
+            }
+            disabled={dayIdx >= matchDays.length - 1}
+            className="rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          >
+            Next{" "}
+            <svg className="inline h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+          </button>
         </div>
       )}
 

@@ -53,7 +53,7 @@ param authMicrosoftEntraIdSecret string
 @description('Microsoft Entra ID Issuer URL (optional, for single-tenant)')
 param authMicrosoftEntraIdIssuer string
 
-@description('Football Data API Key')
+@description('API-Football API Key')
 param footballApiKey string
 
 // App Service Plan
@@ -152,6 +152,10 @@ resource appService 'Microsoft.Web/sites@2024-04-01' = {
         {
           name: 'AUTH_TRUST_HOST'
           value: 'true'
+        }
+        {
+          name: 'AUTH_URL'
+          value: 'https://${appServiceName}.azurewebsites.net'
         }
         {
           name: 'NEXT_PUBLIC_APP_URL'
