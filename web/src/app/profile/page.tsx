@@ -65,7 +65,7 @@ export default async function ProfilePage() {
             <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
               User ID
             </dt>
-            <dd className="font-mono text-xs text-zinc-400 dark:text-zinc-500">
+            <dd className="truncate font-mono text-xs text-zinc-400 dark:text-zinc-500">
               {user.id}
             </dd>
           </div>

@@ -1,4 +1,4 @@
-# Contributing to Sport Predictor
+# Contributing to Open Tipper
 
 Thank you for your interest in contributing! This project is open-source and welcomes contributions of all kinds.
 

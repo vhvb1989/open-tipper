@@ -1,4 +1,4 @@
-# Sport Predictor — Product Specification
+# Open Tipper — Product Specification
 
 > A faithful recreation of **tipper.io**, a social football (soccer) score-prediction platform where friends compete by predicting exact match scorelines.
 
@@ -352,7 +352,7 @@ These are out of scope for v1 but worth noting:
 
 ## 14. Summary
 
-Sport Predictor is a faithful recreation of the tipper.io experience: a social, group-based football score prediction game. Users sign in via Microsoft Entra ID, create or join groups tied to real football competitions, predict exact scorelines before kick-off, and earn points via a rich configurable scoring system. Leaderboards automatically update as real match results come in. The platform is free, open-source (MIT license), hosted on Azure, and deployable by anyone with a single `azd up` command. Fork it, customize it, and run your own instance.
+Open Tipper is a faithful recreation of the tipper.io experience: a social, group-based football score prediction game. Users sign in via Microsoft Entra ID, create or join groups tied to real football competitions, predict exact scorelines before kick-off, and earn points via a rich configurable scoring system. Leaderboards automatically update as real match results come in. The platform is free, open-source (MIT license), hosted on Azure, and deployable by anyone with a single `azd up` command. Fork it, customize it, and run your own instance.
 
 ---
 
@@ -361,7 +361,7 @@ Sport Predictor is a faithful recreation of the tipper.io experience: a social, 
 The project follows a **monorepo layout** to support multiple services in the future (e.g. background workers, mobile apps, shared packages) without splitting into separate repositories.
 
 ```
-sport-predictor/
+open-tipper/
 ├── .github/workflows/     # CI/CD pipelines
 ├── infra/                 # Azure Bicep infrastructure templates
 │   ├── main.bicep         # Root orchestration

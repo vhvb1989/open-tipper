@@ -14,7 +14,7 @@ export function NavBar() {
           href="/"
           className="text-lg font-bold tracking-tight text-gold-400"
         >
-          Sport Predictor
+          Open Tipper
         </Link>
 
         <div className="flex items-center gap-4">
@@ -23,16 +23,30 @@ export function NavBar() {
           )}
 
           {status === "unauthenticated" && (
-            <Link
-              href="/signin"
-              className="rounded-lg bg-gold-500 px-4 py-2 text-sm font-medium text-navy-900 transition-colors hover:bg-gold-400"
-            >
-              Sign in
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/groups/browse"
+                className="text-sm text-navy-200 transition-colors hover:text-white"
+              >
+                Browse
+              </Link>
+              <Link
+                href="/signin"
+                className="rounded-lg bg-gold-500 px-4 py-2 text-sm font-medium text-navy-900 transition-colors hover:bg-gold-400"
+              >
+                Sign in
+              </Link>
+            </div>
           )}
 
           {status === "authenticated" && session?.user && (
             <div className="flex items-center gap-3">
+              <Link
+                href="/groups/browse"
+                className="text-sm text-navy-200 transition-colors hover:text-white"
+              >
+                Browse
+              </Link>
               <Link
                 href="/dashboard"
                 className="text-sm text-navy-200 transition-colors hover:text-white"

@@ -28,28 +28,8 @@ describe("Standings API — GET /api/groups/:id/standings", () => {
     vi.clearAllMocks();
   });
 
-  it("returns 401 when not authenticated", async () => {
-    mockAuth.mockResolvedValue(null);
-    const { GET } = await import("@/app/api/groups/[id]/standings/route");
-
-    const req = new NextRequest("http://localhost:3000/api/groups/group-1/standings");
-    const res = await GET(req, routeParams);
-    expect(res.status).toBe(401);
-  });
-
-  it("returns 403 when user is not a member", async () => {
+  it("returns 404 when group does not exist (standings)", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockPrisma.membership.findUnique.mockResolvedValue(null);
-
-    const { GET } = await import("@/app/api/groups/[id]/standings/route");
-    const req = new NextRequest("http://localhost:3000/api/groups/group-1/standings");
-    const res = await GET(req, routeParams);
-    expect(res.status).toBe(403);
-  });
-
-  it("returns 404 when group does not exist", async () => {
-    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockPrisma.membership.findUnique.mockResolvedValue({ userId: "user-1", groupId: "group-1" });
     mockPrisma.group.findUnique.mockResolvedValue(null);
 
     const { GET } = await import("@/app/api/groups/[id]/standings/route");
@@ -58,10 +38,30 @@ describe("Standings API — GET /api/groups/:id/standings", () => {
     expect(res.status).toBe(404);
   });
 
+  it("returns 401 for unauthenticated access to private group standings", async () => {
+    mockAuth.mockResolvedValue(null);
+    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1", visibility: "PRIVATE" });
+
+    const { GET } = await import("@/app/api/groups/[id]/standings/route");
+    const req = new NextRequest("http://localhost:3000/api/groups/group-1/standings");
+    const res = await GET(req, routeParams);
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 403 when user is not a member of private group", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
+    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1", visibility: "PRIVATE" });
+    mockPrisma.membership.findUnique.mockResolvedValue(null);
+
+    const { GET } = await import("@/app/api/groups/[id]/standings/route");
+    const req = new NextRequest("http://localhost:3000/api/groups/group-1/standings");
+    const res = await GET(req, routeParams);
+    expect(res.status).toBe(403);
+  });
+
   it("returns empty standings when no predictions are scored", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockPrisma.membership.findUnique.mockResolvedValue({ userId: "user-1", groupId: "group-1" });
-    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1" });
+    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1", visibility: "PUBLIC" });
     mockPrisma.membership.findMany.mockResolvedValue([
       { user: { id: "user-1", name: "Alice", image: null }, role: "ADMIN" },
       { user: { id: "user-2", name: "Bob", image: null }, role: "MEMBER" },
@@ -82,8 +82,7 @@ describe("Standings API — GET /api/groups/:id/standings", () => {
 
   it("returns ranked standings sorted by total points descending", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockPrisma.membership.findUnique.mockResolvedValue({ userId: "user-1", groupId: "group-1" });
-    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1" });
+    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1", visibility: "PUBLIC" });
     mockPrisma.membership.findMany.mockResolvedValue([
       { user: { id: "user-1", name: "Alice", image: null }, role: "ADMIN" },
       { user: { id: "user-2", name: "Bob", image: null }, role: "MEMBER" },
@@ -120,8 +119,7 @@ describe("Standings API — GET /api/groups/:id/standings", () => {
 
   it("breaks ties using predictions scored count", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockPrisma.membership.findUnique.mockResolvedValue({ userId: "user-1", groupId: "group-1" });
-    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1" });
+    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1", visibility: "PUBLIC" });
     mockPrisma.membership.findMany.mockResolvedValue([
       { user: { id: "user-1", name: "Alice", image: null }, role: "ADMIN" },
       { user: { id: "user-2", name: "Bob", image: null }, role: "MEMBER" },
@@ -148,8 +146,7 @@ describe("Standings API — GET /api/groups/:id/standings", () => {
 
   it("returns lastRoundPoints based on latest match day", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockPrisma.membership.findUnique.mockResolvedValue({ userId: "user-1", groupId: "group-1" });
-    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1" });
+    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1", visibility: "PUBLIC" });
     mockPrisma.membership.findMany.mockResolvedValue([
       { user: { id: "user-1", name: "Alice", image: null }, role: "ADMIN" },
     ]);
@@ -173,8 +170,7 @@ describe("Standings API — GET /api/groups/:id/standings", () => {
 
   it("filters lastRoundPoints by matchDay query param", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockPrisma.membership.findUnique.mockResolvedValue({ userId: "user-1", groupId: "group-1" });
-    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1" });
+    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1", visibility: "PUBLIC" });
     mockPrisma.membership.findMany.mockResolvedValue([
       { user: { id: "user-1", name: "Alice", image: null }, role: "ADMIN" },
     ]);
@@ -196,8 +192,7 @@ describe("Standings API — GET /api/groups/:id/standings", () => {
 
   it("returns match days in ascending order", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockPrisma.membership.findUnique.mockResolvedValue({ userId: "user-1", groupId: "group-1" });
-    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1" });
+    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1", visibility: "PUBLIC" });
     mockPrisma.membership.findMany.mockResolvedValue([
       { user: { id: "user-1", name: "Alice", image: null }, role: "ADMIN" },
     ]);
@@ -226,28 +221,8 @@ describe("Results API — GET /api/groups/:id/results", () => {
     vi.clearAllMocks();
   });
 
-  it("returns 401 when not authenticated", async () => {
-    mockAuth.mockResolvedValue(null);
-    const { GET } = await import("@/app/api/groups/[id]/results/route");
-
-    const req = new NextRequest("http://localhost:3000/api/groups/group-1/results");
-    const res = await GET(req, routeParams);
-    expect(res.status).toBe(401);
-  });
-
-  it("returns 403 when user is not a member", async () => {
+  it("returns 404 when group does not exist (results)", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockPrisma.membership.findUnique.mockResolvedValue(null);
-
-    const { GET } = await import("@/app/api/groups/[id]/results/route");
-    const req = new NextRequest("http://localhost:3000/api/groups/group-1/results");
-    const res = await GET(req, routeParams);
-    expect(res.status).toBe(403);
-  });
-
-  it("returns 404 when group does not exist", async () => {
-    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockPrisma.membership.findUnique.mockResolvedValue({ userId: "user-1", groupId: "group-1" });
     mockPrisma.group.findUnique.mockResolvedValue(null);
 
     const { GET } = await import("@/app/api/groups/[id]/results/route");
@@ -256,10 +231,30 @@ describe("Results API — GET /api/groups/:id/results", () => {
     expect(res.status).toBe(404);
   });
 
+  it("returns 401 for unauthenticated access to private group results", async () => {
+    mockAuth.mockResolvedValue(null);
+    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1", visibility: "PRIVATE" });
+
+    const { GET } = await import("@/app/api/groups/[id]/results/route");
+    const req = new NextRequest("http://localhost:3000/api/groups/group-1/results");
+    const res = await GET(req, routeParams);
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 403 when user is not a member of private group", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
+    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1", visibility: "PRIVATE" });
+    mockPrisma.membership.findUnique.mockResolvedValue(null);
+
+    const { GET } = await import("@/app/api/groups/[id]/results/route");
+    const req = new NextRequest("http://localhost:3000/api/groups/group-1/results");
+    const res = await GET(req, routeParams);
+    expect(res.status).toBe(403);
+  });
+
   it("returns empty results when no finished matches", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockPrisma.membership.findUnique.mockResolvedValue({ userId: "user-1", groupId: "group-1" });
-    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1" });
+    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1", visibility: "PUBLIC" });
     mockPrisma.match.findMany.mockResolvedValue([]);
 
     const { GET } = await import("@/app/api/groups/[id]/results/route");
@@ -274,8 +269,7 @@ describe("Results API — GET /api/groups/:id/results", () => {
 
   it("returns finished matches with predictions attached", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockPrisma.membership.findUnique.mockResolvedValue({ userId: "user-1", groupId: "group-1" });
-    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1" });
+    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1", visibility: "PUBLIC" });
     mockPrisma.match.findMany.mockResolvedValue([
       {
         id: "match-1",
@@ -324,8 +318,7 @@ describe("Results API — GET /api/groups/:id/results", () => {
 
   it("returns empty predictions array for matches with no tips", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockPrisma.membership.findUnique.mockResolvedValue({ userId: "user-1", groupId: "group-1" });
-    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1" });
+    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1", visibility: "PUBLIC" });
     mockPrisma.match.findMany.mockResolvedValue([
       {
         id: "match-1",
@@ -350,8 +343,7 @@ describe("Results API — GET /api/groups/:id/results", () => {
 
   it("returns match days in descending order", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockPrisma.membership.findUnique.mockResolvedValue({ userId: "user-1", groupId: "group-1" });
-    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1" });
+    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1", visibility: "PUBLIC" });
     mockPrisma.match.findMany.mockResolvedValue([
       {
         id: "m1", matchDay: 1, stage: null, kickoffTime: new Date(), homeGoals: 1, awayGoals: 0,
@@ -381,8 +373,7 @@ describe("Results API — GET /api/groups/:id/results", () => {
 
   it("supports matchDay filtering via query param", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockPrisma.membership.findUnique.mockResolvedValue({ userId: "user-1", groupId: "group-1" });
-    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1" });
+    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1", visibility: "PUBLIC" });
     mockPrisma.match.findMany.mockResolvedValue([]);
     mockPrisma.prediction.findMany.mockResolvedValue([]);
 

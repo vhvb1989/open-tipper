@@ -11,3 +11,7 @@ services:
     project: ./web
     language: js
     host: appservice
+  functions:
+    project: ./functions
+    language: ts
+    host: function

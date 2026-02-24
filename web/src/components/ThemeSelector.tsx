@@ -10,7 +10,7 @@ export function ThemeSelector() {
       <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
         Color Theme
       </h3>
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         {THEMES.map((t) => (
           <button
             key={t.id}

@@ -56,6 +56,10 @@ param authMicrosoftEntraIdIssuer string
 @description('API-Football API Key')
 param footballApiKey string
 
+@secure()
+@description('Shared secret for authenticating cron/timer requests')
+param cronSecret string = ''
+
 // App Service Plan
 resource appServicePlan 'Microsoft.Web/serverfarms@2024-04-01' = {
   name: appServicePlanName
@@ -164,6 +168,10 @@ resource appService 'Microsoft.Web/sites@2024-04-01' = {
         {
           name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
           value: 'true'
+        }
+        {
+          name: 'CRON_SECRET'
+          value: cronSecret
         }
       ]
     }

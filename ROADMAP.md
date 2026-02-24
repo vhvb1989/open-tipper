@@ -1,4 +1,4 @@
-# Sport Predictor — Implementation Plan & Roadmap
+# Open Tipper — Implementation Plan & Roadmap
 
 > Reference: [SPEC.md](SPEC.md) for full product specification.
 >
@@ -24,9 +24,9 @@ Use this table to track progress across cycles. Update as work proceeds.
 | 7 | Invitation & Sharing | **completed** | Invite code (Cycle 3), join page, invite-link regeneration API, InviteSection component (copy + Web Share API + regenerate), 5 new tests (128 total), 28 routes |
 | 8 | Admin Panel & Sync | **completed** | UserRole enum, auto-admin first user, admin auth helper, competitions browser (API-Football), sync API, user management API, admin UI (competitions + users tabs), NavBar admin link, 18 new tests (146 total), 33 routes |
 | — | **MVP Complete** | — | — |
-| 9 | Polish, Landing Page & How It Works | not-started | |
-| 10 | Public Groups & Group Browser | not-started | |
-| 11 | Real-Time Updates & Live Scoring | not-started | |
+| 9 | Polish, Landing Page & How It Works | **completed** | Landing page (hero + 6 feature cards + footer), How It Works page (6-step guide + scoring table), 4-theme design system (Classic/Midnight/Deep Blue/Steel), mobile responsiveness fixes, loading/error states across all pages, Footer component |
+| 10 | Public Groups & Group Browser | **completed** | Browse API with search/contest filters, public group cards (name, contest, members, admin), join button, public standings/results for non-members, NavBar browse link, JoinGroupButton component, 11 new tests (167 total), 36 routes |
+| 11 | Real-Time Updates & Live Scoring | **completed** | Cron sync endpoint, SSE live stream, LiveProvider/LiveBadge, auto-refresh results/standings, Azure Functions timer, 14 new tests (182 total), 38 routes |
 | 12 | Additional Competitions | **completed** | API-Football 1200+ leagues, admin competitions browser, sync any league, sub-tournament filtering |
 | 13 | Push Notifications | not-started | |
 | 13 | Stats & Analytics | not-started | |
@@ -390,33 +390,58 @@ Sign up as the first user → see "Admin" link in nav → go to Admin → browse
 
 ---
 
-## Cycle 9 — Polish, Landing Page & How It Works
+## Cycle 9 — Polish, Landing Page & How It Works ✅
 
 **Goal:** A polished public-facing experience for new visitors.
 
 **Deliverables:**
-- [ ] Landing page: hero section, value propositions, CTA to sign in, list of active contests
-- [ ] How It Works page: visual explanation of joining, predicting, scoring (with examples)
-- [ ] Consistent design system: typography, colors, spacing, component library
-- [ ] Mobile responsiveness audit and fixes
-- [ ] Loading states, empty states, and error handling across all pages
-- [ ] Footer with privacy policy link, contact info
+- [x] Landing page: hero section with navy/gold branding, 6-card features grid, "How it works" CTA, Footer
+- [x] How It Works page: 6-step visual walkthrough, scoring table with examples, CTA to sign up
+- [x] Consistent design system: 4 theme presets (Classic/Midnight/Deep Blue/Steel), navy + gold palettes, runtime-switchable via `@theme` CSS custom properties
+- [x] Mobile responsiveness audit and fixes (22 issues: 3 critical, 11 moderate, 8 minor — all addressed)
+- [x] Loading states, empty states, and error handling across all pages (dashboard/members loading.tsx + error.tsx, tab error banners with retry, empty states in admin users and create group)
+- [x] Footer with privacy policy link, contact info, How It Works link
+
+**Actual implementation:**
+- `Footer.tsx` — reusable footer with brand, product/legal links, copyright
+- `page.tsx` (landing) — hero + 6 feature cards + footer
+- `how-it-works/page.tsx` — 6-step guide + scoring examples table + CTA
+- `ThemeProvider.tsx` + `ThemeSelector.tsx` — 4 navy/gold theme presets
+- `globals.css` — `@theme` (non-inline) color tokens, `[data-theme]` overrides
+- Mobile fixes: `overflow-x-auto` on tables, `flex-wrap` on button rows, `truncate`/`min-w-0` on team names, `hidden sm:table-cell` for secondary columns
+- Error banners with retry in PredictionsTab, ResultsTab, StandingsTab
+- Skeleton loading pages for dashboard and members routes
+- Empty state messaging for admin users page and create group contests
 
 **Testable outcome:**  
 Visit the site without signing in → see an attractive landing page → click "How It Works" → understand the game. Site looks good on phone and desktop.
 
 ---
 
-## Cycle 10 — Public Groups & Group Browser
+## Cycle 10 — Public Groups & Group Browser ✅
 
 **Goal:** Users can discover and join public groups.
 
 **Deliverables:**
-- [ ] Public group browser page: filterable by contest
-- [ ] Search/filter groups by name
-- [ ] Group cards showing: name, contest, member count, admin
-- [ ] "Join" button on public group cards
-- [ ] Public groups' standings and results visible to non-members
+- [x] Public group browser page: filterable by contest
+- [x] Search/filter groups by name
+- [x] Group cards showing: name, contest, member count, admin
+- [x] "Join" button on public group cards
+- [x] Public groups' standings and results visible to non-members
+
+**Actual implementation:**
+- `GET /api/groups/browse` — returns all public groups with contest info, member counts, admin name; supports `search` and `contestId` query params; also returns contests with public groups for filter dropdown
+- `POST /api/groups/:id/join` — existing route already supported public groups (no invite code needed)
+- `GET /api/groups/:id/standings` — updated: public groups visible to anyone (auth optional), private groups still require membership
+- `GET /api/groups/:id/results` — updated: same public/private access pattern as standings
+- `/groups/browse` — client-side page with search input, contest filter dropdown, loading skeletons, empty states, group cards with join button and "View standings" link
+- `JoinGroupButton.tsx` — reusable client component shown on the group page header for non-members of public groups
+- Group layout updated: non-members see Standings and Results tabs (no Predictions/Members/Settings), back link goes to "Browse Groups" instead of "My Groups"
+- `GroupTabs` updated: Predictions tab hidden for non-members; non-members visiting the default group page are redirected to standings
+- NavBar: "Browse" link added for both authenticated and unauthenticated users
+- Landing page: "Browse groups" CTA added for unauthenticated visitors
+- 11 new tests: browse API (6), public group access (3), join flow (2)
+- 167 tests passing, 36 routes, clean build
 
 **Testable outcome:**  
 Create a public group → visit the group browser → see the group listed → join it with a different account → start predicting.
@@ -428,11 +453,26 @@ Create a public group → visit the group browser → see the group listed → j
 **Goal:** Match results and scores update in near-real-time during live matches.
 
 **Deliverables:**
-- [ ] Background job/cron: poll football API every 1-2 minutes during match windows
-- [ ] WebSocket or Server-Sent Events (SSE) for pushing updates to connected clients
-- [ ] Live match status indicators (scheduled → live → finished)
-- [ ] Auto-refresh leaderboard and results when a match finishes (no manual reload)
-- [ ] "Live" badge on matches currently in progress
+- [x] Background job/cron: poll football API every 1-2 minutes during match windows
+- [x] WebSocket or Server-Sent Events (SSE) for pushing updates to connected clients
+- [x] Live match status indicators (scheduled → live → finished)
+- [x] Auto-refresh leaderboard and results when a match finishes (no manual reload)
+- [x] "Live" badge on matches currently in progress
+
+**Actual implementation:**
+- `GET /api/cron/sync-live` — cron endpoint that finds contests with live (IN_PLAY/PAUSED) or imminent (kickoff < 30 min) matches and calls `syncCompetition()` for each; protected by `CRON_SECRET` bearer token
+- `GET /api/live/stream` — Server-Sent Events endpoint; polls DB every 10s for match changes, pushes `match-update` and `scores-updated` events; 30s heartbeat; supports `contestIds` query param
+- `LiveProvider` context + `useLive()` / `useLiveMatch()` hooks — manages EventSource connection, auto-reconnect on error, distributes live match data to child components
+- `LiveBadge` component — pulsing red "LIVE" badge for `IN_PLAY` matches, amber "HT" badge for `PAUSED` (halftime)
+- `ResultsTab` updated — shows live matches alongside finished ones; live-aware `MatchScore` sub-component shows real-time scores in red; auto-refetches when predictions are scored
+- `StandingsTab` updated — auto-refetches standings when `scores-updated` event fires (no manual reload needed)
+- Results API updated — `GET /api/groups/:id/results` now includes `IN_PLAY` and `PAUSED` matches with status field, not just FINISHED
+- Group layout wraps tab content with `LiveProvider` using the group's `contestId`
+- `scripts/live-poll.ts` — localhost polling script (every 90s) that calls the cron endpoint for local testing
+- Azure Functions timer trigger (`functions/src/index.ts`) — runs every 2 min on Consumption plan, calls the web app's cron endpoint
+- Azure infrastructure: `infra/core/host/function.bicep` — Function App (Y1 Consumption), `CRON_TARGET_URL` + `CRON_SECRET` app settings; `infra/main.bicep` updated with Function App module; `azure.yaml` updated with functions service
+- 14 new tests: cron endpoint (6), SSE stream (3), LiveBadge (5)
+- 182 tests passing, 38 routes, clean build
 
 **Testable outcome:**  
 A match is live → the UI shows a "Live" badge → when the match finishes → the results and leaderboard update automatically without page refresh.

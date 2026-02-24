@@ -81,6 +81,7 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
   const [matchDays, setMatchDays] = useState<number[]>([]);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [saveStatuses, setSaveStatuses] = useState<Record<string, SaveStatus>>({});
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
@@ -119,6 +120,7 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
         }
       } catch (err) {
         console.error("Failed to load matches:", err);
+        setError("Failed to load matches. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -135,6 +137,7 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
       setPredictions(data.predictions);
     } catch (err) {
       console.error("Failed to load predictions:", err);
+      setError("Failed to load predictions.");
     }
   }, [groupId]);
 
@@ -247,6 +250,15 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
 
   return (
     <div>
+      {/* Error banner */}
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+          {error}
+          <button onClick={() => { setError(null); fetchMatches(selectedDay); fetchPredictions(); }} className="ml-2 underline">
+            Retry
+          </button>
+        </div>
+      )}
       {/* Match-day navigation */}
       {matchDays.length > 1 && (
         <div className="mb-6 flex items-center justify-between">
@@ -360,8 +372,8 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
               {/* Match card body: Home — Score Inputs — Away */}
               <div className="flex items-center justify-between gap-4">
                 {/* Home team */}
-                <div className="flex flex-1 items-center justify-end gap-2 text-right">
-                  <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                <div className="flex min-w-0 flex-1 items-center justify-end gap-2 text-right">
+                  <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
                     {match.homeTeam.shortName || match.homeTeam.name}
                   </span>
                   {match.homeTeam.crest && (
@@ -413,15 +425,15 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
                 </div>
 
                 {/* Away team */}
-                <div className="flex flex-1 items-center gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
                   {match.awayTeam.crest && (
                     <img
                       src={match.awayTeam.crest}
                       alt={match.awayTeam.name}
-                      className="h-6 w-6 object-contain"
+                      className="h-6 w-6 shrink-0 object-contain"
                     />
                   )}
-                  <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
                     {match.awayTeam.shortName || match.awayTeam.name}
                   </span>
                 </div>

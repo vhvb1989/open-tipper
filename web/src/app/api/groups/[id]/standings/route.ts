@@ -10,33 +10,39 @@ type RouteParams = { params: Promise<{ id: string }> };
  * Returns a ranked leaderboard for the group. Aggregates pointsAwarded
  * from all scored predictions per member. Includes total points, number of
  * predictions scored, and per-match-day breakdown for "last round" display.
+ *
+ * Public groups: visible to anyone (auth optional).
+ * Private groups: visible to members only.
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const userId = session?.user?.id ?? null;
 
     const { id: groupId } = await params;
     const { searchParams } = new URL(request.url);
     const matchDay = searchParams.get("matchDay");
 
-    // Verify membership
-    const membership = await prisma.membership.findUnique({
-      where: { userId_groupId: { userId: session.user.id, groupId } },
-    });
-    if (!membership) {
-      return NextResponse.json({ error: "Not a member of this group" }, { status: 403 });
-    }
-
-    // Get the group with contest info for match-day lookup
+    // Get the group with contest info and visibility
     const group = await prisma.group.findUnique({
       where: { id: groupId },
-      select: { contestId: true },
+      select: { contestId: true, visibility: true },
     });
     if (!group) {
       return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+
+    // Access control: public groups are visible to anyone, private groups to members only
+    if (group.visibility === "PRIVATE") {
+      if (!userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      const membership = await prisma.membership.findUnique({
+        where: { userId_groupId: { userId, groupId } },
+      });
+      if (!membership) {
+        return NextResponse.json({ error: "Not a member of this group" }, { status: 403 });
+      }
     }
 
     // Get all members

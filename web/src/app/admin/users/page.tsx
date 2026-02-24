@@ -80,20 +80,27 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      <div className="rounded-lg border border-zinc-200 dark:border-zinc-700">
+      {users.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-zinc-300 px-8 py-16 text-center dark:border-zinc-700">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            No users found.
+          </p>
+        </div>
+      ) : (
+      <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800/50">
               <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">
                 User
               </th>
-              <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">
+              <th className="hidden px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400 sm:table-cell">
                 Email
               </th>
               <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">
                 Role
               </th>
-              <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">
+              <th className="hidden px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400 sm:table-cell">
                 Joined
               </th>
               <th className="px-4 py-3 text-right font-medium text-zinc-600 dark:text-zinc-400">
@@ -127,7 +134,7 @@ export default function AdminUsersPage() {
                     </span>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400">
+                <td className="hidden px-4 py-3 text-zinc-600 dark:text-zinc-400 sm:table-cell">
                   {user.email ?? "—"}
                 </td>
                 <td className="px-4 py-3">
@@ -141,7 +148,7 @@ export default function AdminUsersPage() {
                     {user.role}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400">
+                <td className="hidden px-4 py-3 text-zinc-500 dark:text-zinc-400 sm:table-cell">
                   {new Date(user.createdAt).toLocaleDateString()}
                 </td>
                 <td className="px-4 py-3 text-right">
@@ -162,6 +169,7 @@ export default function AdminUsersPage() {
           </tbody>
         </table>
       </div>
+      )}
 
       <p className="text-xs text-zinc-400 dark:text-zinc-500">
         {users.length} user{users.length !== 1 ? "s" : ""} total ·{" "}

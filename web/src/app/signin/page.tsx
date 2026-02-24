@@ -16,7 +16,7 @@ export default function SignInPage() {
       <div className="w-full max-w-sm space-y-8 px-6">
         <div className="text-center">
           <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Sport Predictor
+            Open Tipper
           </h1>
           <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
             Sign in to start predicting
@@ -85,7 +85,7 @@ export default function SignInPage() {
 
         <p className="text-center text-xs text-zinc-400 dark:text-zinc-500">
           Only providers you&apos;ve configured will work.{" "}
-          <a href="https://github.com/your-username/sport-predictor#authentication-providers" className="underline">
+          <a href="https://github.com/your-username/open-tipper#authentication-providers" className="underline">
             Setup guide
           </a>
         </p>

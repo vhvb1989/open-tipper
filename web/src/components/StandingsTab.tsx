@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useLive } from "./LiveProvider";
 
 /* ---------- Types ---------- */
 
@@ -28,6 +29,8 @@ export default function StandingsTab({
   const [matchDays, setMatchDays] = useState<number[]>([]);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { scoresVersion } = useLive();
 
   const fetchStandings = useCallback(
     async (matchDay?: number | null) => {
@@ -47,6 +50,7 @@ export default function StandingsTab({
         }
       } catch (err) {
         console.error("Failed to load standings:", err);
+        setError("Failed to load standings. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -58,6 +62,14 @@ export default function StandingsTab({
     fetchStandings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-refresh when predictions are scored (via SSE)
+  useEffect(() => {
+    if (scoresVersion > 0) {
+      fetchStandings(selectedDay);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scoresVersion]);
 
   const handleDayChange = (day: number) => {
     setSelectedDay(day);
@@ -89,6 +101,16 @@ export default function StandingsTab({
 
   return (
     <div>
+      {/* Error banner */}
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+          {error}
+          <button onClick={() => { setError(null); fetchStandings(selectedDay); }} className="ml-2 underline">
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* Match-day filter */}
       {matchDays.length > 0 && (
         <div className="mb-4 flex items-center gap-3">
@@ -110,7 +132,7 @@ export default function StandingsTab({
       )}
 
       {/* Standings table */}
-      <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700">
+      <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-700">
         <table className="w-full">
           <thead>
             <tr className="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-400">

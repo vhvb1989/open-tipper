@@ -1,24 +1,26 @@
-# Sport Predictor
+# Open Tipper
 
 > Score prediction with your mates — predict football match scores and compete on leaderboards with friends, family, or co-workers.
 
-Inspired by [tipper.io](https://tipper.io), Sport Predictor is an open-source, group-based football score prediction platform. Create or join a group, predict exact match scorelines, and earn points via a configurable scoring system.
+Inspired by [tipper.io](https://tipper.io), Open Tipper is an open-source, group-based football score prediction platform. Create or join a group, predict exact match scorelines, and earn points via a configurable scoring system.
 
 **[Full Product Spec](SPEC.md)** · **[Implementation Roadmap](ROADMAP.md)**
 
 ## Features
 
 - **Group-based competition** — create private or public groups tied to a football competition
+- **Browse public groups** — discover and join public groups with search and competition filters
 - **Score predictions** — predict exact scorelines for every match, up until kick-off
 - **Configurable scoring** — 6 scoring factors with customizable point values and accumulation modes
 - **Automatic leaderboards** — standings update automatically as real match results come in
+- **Real-time live updates** — live match scores pushed via SSE, "LIVE" badge on in-progress matches, auto-refresh standings & results
 - **Results & breakdowns** — view completed matches with each member's prediction and points earned
 - **Invite friends** — share a link and friends join instantly
 - **Azure-native** — deploy your own instance with a single `azd up` command
 
 ## Supported Competitions
 
-Sport Predictor supports **any competition available through API-Football** — over 1,200 leagues worldwide. Some popular choices:
+Open Tipper supports **any competition available through API-Football** — over 1,200 leagues worldwide. Some popular choices:
 
 - UEFA Champions League
 - FIFA World Cup
@@ -62,8 +64,8 @@ Some leagues have multiple sub-tournaments per season (e.g., Liga MX has Apertur
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/sport-predictor.git
-cd sport-predictor
+git clone https://github.com/your-username/open-tipper.git
+cd open-tipper
 ```
 
 #### 1. Start the database
@@ -72,7 +74,7 @@ cd sport-predictor
 docker compose up -d
 ```
 
-This starts a local PostgreSQL 16 instance on port 5432 (user: `postgres`, password: `postgres`, database: `sport_predictor`).
+This starts a local PostgreSQL 16 instance on port 5432 (user: `postgres`, password: `postgres`, database: `open_tipper`).
 
 #### 2. Install dependencies
 
@@ -93,7 +95,7 @@ Edit `web/.env` and fill in at minimum:
 |----------|---------------|
 | `FOOTBALL_API_KEY` | Sign up at [API-Football](https://dashboard.api-football.com/) (free tier — 100 requests/day) |
 | `AUTH_SECRET` | Generate with `openssl rand -base64 32` |
-| `DATABASE_URL` | Pre-filled for local Docker: `postgresql://postgres:postgres@localhost:5432/sport_predictor?schema=public` |
+| `DATABASE_URL` | Pre-filled for local Docker: `postgresql://postgres:postgres@localhost:5432/open_tipper?schema=public` |
 
 > The auth provider variables (`AUTH_GOOGLE_*`, `AUTH_GITHUB_*`, `AUTH_MICROSOFT_ENTRA_ID_*`) are optional — configure at least one to enable sign-in. See [Authentication Providers](#authentication-providers) below.
 
@@ -149,6 +151,7 @@ azd up
 
 This provisions:
 - **Azure App Service** — hosts the Next.js web app
+- **Azure Functions** (Consumption plan) — timer-triggered live sync every 2 minutes during match windows
 - **Azure Database for PostgreSQL** (Flexible Server) — application database
 - **Azure Blob Storage** — avatar and asset storage
 - **Azure Application Insights** — monitoring and logging
@@ -175,6 +178,7 @@ azd down
 | `AUTH_MICROSOFT_ENTRA_ID_ID` | Microsoft Entra ID app client ID | Optional |
 | `AUTH_MICROSOFT_ENTRA_ID_SECRET` | Microsoft Entra ID app client secret | Optional |
 | `AUTH_MICROSOFT_ENTRA_ID_ISSUER` | Entra ID issuer URL (for single-tenant) | Optional |
+| `CRON_SECRET` | Shared bearer token for cron/timer sync endpoint | Optional |
 | `NEXT_PUBLIC_APP_URL` | Public URL of the app | Yes |
 
 See [web/.env.example](web/.env.example) for a template.
@@ -196,10 +200,11 @@ All commands run from the `web/` directory:
 | `npm run db:migrate` | Run Prisma migrations (`prisma migrate dev`) |
 | `npm run db:seed` | Seed the database from API-Football |
 | `npm run db:sync` | Re-sync match data from API-Football |
+| `npx tsx scripts/live-poll.ts` | Start live-sync polling (every 90s) for local dev |
 
 ## Authentication Providers
 
-Sport Predictor uses [NextAuth.js (Auth.js v5)](https://authjs.dev/) for authentication. It runs entirely inside your app — no external auth service needed. Configure one or more OAuth providers by setting their environment variables. Only providers with credentials set will appear on the sign-in page.
+Open Tipper uses [NextAuth.js (Auth.js v5)](https://authjs.dev/) for authentication. It runs entirely inside your app — no external auth service needed. Configure one or more OAuth providers by setting their environment variables. Only providers with credentials set will appear on the sign-in page.
 
 First, generate an auth secret:
 
@@ -256,7 +261,7 @@ AUTH_MICROSOFT_ENTRA_ID_SECRET=<client-secret-value>
 - **Database:** PostgreSQL (local Docker / Azure Flexible Server)
 - **ORM:** Prisma
 - **Auth:** NextAuth.js (Auth.js v5) — Google, GitHub, Microsoft
-- **Hosting:** Azure App Service
+- **Hosting:** Azure App Service + Azure Functions (Consumption)
 - **IaC:** Azure Developer CLI (`azd`) + Bicep
 - **CI/CD:** GitHub Actions
 - **Testing:** Vitest + Playwright
@@ -264,7 +269,7 @@ AUTH_MICROSOFT_ENTRA_ID_SECRET=<client-secret-value>
 ## Project Structure
 
 ```
-sport-predictor/
+open-tipper/
 ├── .github/workflows/     # CI/CD pipelines
 ├── infra/                 # Azure Bicep infrastructure templates
 │   ├── main.bicep         # Root orchestration
@@ -272,7 +277,10 @@ sport-predictor/
 │   └── core/              # Shared infra modules
 │       ├── database/      # PostgreSQL Flexible Server
 │       ├── monitor/       # Application Insights
+│       ├── host/          # Azure Functions
 │       └── storage/       # Blob Storage
+├── functions/             # Azure Functions (timer-triggered live sync)
+│   └── src/               # Function App source code
 ├── web/                   # Next.js web application
 │   ├── e2e/               # Playwright end-to-end tests
 │   ├── prisma/            # Prisma schema and migrations

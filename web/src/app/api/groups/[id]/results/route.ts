@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import {
+  calculateScore,
+  isPlayoffStage,
+  DEFAULT_SCORING_RULES,
+  type ScoringRulesConfig,
+} from "@/lib/scoring";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -10,49 +16,57 @@ type RouteParams = { params: Promise<{ id: string }> };
  * Returns finished matches with all members' predictions and points.
  * Matches are grouped by match day, ordered newest first.
  * Supports optional matchDay query param for filtering.
+ *
+ * Public groups: visible to anyone (auth optional).
+ * Private groups: visible to members only.
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const userId = session?.user?.id ?? null;
 
     const { id: groupId } = await params;
     const { searchParams } = new URL(request.url);
     const matchDayParam = searchParams.get("matchDay");
 
-    // Verify membership
-    const membership = await prisma.membership.findUnique({
-      where: { userId_groupId: { userId: session.user.id, groupId } },
-    });
-    if (!membership) {
-      return NextResponse.json({ error: "Not a member of this group" }, { status: 403 });
-    }
-
-    // Get the group
+    // Get the group with its scoring rules
     const group = await prisma.group.findUnique({
       where: { id: groupId },
-      select: { contestId: true },
+      select: {
+        contestId: true,
+        visibility: true,
+        scoringRules: true,
+      },
     });
     if (!group) {
       return NextResponse.json({ error: "Group not found" }, { status: 404 });
     }
 
-    // Query all available finished match days (independent of filter)
-    const allFinishedMatchDays = await prisma.match.findMany({
+    // Access control: public groups are visible to anyone, private groups to members only
+    if (group.visibility === "PRIVATE") {
+      if (!userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      const membership = await prisma.membership.findUnique({
+        where: { userId_groupId: { userId, groupId } },
+      });
+      if (!membership) {
+        return NextResponse.json({ error: "Not a member of this group" }, { status: 403 });
+      }
+    }
+
+    // Query all available played match days (finished + live, independent of filter)
+    const allPlayedMatchDays = await prisma.match.findMany({
       where: {
         contestId: group.contestId,
-        status: { in: ["FINISHED", "AWARDED"] },
-        homeGoals: { not: null },
-        awayGoals: { not: null },
+        status: { in: ["FINISHED", "AWARDED", "IN_PLAY", "PAUSED"] },
         matchDay: { not: null },
       },
       select: { matchDay: true },
       distinct: ["matchDay"],
       orderBy: { matchDay: "desc" },
     });
-    const matchDays = allFinishedMatchDays
+    const matchDays = allPlayedMatchDays
       .map((m) => m.matchDay)
       .filter((d): d is number => d !== null)
       .sort((a, b) => b - a);
@@ -63,12 +77,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       ? parseInt(matchDayParam, 10)
       : matchDays[0] ?? null;
 
-    // Build match filter: finished matches in this contest
+    // Build match filter: finished + live matches in this contest
     const matchWhere: Record<string, unknown> = {
       contestId: group.contestId,
-      status: { in: ["FINISHED", "AWARDED"] },
-      homeGoals: { not: null },
-      awayGoals: { not: null },
+      status: { in: ["FINISHED", "AWARDED", "IN_PLAY", "PAUSED"] },
     };
     if (effectiveMatchDay !== null) {
       matchWhere.matchDay = effectiveMatchDay;
@@ -82,6 +94,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         id: true,
         matchDay: true,
         stage: true,
+        status: true,
         kickoffTime: true,
         homeGoals: true,
         awayGoals: true,
@@ -111,7 +124,24 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       orderBy: [{ pointsAwarded: { sort: "desc", nulls: "last" } }],
     });
 
-    // Group predictions by matchId
+    // Build scoring rules config for this group
+    const rules: ScoringRulesConfig = group.scoringRules
+      ? {
+          exactScore: group.scoringRules.exactScore,
+          goalDifference: group.scoringRules.goalDifference,
+          outcome: group.scoringRules.outcome,
+          oneTeamGoals: group.scoringRules.oneTeamGoals,
+          totalGoals: group.scoringRules.totalGoals,
+          reverseGoalDifference: group.scoringRules.reverseGoalDifference,
+          accumulationMode: group.scoringRules.accumulationMode,
+          playoffMultiplier: group.scoringRules.playoffMultiplier,
+        }
+      : DEFAULT_SCORING_RULES;
+
+    // Build a lookup for match results
+    const matchById = new Map(matches.map((m) => [m.id, m]));
+
+    // Group predictions by matchId, with scoring breakdown
     const predsByMatch = new Map<
       string,
       Array<{
@@ -121,12 +151,38 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         homeGoals: number;
         awayGoals: number;
         pointsAwarded: number | null;
+        breakdown: {
+          exactScore: number;
+          goalDifference: number;
+          outcome: number;
+          oneTeamGoals: number;
+          totalGoals: number;
+          reverseGoalDifference: number;
+        } | null;
       }>
     >();
     for (const p of predictions) {
       if (!predsByMatch.has(p.matchId)) {
         predsByMatch.set(p.matchId, []);
       }
+
+      // Calculate scoring breakdown if match has a result
+      const match = matchById.get(p.matchId);
+      let breakdown = null;
+      if (match && match.homeGoals !== null && match.awayGoals !== null) {
+        const result = { homeGoals: match.homeGoals, awayGoals: match.awayGoals };
+        const pred = { homeGoals: p.homeGoals, awayGoals: p.awayGoals };
+        const scored = calculateScore(pred, result, rules, isPlayoffStage(match.stage));
+        breakdown = {
+          exactScore: scored.exactScore,
+          goalDifference: scored.goalDifference,
+          outcome: scored.outcome,
+          oneTeamGoals: scored.oneTeamGoals,
+          totalGoals: scored.totalGoals,
+          reverseGoalDifference: scored.reverseGoalDifference,
+        };
+      }
+
       predsByMatch.get(p.matchId)!.push({
         userId: p.user.id,
         userName: p.user.name,
@@ -134,6 +190,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         homeGoals: p.homeGoals,
         awayGoals: p.awayGoals,
         pointsAwarded: p.pointsAwarded,
+        breakdown,
       });
     }
 

@@ -13,7 +13,7 @@ export function GroupTabs({ groupId, isAdmin, isMember }: GroupTabsProps) {
   const pathname = usePathname();
 
   const tabs = [
-    { label: "Predictions", href: `/groups/${groupId}`, exact: true },
+    ...(isMember ? [{ label: "Predictions", href: `/groups/${groupId}`, exact: true }] : []),
     { label: "Standings", href: `/groups/${groupId}/standings` },
     { label: "Results", href: `/groups/${groupId}/results` },
     ...(isMember ? [{ label: "Members", href: `/groups/${groupId}/members` }] : []),

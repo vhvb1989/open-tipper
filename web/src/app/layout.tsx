@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sport Predictor",
+  title: "Open Tipper",
   description: "Score prediction with your mates — predict football match scores and compete on leaderboards.",
 };
 

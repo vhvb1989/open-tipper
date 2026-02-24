@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useLive, useLiveMatch } from "./LiveProvider";
+import { LiveBadge } from "./LiveBadge";
 
 /* ---------- Types ---------- */
 
@@ -19,12 +21,21 @@ interface PredictionEntry {
   homeGoals: number;
   awayGoals: number;
   pointsAwarded: number | null;
+  breakdown: {
+    exactScore: number;
+    goalDifference: number;
+    outcome: number;
+    oneTeamGoals: number;
+    totalGoals: number;
+    reverseGoalDifference: number;
+  } | null;
 }
 
 interface MatchResult {
   id: string;
   matchDay: number | null;
   stage: string | null;
+  status: string;
   kickoffTime: string;
   homeGoals: number | null;
   awayGoals: number | null;
@@ -55,7 +66,67 @@ function isExactHit(pred: PredictionEntry, result: MatchResult): boolean {
   return pred.homeGoals === result.homeGoals && pred.awayGoals === result.awayGoals;
 }
 
+/** Scoring factor badge definitions */
+const FACTOR_BADGES: Array<{
+  key: keyof NonNullable<PredictionEntry["breakdown"]>;
+  label: string;
+  title: string;
+  color: string;
+}> = [
+  { key: "exactScore", label: "ES", title: "Exact Score", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
+  { key: "goalDifference", label: "GD", title: "Goal Difference", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+  { key: "outcome", label: "OC", title: "Outcome (W/D/L)", color: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400" },
+  { key: "oneTeamGoals", label: "OT", title: "One Team's Goals", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
+  { key: "totalGoals", label: "TG", title: "Total Goals", color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400" },
+  { key: "reverseGoalDifference", label: "RG", title: "Reverse Goal Diff", color: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" },
+];
+
+function BreakdownBadges({ breakdown }: { breakdown: NonNullable<PredictionEntry["breakdown"]> }) {
+  const activeBadges = FACTOR_BADGES.filter((f) => breakdown[f.key] > 0);
+  if (activeBadges.length === 0) return null;
+
+  return (
+    <div className="flex items-center gap-0.5">
+      {activeBadges.map((badge) => (
+        <span
+          key={badge.key}
+          title={`${badge.title}: +${breakdown[badge.key]}`}
+          className={`inline-flex items-center rounded px-1 py-0.5 text-[10px] font-bold leading-none ${badge.color}`}
+        >
+          {badge.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 /* ---------- Component ---------- */
+
+function MatchScore({ match }: { match: MatchResult }) {
+  const liveData = useLiveMatch(match.id);
+  const isLive = match.status === "IN_PLAY" || match.status === "PAUSED" ||
+    liveData?.status === "IN_PLAY" || liveData?.status === "PAUSED";
+  const status = liveData?.status ?? match.status;
+  const homeGoals = liveData?.homeGoals ?? match.homeGoals;
+  const awayGoals = liveData?.awayGoals ?? match.awayGoals;
+
+  return (
+    <div className="mx-3 min-w-[60px] text-center">
+      {homeGoals !== null && awayGoals !== null ? (
+        <span className={`text-lg font-bold ${isLive ? "text-red-600 dark:text-red-400" : "text-zinc-900 dark:text-zinc-100"}`}>
+          {homeGoals} – {awayGoals}
+        </span>
+      ) : (
+        <span className="text-sm text-zinc-400">vs</span>
+      )}
+      {(isLive || status === "IN_PLAY" || status === "PAUSED") && (
+        <div className="mt-0.5">
+          <LiveBadge status={status} />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function ResultsTab({ groupId }: { groupId: string }) {
   const [results, setResults] = useState<MatchResult[]>([]);
@@ -63,6 +134,8 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { scoresVersion } = useLive();
 
   const fetchResults = useCallback(
     async (matchDay?: number | null) => {
@@ -82,6 +155,7 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
         }
       } catch (err) {
         console.error("Failed to load results:", err);
+        setError("Failed to load results. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -93,6 +167,14 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
     fetchResults();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-refresh when predictions are scored (via SSE)
+  useEffect(() => {
+    if (scoresVersion > 0) {
+      fetchResults(selectedDay);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scoresVersion]);
 
   const handleDayChange = (day: number) => {
     setSelectedDay(day);
@@ -131,6 +213,16 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
 
   return (
     <div>
+      {/* Error banner */}
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+          {error}
+          <button onClick={() => { setError(null); fetchResults(selectedDay); }} className="ml-2 underline">
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* Match-day navigation */}
       {matchDays.length > 1 && (
         <div className="mb-4 flex items-center justify-between">
@@ -193,8 +285,8 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
               >
                 <div className="flex flex-1 items-center gap-3">
                   {/* Home team */}
-                  <div className="flex flex-1 items-center justify-end gap-2 text-right">
-                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  <div className="flex min-w-0 flex-1 items-center justify-end gap-2 text-right">
+                    <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
                       {match.homeTeam.shortName || match.homeTeam.name}
                     </span>
                     {match.homeTeam.crest && (
@@ -206,23 +298,19 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
                     )}
                   </div>
 
-                  {/* Score */}
-                  <div className="mx-3 min-w-[60px] text-center">
-                    <span className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
-                      {match.homeGoals} – {match.awayGoals}
-                    </span>
-                  </div>
+                  {/* Score — live-aware */}
+                  <MatchScore match={match} />
 
                   {/* Away team */}
-                  <div className="flex flex-1 items-center gap-2">
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
                     {match.awayTeam.crest && (
                       <img
                         src={match.awayTeam.crest}
                         alt={match.awayTeam.name}
-                        className="h-5 w-5 object-contain"
+                        className="h-5 w-5 shrink-0 object-contain"
                       />
                     )}
-                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                    <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
                       {match.awayTeam.shortName || match.awayTeam.name}
                     </span>
                   </div>
@@ -279,11 +367,12 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
                               </span>
                             </div>
 
-                            {/* Prediction + points */}
-                            <div className="flex items-center gap-3">
+                            {/* Prediction + breakdown + points */}
+                            <div className="flex items-center gap-2">
                               <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
                                 {pred.homeGoals} – {pred.awayGoals}
                               </span>
+                              {pred.breakdown && <BreakdownBadges breakdown={pred.breakdown} />}
                               <div className="flex items-center gap-1">
                                 {exact && (
                                   <span className="text-xs" title="Exact score!">

@@ -1,11 +1,11 @@
 import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
 import StandingsTab from "@/components/StandingsTab";
 
 /**
  * Group Page — Standings Tab
  *
  * Ranked leaderboard showing total points, last-round points, and prediction count.
+ * For public groups, this is visible to non-members too.
  */
 export default async function GroupStandingsPage({
   params,
@@ -13,10 +13,8 @@ export default async function GroupStandingsPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/signin");
-  }
+  const currentUserId = session?.user?.id ?? "";
 
   const { id } = await params;
-  return <StandingsTab groupId={id} currentUserId={session.user.id} />;
+  return <StandingsTab groupId={id} currentUserId={currentUserId} />;
 }

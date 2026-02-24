@@ -58,6 +58,10 @@ param authMicrosoftEntraIdIssuer string = ''
 @description('API-Football API Key')
 param footballApiKey string = ''
 
+@secure()
+@description('Shared secret for authenticating cron/timer requests between Function App and Web App')
+param cronSecret string = ''
+
 // Tags for all resources
 var tags = {
   'azd-env-name': environmentName
@@ -152,6 +156,23 @@ module web 'app/web.bicep' = {
     authMicrosoftEntraIdSecret: authMicrosoftEntraIdSecret
     authMicrosoftEntraIdIssuer: authMicrosoftEntraIdIssuer
     footballApiKey: footballApiKey
+    cronSecret: cronSecret
+  }
+}
+
+// Azure Functions — timer-triggered live sync (Consumption plan)
+module functions 'core/host/function.bicep' = {
+  name: 'functions'
+  scope: rg
+  params: {
+    location: location
+    tags: tags
+    functionAppName: 'func-${resourceToken}'
+    functionPlanName: 'plan-func-${resourceToken}'
+    storageAccountName: storage.outputs.storageAccountName
+    applicationInsightsConnectionString: monitoring.outputs.applicationInsightsConnectionString
+    cronTargetUrl: web.outputs.appServiceUri
+    cronSecret: cronSecret
   }
 }
 
@@ -159,4 +180,5 @@ module web 'app/web.bicep' = {
 output AZURE_LOCATION string = location
 output SERVICE_WEB_NAME string = web.outputs.appServiceName
 output SERVICE_WEB_URI string = web.outputs.appServiceUri
+output SERVICE_FUNCTIONS_NAME string = functions.outputs.functionAppName
 output DATABASE_HOST string = 'psql-${resourceToken}.postgres.database.azure.com'

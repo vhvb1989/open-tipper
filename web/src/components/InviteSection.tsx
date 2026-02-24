@@ -40,7 +40,7 @@ export function InviteSection({ groupId, groupName, inviteCode: initialCode }: I
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Join ${groupName} on Sport Predictor`,
+          title: `Join ${groupName} on Open Tipper`,
           text: `Join my prediction group "${groupName}" and compete!`,
           url: inviteUrl,
         });
@@ -90,7 +90,7 @@ export function InviteSection({ groupId, groupName, inviteCode: initialCode }: I
       </div>
 
       {/* Invite URL display + actions */}
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <input
           data-invite-url
           readOnly
