@@ -1,21 +1,125 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ================================================================
+   Theme system — Navy & Gold color palettes
+   Each theme defines a navy (neutral/dark) and gold (accent) scale.
+   The active theme is set via data-theme attribute on <html>.
+   
+   Colors use @theme (not inline) so they become real CSS custom
+   properties that can be overridden at runtime by [data-theme].
+   ================================================================ */
 
+/* Fonts — static, safe to inline */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
+/* Register color tokens with @theme (non-inline) so Tailwind creates
+   :root custom properties (--color-navy-*, --color-gold-*) that the
+   [data-theme] selectors below can override at runtime. */
+@theme {
+  /* Navy palette — defaults (Classic theme) */
+  --color-navy-50: #eef0f5;
+  --color-navy-100: #d5dae6;
+  --color-navy-200: #b0b9cf;
+  --color-navy-300: #8b97b8;
+  --color-navy-400: #6676a1;
+  --color-navy-500: #4c5b86;
+  --color-navy-600: #3d496c;
+  --color-navy-700: #2f3854;
+  --color-navy-800: #1e2a4a;
+  --color-navy-900: #152039;
+  --color-navy-950: #0c1324;
+
+  /* Gold palette — defaults (Classic theme) */
+  --color-gold-50: #fdf8ed;
+  --color-gold-100: #f9eed2;
+  --color-gold-200: #f2dba4;
+  --color-gold-300: #ebc876;
+  --color-gold-400: #e4b54e;
+  --color-gold-500: #c9a84c;
+  --color-gold-600: #a88a38;
+}
+
+/* ---- Theme overrides ---- */
+
+/* Theme B: Midnight Slate & Muted Gold */
+[data-theme="midnight"] {
+  --color-navy-50: #edeef4;
+  --color-navy-100: #d2d6e3;
+  --color-navy-200: #acb3cb;
+  --color-navy-300: #8690b4;
+  --color-navy-400: #616e9c;
+  --color-navy-500: #495580;
+  --color-navy-600: #3b4467;
+  --color-navy-700: #2c344f;
+  --color-navy-800: #1b2640;
+  --color-navy-900: #131c33;
+  --color-navy-950: #0a1022;
+  --color-gold-50: #fbf6ea;
+  --color-gold-100: #f5e9c9;
+  --color-gold-200: #ebd393;
+  --color-gold-300: #e0bd5d;
+  --color-gold-400: #ccab49;
+  --color-gold-500: #b8973a;
+  --color-gold-600: #9a7d2e;
+}
+
+/* Theme C: Deep Blue & Amber Gold */
+[data-theme="deep"] {
+  --color-navy-50: #eff1f7;
+  --color-navy-100: #d7dce9;
+  --color-navy-200: #b3bdd4;
+  --color-navy-300: #8f9dbf;
+  --color-navy-400: #6b7eaa;
+  --color-navy-500: #516591;
+  --color-navy-600: #415075;
+  --color-navy-700: #313d5b;
+  --color-navy-800: #1f3055;
+  --color-navy-900: #162444;
+  --color-navy-950: #0d162e;
+  --color-gold-50: #fdf9ee;
+  --color-gold-100: #faf0d3;
+  --color-gold-200: #f4dfa6;
+  --color-gold-300: #eecf7a;
+  --color-gold-400: #ddb753;
+  --color-gold-500: #d4a545;
+  --color-gold-600: #b58b35;
+}
+
+/* Theme D: Steel Navy & Champagne Gold */
+[data-theme="steel"] {
+  --color-navy-50: #f0f1f6;
+  --color-navy-100: #d8dce8;
+  --color-navy-200: #b5bdd2;
+  --color-navy-300: #929ebc;
+  --color-navy-400: #6f80a5;
+  --color-navy-500: #556889;
+  --color-navy-600: #44536e;
+  --color-navy-700: #344058;
+  --color-navy-800: #243352;
+  --color-navy-900: #1a2640;
+  --color-navy-950: #10182a;
+  --color-gold-50: #fdf8ee;
+  --color-gold-100: #f9edd1;
+  --color-gold-200: #f2d9a2;
+  --color-gold-300: #ebc673;
+  --color-gold-400: #d6b360;
+  --color-gold-500: #c4a35a;
+  --color-gold-600: #a68944;
+}
+
+/* ---- Background & foreground ---- */
+:root {
+  --background: #eef0f5;
+  --foreground: #1e2a4a;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #141c2e;
+    --foreground: #e2e5eb;
   }
 }
 

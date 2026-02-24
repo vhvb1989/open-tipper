@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Image from "next/image";
+import { ThemeSelector } from "@/components/ThemeSelector";
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -74,6 +75,11 @@ export default async function ProfilePage() {
       <p className="mt-4 text-center text-xs text-zinc-400 dark:text-zinc-500">
         Profile details are sourced from your OAuth provider and are read-only.
       </p>
+
+      {/* Theme Picker */}
+      <div className="mt-8 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+        <ThemeSelector />
+      </div>
     </div>
   );
 }

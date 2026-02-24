@@ -5,9 +5,9 @@ export default async function Home() {
   const session = await auth();
 
   return (
-    <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center bg-zinc-50 font-sans dark:bg-black">
+    <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center font-sans">
       <main className="flex w-full max-w-3xl flex-col items-center gap-8 px-8 py-32 text-center">
-        <h1 className="text-5xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+        <h1 className="text-5xl font-bold tracking-tight text-navy-800 dark:text-gold-400">
           Sport Predictor
         </h1>
         <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
@@ -21,7 +21,7 @@ export default async function Home() {
             </p>
             <Link
               href="/dashboard"
-              className="rounded-lg bg-zinc-900 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+              className="rounded-lg bg-gold-500 px-6 py-3 text-sm font-medium text-navy-900 transition-colors hover:bg-gold-400"
             >
               Go to dashboard
             </Link>
@@ -29,7 +29,7 @@ export default async function Home() {
         ) : (
           <Link
             href="/signin"
-            className="rounded-lg bg-zinc-900 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            className="rounded-lg bg-gold-500 px-6 py-3 text-sm font-medium text-navy-900 transition-colors hover:bg-gold-400"
           >
             Get started
           </Link>

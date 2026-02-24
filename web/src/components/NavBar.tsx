@@ -8,24 +8,24 @@ export function NavBar() {
   const { data: session, status } = useSession();
 
   return (
-    <nav className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <nav className="border-b border-navy-700/30 bg-navy-800">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
         <Link
           href="/"
-          className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-50"
+          className="text-lg font-bold tracking-tight text-gold-400"
         >
           Sport Predictor
         </Link>
 
         <div className="flex items-center gap-4">
           {status === "loading" && (
-            <div className="h-8 w-8 animate-pulse rounded-full bg-zinc-200 dark:bg-zinc-700" />
+            <div className="h-8 w-8 animate-pulse rounded-full bg-navy-700" />
           )}
 
           {status === "unauthenticated" && (
             <Link
               href="/signin"
-              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+              className="rounded-lg bg-gold-500 px-4 py-2 text-sm font-medium text-navy-900 transition-colors hover:bg-gold-400"
             >
               Sign in
             </Link>
@@ -35,21 +35,21 @@ export function NavBar() {
             <div className="flex items-center gap-3">
               <Link
                 href="/dashboard"
-                className="text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                className="text-sm text-navy-200 transition-colors hover:text-white"
               >
                 My Groups
               </Link>
               {(session.user as { role?: string }).role === "ADMIN" && (
                 <Link
                   href="/admin"
-                  className="text-sm text-amber-600 transition-colors hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
+                  className="text-sm text-gold-400 transition-colors hover:text-gold-300"
                 >
                   Admin
                 </Link>
               )}
               <Link
                 href="/profile"
-                className="flex items-center gap-2 text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                className="flex items-center gap-2 text-sm text-navy-200 transition-colors hover:text-white"
               >
                 {session.user.image ? (
                   <Image
@@ -60,7 +60,7 @@ export function NavBar() {
                     className="rounded-full"
                   />
                 ) : (
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-200 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-navy-700 text-xs font-medium text-navy-200">
                     {(session.user.name ?? session.user.email ?? "U")
                       .charAt(0)
                       .toUpperCase()}
@@ -73,7 +73,7 @@ export function NavBar() {
 
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
-                className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                className="rounded-lg border border-navy-600 px-3 py-1.5 text-sm text-navy-200 transition-colors hover:bg-navy-700"
               >
                 Sign out
               </button>

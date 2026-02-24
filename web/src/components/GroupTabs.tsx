@@ -34,7 +34,7 @@ export function GroupTabs({ groupId, isAdmin, isMember }: GroupTabsProps) {
               href={tab.href}
               className={`whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors ${
                 isActive
-                  ? "border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100"
+                  ? "border-gold-500 text-gold-600 dark:border-gold-400 dark:text-gold-400"
                   : "border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-300"
               }`}
             >

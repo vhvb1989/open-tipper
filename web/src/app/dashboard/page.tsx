@@ -43,7 +43,7 @@ export default async function DashboardPage() {
         </div>
         <Link
           href="/groups/create"
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+          className="rounded-lg bg-gold-500 px-4 py-2 text-sm font-medium text-navy-900 transition-colors hover:bg-gold-400"
         >
           Create group
         </Link>
@@ -56,7 +56,7 @@ export default async function DashboardPage() {
           </p>
           <Link
             href="/groups/create"
-            className="mt-4 inline-block rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            className="mt-4 inline-block rounded-lg bg-gold-500 px-4 py-2 text-sm font-medium text-navy-900 transition-colors hover:bg-gold-400"
           >
             Create your first group
           </Link>

@@ -27,7 +27,7 @@ Use this table to track progress across cycles. Update as work proceeds.
 | 9 | Polish, Landing Page & How It Works | not-started | |
 | 10 | Public Groups & Group Browser | not-started | |
 | 11 | Real-Time Updates & Live Scoring | not-started | |
-| 12 | Additional Competitions | not-started | |
+| 12 | Additional Competitions | **completed** | API-Football 1200+ leagues, admin competitions browser, sync any league, sub-tournament filtering |
 | 13 | Push Notifications | not-started | |
 | 13 | Stats & Analytics | not-started | |
 | 14 | i18n & Accessibility | not-started | |
@@ -441,16 +441,37 @@ A match is live → the UI shows a "Live" badge → when the match finishes → 
 
 ## Cycle 12 — Additional Competitions
 
-**Goal:** Expand to more leagues.
+**Goal:** Support any football competition available through API-Football (1,200+ leagues worldwide).
 
 **Deliverables:**
-- [ ] Add support for: Premier League, La Liga, Bundesliga, Serie A, Ligue 1, Europa League
-- [ ] Admin interface or config to enable/disable competitions
-- [ ] Update contest sync to pull fixtures for new competitions
-- [ ] Update landing page and group creation to list new competitions
+- [x] API-Football v3 integration providing access to 1,200+ leagues (replaces football-data.org)
+- [x] Admin competitions browser: search/filter all available leagues from API-Football, one-click sync
+- [x] `syncCompetition(leagueId)` accepts any API-Football league ID — no hardcoded list
+- [x] Synced competitions automatically appear in the "Create Group" contest selector
+- [x] Sub-tournament handling for leagues with multiple tournaments per season (e.g., Liga MX Apertura/Clausura): sync automatically keeps only the most recent sub-tournament's fixtures
+- [x] Free-tier warning banner when API-Football returns restriction errors during sync
+- [x] First user auto-promoted to ADMIN on sign-up (via Auth.js `createUser` event) — no manual DB edits needed
+- [x] Prev/Next match-day navigation on Results tab (matching Predictions tab)
+- [x] Results tab defaults to latest finished match day on first load
+- [x] 154 tests passing, clean build
+
+**How to add a competition:**
+1. Sign in as admin (the first user to sign up is automatically admin)
+2. Go to Admin → Competitions tab
+3. Search for any league (e.g., "Premier League", "Bundesliga", "Serie A")
+4. Click "Sync" to pull fixtures and teams from API-Football
+5. The competition now appears in the Create Group form for all users
 
 **Testable outcome:**  
-Create a group for Premier League → see Premier League fixtures → submit predictions → scoring works.
+Sign up as first user → automatically admin → go to Admin → Competitions → search "Premier League" → click Sync → create a group for Premier League → see fixtures → submit predictions → scoring works.
+
+**Actual outcome (verified):**
+- API-Football client (`FootballApiClient`) with typed endpoints for leagues, fixtures, and competitions listing
+- Admin panel with Competitions tab showing all 1,200+ API-Football leagues, search/filter, sync status badges
+- Sync service handles any league ID, upserts contest/teams/matches, scores finished predictions
+- Liga MX sub-tournament filtering: `parseRoundPrefix()` detects "Apertura"/"Clausura" prefixes, sync discards the older tournament
+- Auto-admin: first user gets `ADMIN` role via `createUser` event in Auth.js config
+- UI polish: prev/next navigation on Results tab, default to latest match day
 
 ---
 

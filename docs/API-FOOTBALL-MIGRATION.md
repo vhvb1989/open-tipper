@@ -1,8 +1,11 @@
 # API-Football Migration Plan
 
+> **Status**: ✅ **COMPLETED** — Migration from football-data.org v4 to API-Football v3
+> is fully implemented. All 154 tests passing, deployed to Azure.
+>
 > **Goal**: Migrate from [football-data.org](https://www.football-data.org/) v4 to
 > [API-Football](https://www.api-football.com/) v3 to gain coverage for **World Cup**,
-> **Liga MX**, and 1 230+ other competitions.
+> **Liga MX**, and 1,200+ other competitions.
 
 ---
 
@@ -369,3 +372,51 @@ The env var name can stay the same to minimize infra changes. Only the *value*
 | Phase 5 — Tests & docs    | 2–3 hours        |
 | Verification & re-sync    | 1 hour           |
 | **Total**                 | **~8–11 hours**  |
+
+---
+
+## 13. Sub-Tournament Handling (Liga MX)
+
+Some leagues (e.g., Liga MX) have multiple sub-tournaments within a single season. For example, Liga MX has both **Apertura** (Aug–Dec) and **Clausura** (Jan–May), each with match days 1–17. The API-Football `league.round` field encodes this as prefixed strings like `"Apertura - 1"`, `"Clausura - 5"`.
+
+### Problem
+
+If both Apertura and Clausura fixtures are synced, match days collide (both have MD 1–17), causing duplicate match day labels in the UI.
+
+### Solution
+
+The sync service (`syncCompetition` in `web/src/lib/sync.ts`) detects multiple sub-tournaments at sync time:
+
+1. **`parseRoundPrefix(round)`** extracts the prefix (e.g., `"Apertura"`, `"Clausura"`) from the round string
+2. After fetching all fixtures, the sync groups them by prefix and finds the one with the **latest fixture date**
+3. Only fixtures from the most recent sub-tournament are upserted — the older tournament's data is discarded
+4. This happens transparently — no UI changes needed, no tournament selector required
+
+### Example
+
+When syncing Liga MX in March 2026:
+- API returns both Apertura (finished, latest fixture Dec 2025) and Clausura (ongoing, latest fixture March 2026)
+- Sync detects two prefixes: `"Apertura"` and `"Clausura"`
+- Clausura has the most recent fixture → only Clausura fixtures are upserted
+- Console logs: `ℹ Multiple sub-tournaments detected (Apertura, Clausura). Using "Clausura" (153 of 306 fixtures).`
+
+---
+
+## 14. Admin & Competition Management
+
+### First Admin (Auto-Provisioned)
+
+The very first user to sign up is automatically promoted to **ADMIN** via the Auth.js `createUser` event in `web/src/lib/auth.ts`. No manual database edits are required. Additional admins can be promoted from the Admin → Users tab.
+
+### Adding Competitions
+
+1. Sign in as an admin
+2. Navigate to **Admin → Competitions**
+3. Browse or search the full list of 1,200+ API-Football leagues
+4. Click **Sync** on any competition to import its fixtures and teams
+5. The competition appears in the **Create Group** form for all users
+6. Re-click **Sync** at any time to refresh fixtures and results
+
+### Free Plan Limitations
+
+The API-Football free tier allows 100 requests/day and may restrict certain leagues or historical seasons. If the API returns an error during sync, a warning banner is displayed in the admin panel. Upgrading to a paid plan ($19+/mo) removes these restrictions.

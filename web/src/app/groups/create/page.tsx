@@ -312,7 +312,7 @@ export default function CreateGroupPage() {
           <button
             type="submit"
             disabled={loading || !name.trim() || !contestId}
-            className="rounded-lg bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            className="rounded-lg bg-gold-500 px-5 py-2.5 text-sm font-medium text-navy-900 transition-colors hover:bg-gold-400 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? "Creating…" : "Create group"}
           </button>

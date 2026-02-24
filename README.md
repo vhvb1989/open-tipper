@@ -16,10 +16,38 @@ Inspired by [tipper.io](https://tipper.io), Sport Predictor is an open-source, g
 - **Invite friends** — share a link and friends join instantly
 - **Azure-native** — deploy your own instance with a single `azd up` command
 
-## Supported Competitions (v1)
+## Supported Competitions
+
+Sport Predictor supports **any competition available through API-Football** — over 1,200 leagues worldwide. Some popular choices:
 
 - UEFA Champions League
-- FIFA World Cup (when active)
+- FIFA World Cup
+- Premier League (England)
+- La Liga (Spain)
+- Bundesliga (Germany)
+- Serie A (Italy)
+- Ligue 1 (France)
+- Liga MX (Mexico)
+- UEFA Europa League
+- Copa Libertadores
+- …and many more
+
+### Adding Competitions
+
+The first user to sign up is automatically made an **admin**. To add competitions:
+
+1. Sign in (you'll be admin if you're the first user)
+2. Click the **Admin** link in the navigation bar
+3. Go to the **Competitions** tab — this shows all leagues available from API-Football
+4. Search or filter for the competition you want (e.g., "Premier League")
+5. Click **Sync** to import fixtures and teams
+6. The competition now appears in the **Create Group** form for all users
+
+> **Note:** On the free API-Football plan (100 requests/day), some leagues may show a warning if the API restricts data. Upgrade to a paid plan for full access.
+
+### Sub-tournaments (Liga MX, etc.)
+
+Some leagues have multiple sub-tournaments per season (e.g., Liga MX has Apertura and Clausura). The sync automatically detects this and keeps only the most recent sub-tournament's fixtures, so match days don't collide.
 
 ## Quick Start
 
