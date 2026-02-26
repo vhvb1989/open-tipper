@@ -180,8 +180,8 @@ module functionsStorage 'core/storage/storage.bicep' = {
   }
 }
 
-// Azure Functions — timer-triggered live sync (Consumption plan).
-// Deployed to a separate resource group to avoid the Linux Dynamic vs Dedicated conflict.
+// Azure Functions — timer-triggered live sync (Flex Consumption plan).
+// Deployed to a separate resource group for isolation.
 module functions 'core/host/function.bicep' = {
   name: 'functions'
   scope: rgFunctions
