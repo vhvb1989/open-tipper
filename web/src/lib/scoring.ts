@@ -71,7 +71,7 @@ export function matchesExactScore(pred: Prediction, result: MatchResult): boolea
 
 /** Factor 2: Goal difference match */
 export function matchesGoalDifference(pred: Prediction, result: MatchResult): boolean {
-  return (pred.homeGoals - pred.awayGoals) === (result.homeGoals - result.awayGoals);
+  return pred.homeGoals - pred.awayGoals === result.homeGoals - result.awayGoals;
 }
 
 /** Factor 3: Outcome match (home win / draw / away win) */
@@ -88,7 +88,7 @@ export function matchesOneTeamGoals(pred: Prediction, result: MatchResult): bool
 
 /** Factor 5: Total goals match */
 export function matchesTotalGoals(pred: Prediction, result: MatchResult): boolean {
-  return (pred.homeGoals + pred.awayGoals) === (result.homeGoals + result.awayGoals);
+  return pred.homeGoals + pred.awayGoals === result.homeGoals + result.awayGoals;
 }
 
 /**
@@ -135,7 +135,9 @@ export function calculateScore(
     outcome: matchesOutcome(pred, result) ? rules.outcome : 0,
     oneTeamGoals: matchesOneTeamGoals(pred, result) ? rules.oneTeamGoals : 0,
     totalGoals: matchesTotalGoals(pred, result) ? rules.totalGoals : 0,
-    reverseGoalDifference: matchesReverseGoalDifference(pred, result) ? rules.reverseGoalDifference : 0,
+    reverseGoalDifference: matchesReverseGoalDifference(pred, result)
+      ? rules.reverseGoalDifference
+      : 0,
     total: 0,
   };
 

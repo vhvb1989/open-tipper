@@ -93,9 +93,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ groups: result, contests });
   } catch (error) {
     console.error("Failed to browse groups:", error);
-    return NextResponse.json(
-      { error: "Failed to browse groups" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to browse groups" }, { status: 500 });
   }
 }

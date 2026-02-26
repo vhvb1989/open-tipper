@@ -15,7 +15,9 @@ export function GroupTabs({ groupId, isAdmin, isMember }: GroupTabsProps) {
   const { t } = useTranslation();
 
   const tabs = [
-    ...(isMember ? [{ label: t("groupTabs.predictions"), href: `/groups/${groupId}`, exact: true }] : []),
+    ...(isMember
+      ? [{ label: t("groupTabs.predictions"), href: `/groups/${groupId}`, exact: true }]
+      : []),
     { label: t("groupTabs.standings"), href: `/groups/${groupId}/standings` },
     { label: t("groupTabs.results"), href: `/groups/${groupId}/results` },
     ...(isMember ? [{ label: t("groupTabs.members"), href: `/groups/${groupId}/members` }] : []),
@@ -26,9 +28,7 @@ export function GroupTabs({ groupId, isAdmin, isMember }: GroupTabsProps) {
     <div className="border-b border-zinc-200 dark:border-zinc-800">
       <nav className="-mb-px flex gap-1 overflow-x-auto" aria-label="Tabs">
         {tabs.map((tab) => {
-          const isActive = tab.exact
-            ? pathname === tab.href
-            : pathname.startsWith(tab.href);
+          const isActive = tab.exact ? pathname === tab.href : pathname.startsWith(tab.href);
 
           return (
             <Link

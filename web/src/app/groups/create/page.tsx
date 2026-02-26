@@ -120,7 +120,10 @@ export default function CreateGroupPage() {
       <form onSubmit={handleSubmit} className="mt-8 space-y-6">
         {/* Group Name */}
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <label
+            htmlFor="name"
+            className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+          >
             {t("createGroup.nameLabel")} <span className="text-red-500">*</span>
           </label>
           <input
@@ -136,7 +139,10 @@ export default function CreateGroupPage() {
 
         {/* Description */}
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <label
+            htmlFor="description"
+            className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+          >
             {t("createGroup.descriptionLabel")}
           </label>
           <textarea
@@ -151,7 +157,10 @@ export default function CreateGroupPage() {
 
         {/* Contest */}
         <div>
-          <label htmlFor="contestId" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <label
+            htmlFor="contestId"
+            className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+          >
             {t("createGroup.competitionLabel")} <span className="text-red-500">*</span>
           </label>
           <select
@@ -162,7 +171,9 @@ export default function CreateGroupPage() {
             className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
           >
             {contests.length === 0 ? (
-              <option value="" disabled>{t("createGroup.noCompetitions")}</option>
+              <option value="" disabled>
+                {t("createGroup.noCompetitions")}
+              </option>
             ) : (
               contests.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -234,14 +245,16 @@ export default function CreateGroupPage() {
               </p>
 
               <div className="grid grid-cols-2 gap-3">
-                {([
-                  ["exactScore", t("createGroup.exactScore")],
-                  ["goalDifference", t("createGroup.goalDifference")],
-                  ["outcome", t("createGroup.correctOutcome")],
-                  ["oneTeamGoals", t("createGroup.oneTeamGoals")],
-                  ["totalGoals", t("createGroup.totalGoals")],
-                  ["reverseGoalDifference", t("createGroup.reverseGoalDiff")],
-                ] as const).map(([key, label]) => (
+                {(
+                  [
+                    ["exactScore", t("createGroup.exactScore")],
+                    ["goalDifference", t("createGroup.goalDifference")],
+                    ["outcome", t("createGroup.correctOutcome")],
+                    ["oneTeamGoals", t("createGroup.oneTeamGoals")],
+                    ["totalGoals", t("createGroup.totalGoals")],
+                    ["reverseGoalDifference", t("createGroup.reverseGoalDiff")],
+                  ] as const
+                ).map(([key, label]) => (
                   <div key={key}>
                     <label htmlFor={key} className="block text-xs text-zinc-500 dark:text-zinc-400">
                       {label}
@@ -262,7 +275,10 @@ export default function CreateGroupPage() {
               </div>
 
               <div>
-                <label htmlFor="accumulationMode" className="block text-xs text-zinc-500 dark:text-zinc-400">
+                <label
+                  htmlFor="accumulationMode"
+                  className="block text-xs text-zinc-500 dark:text-zinc-400"
+                >
                   {t("createGroup.accumulationMode")}
                 </label>
                 <select

@@ -35,10 +35,7 @@ export interface ScoreMatchResult {
  * @param db - Prisma client instance
  * @returns Number of predictions scored
  */
-export async function scoreMatch(
-  matchId: string,
-  db: PrismaClient,
-): Promise<ScoreMatchResult> {
+export async function scoreMatch(matchId: string, db: PrismaClient): Promise<ScoreMatchResult> {
   // 1. Load the match with its result
   const match = await db.match.findUnique({
     where: { id: matchId },

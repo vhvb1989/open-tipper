@@ -59,10 +59,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     });
   } catch (error) {
     console.error("Failed to fetch group:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch group" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to fetch group" }, { status: 500 });
   }
 }
 
@@ -97,10 +94,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const updateData: Record<string, unknown> = {};
     if (name !== undefined) {
       if (typeof name !== "string" || name.trim().length === 0) {
-        return NextResponse.json(
-          { error: "Group name cannot be empty" },
-          { status: 400 },
-        );
+        return NextResponse.json({ error: "Group name cannot be empty" }, { status: 400 });
       }
       updateData.name = name.trim();
     }
@@ -126,13 +120,23 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         where: { groupId: id },
         update: {
           ...(scoringRules.exactScore !== undefined && { exactScore: scoringRules.exactScore }),
-          ...(scoringRules.goalDifference !== undefined && { goalDifference: scoringRules.goalDifference }),
+          ...(scoringRules.goalDifference !== undefined && {
+            goalDifference: scoringRules.goalDifference,
+          }),
           ...(scoringRules.outcome !== undefined && { outcome: scoringRules.outcome }),
-          ...(scoringRules.oneTeamGoals !== undefined && { oneTeamGoals: scoringRules.oneTeamGoals }),
+          ...(scoringRules.oneTeamGoals !== undefined && {
+            oneTeamGoals: scoringRules.oneTeamGoals,
+          }),
           ...(scoringRules.totalGoals !== undefined && { totalGoals: scoringRules.totalGoals }),
-          ...(scoringRules.reverseGoalDifference !== undefined && { reverseGoalDifference: scoringRules.reverseGoalDifference }),
-          ...(scoringRules.accumulationMode !== undefined && { accumulationMode: scoringRules.accumulationMode }),
-          ...(scoringRules.playoffMultiplier !== undefined && { playoffMultiplier: scoringRules.playoffMultiplier }),
+          ...(scoringRules.reverseGoalDifference !== undefined && {
+            reverseGoalDifference: scoringRules.reverseGoalDifference,
+          }),
+          ...(scoringRules.accumulationMode !== undefined && {
+            accumulationMode: scoringRules.accumulationMode,
+          }),
+          ...(scoringRules.playoffMultiplier !== undefined && {
+            playoffMultiplier: scoringRules.playoffMultiplier,
+          }),
         },
         create: {
           groupId: id,
@@ -151,10 +155,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ group });
   } catch (error) {
     console.error("Failed to update group:", error);
-    return NextResponse.json(
-      { error: "Failed to update group" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to update group" }, { status: 500 });
   }
 }
 
@@ -185,9 +186,6 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to delete group:", error);
-    return NextResponse.json(
-      { error: "Failed to delete group" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to delete group" }, { status: 500 });
   }
 }

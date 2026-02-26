@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 /**
  * Azure startup script: runs Prisma migrations with managed identity,
  * then starts the Next.js production server.
@@ -47,7 +48,7 @@ function getAccessToken() {
         try {
           const json = JSON.parse(data);
           resolve(json.access_token);
-        } catch (e) {
+        } catch {
           reject(new Error(`Failed to parse token response: ${data}`));
         }
       });

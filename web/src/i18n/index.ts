@@ -9,10 +9,7 @@ type Dictionary = typeof en;
 const dictionaries: Record<Locale, Dictionary> = { en, es };
 
 /** Walk a nested object by dot-separated key path */
-function resolvePath(
-  obj: Record<string, unknown>,
-  path: string,
-): string | undefined {
+function resolvePath(obj: Record<string, unknown>, path: string): string | undefined {
   const keys = path.split(".");
   let current: unknown = obj;
   for (const key of keys) {
@@ -34,14 +31,8 @@ function resolvePath(
 export function getT(locale: Locale) {
   const dict = dictionaries[locale] ?? dictionaries[DEFAULT_LOCALE];
 
-  return function t(
-    key: string,
-    params?: Record<string, string | number>,
-  ): string {
-    let value = resolvePath(
-      dict as unknown as Record<string, unknown>,
-      key,
-    );
+  return function t(key: string, params?: Record<string, string | number>): string {
+    let value = resolvePath(dict as unknown as Record<string, unknown>, key);
     if (!value) return key;
 
     // Handle pipe-separated plurals when `count` or `n` param is present
@@ -55,10 +46,7 @@ export function getT(locale: Locale) {
 
     // Interpolate {param} placeholders
     if (params) {
-      value = value.replace(
-        /\{(\w+)\}/g,
-        (_, k) => String(params[k] ?? `{${k}}`),
-      );
+      value = value.replace(/\{(\w+)\}/g, (_, k) => String(params[k] ?? `{${k}}`));
     }
 
     return value;

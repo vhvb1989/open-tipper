@@ -23,10 +23,7 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
     });
 
     if (!membership) {
-      return NextResponse.json(
-        { error: "Not a member of this group" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Not a member of this group" }, { status: 404 });
     }
 
     if (membership.role === "ADMIN") {
@@ -43,9 +40,6 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to leave group:", error);
-    return NextResponse.json(
-      { error: "Failed to leave group" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to leave group" }, { status: 500 });
   }
 }

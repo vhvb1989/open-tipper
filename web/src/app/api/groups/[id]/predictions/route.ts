@@ -40,7 +40,10 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     });
 
     // Key by matchId for easy client-side lookup
-    const byMatch: Record<string, { homeGoals: number; awayGoals: number; pointsAwarded: number | null }> = {};
+    const byMatch: Record<
+      string,
+      { homeGoals: number; awayGoals: number; pointsAwarded: number | null }
+    > = {};
     for (const p of predictions) {
       byMatch[p.matchId] = {
         homeGoals: p.homeGoals,
@@ -52,10 +55,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ predictions: byMatch });
   } catch (error) {
     console.error("Failed to fetch predictions:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch predictions" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to fetch predictions" }, { status: 500 });
   }
 }
 
@@ -91,10 +91,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Match ID is required" }, { status: 400 });
     }
     if (typeof homeGoals !== "number" || homeGoals < 0 || !Number.isInteger(homeGoals)) {
-      return NextResponse.json({ error: "Home goals must be a non-negative integer" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Home goals must be a non-negative integer" },
+        { status: 400 },
+      );
     }
     if (typeof awayGoals !== "number" || awayGoals < 0 || !Number.isInteger(awayGoals)) {
-      return NextResponse.json({ error: "Away goals must be a non-negative integer" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Away goals must be a non-negative integer" },
+        { status: 400 },
+      );
     }
 
     // Verify match exists and belongs to this group's contest
@@ -111,25 +117,22 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       select: { id: true, contestId: true, kickoffTime: true, status: true },
     });
     if (!match || match.contestId !== group.contestId) {
-      return NextResponse.json({ error: "Match not found in this group's contest" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Match not found in this group's contest" },
+        { status: 404 },
+      );
     }
 
     // Check kickoff lock
     const now = new Date();
     if (match.kickoffTime <= now) {
-      return NextResponse.json(
-        { error: "Predictions are locked after kick-off" },
-        { status: 403 },
-      );
+      return NextResponse.json({ error: "Predictions are locked after kick-off" }, { status: 403 });
     }
 
     // Also check match status — don't allow for in-progress or finished matches
     const lockedStatuses = ["IN_PLAY", "PAUSED", "FINISHED", "AWARDED"];
     if (lockedStatuses.includes(match.status)) {
-      return NextResponse.json(
-        { error: "Predictions are locked for this match" },
-        { status: 403 },
-      );
+      return NextResponse.json({ error: "Predictions are locked for this match" }, { status: 403 });
     }
 
     // Upsert prediction
@@ -160,9 +163,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     });
   } catch (error) {
     console.error("Failed to save prediction:", error);
-    return NextResponse.json(
-      { error: "Failed to save prediction" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to save prediction" }, { status: 500 });
   }
 }

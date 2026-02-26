@@ -45,10 +45,7 @@ export async function GET() {
     return NextResponse.json({ groups: result });
   } catch (error) {
     console.error("Failed to fetch groups:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch groups" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to fetch groups" }, { status: 500 });
   }
 }
 
@@ -70,17 +67,11 @@ export async function POST(request: NextRequest) {
     const { name, description, contestId, visibility, scoringRules } = body;
 
     if (!name || typeof name !== "string" || name.trim().length === 0) {
-      return NextResponse.json(
-        { error: "Group name is required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Group name is required" }, { status: 400 });
     }
 
     if (!contestId || typeof contestId !== "string") {
-      return NextResponse.json(
-        { error: "Contest ID is required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Contest ID is required" }, { status: 400 });
     }
 
     // Verify contest exists
@@ -88,10 +79,7 @@ export async function POST(request: NextRequest) {
       where: { id: contestId },
     });
     if (!contest) {
-      return NextResponse.json(
-        { error: "Contest not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Contest not found" }, { status: 404 });
     }
 
     // Create group with admin membership and default scoring rules
@@ -115,7 +103,8 @@ export async function POST(request: NextRequest) {
             oneTeamGoals: scoringRules?.oneTeamGoals ?? 3,
             totalGoals: scoringRules?.totalGoals ?? 2,
             reverseGoalDifference: scoringRules?.reverseGoalDifference ?? 1,
-            accumulationMode: scoringRules?.accumulationMode === "HIGHEST_ONLY" ? "HIGHEST_ONLY" : "ACCUMULATE",
+            accumulationMode:
+              scoringRules?.accumulationMode === "HIGHEST_ONLY" ? "HIGHEST_ONLY" : "ACCUMULATE",
             playoffMultiplier: scoringRules?.playoffMultiplier ?? false,
           },
         },
@@ -129,9 +118,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ group }, { status: 201 });
   } catch (error) {
     console.error("Failed to create group:", error);
-    return NextResponse.json(
-      { error: "Failed to create group" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to create group" }, { status: 500 });
   }
 }

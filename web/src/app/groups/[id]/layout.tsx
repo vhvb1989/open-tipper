@@ -61,7 +61,13 @@ export default async function GroupLayout({
           href={isMember ? "/dashboard" : "/groups/browse"}
           className="mb-4 inline-flex items-center gap-1 text-sm text-zinc-500 transition-colors hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
         >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            stroke="currentColor"
+          >
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
           </svg>
           {isMember ? t("groupPage.myGroups") : t("groupPage.browseGroups")}
@@ -75,7 +81,9 @@ export default async function GroupLayout({
               <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-medium dark:bg-zinc-800">
                 {group.contest.code}
               </span>
-              <span>{group.contest.name} {group.contest.season}</span>
+              <span>
+                {group.contest.name} {group.contest.season}
+              </span>
               <span>·</span>
               <span>{t("groupPage.memberCount", { count: group._count.memberships })}</span>
               {group.visibility === "PUBLIC" && (
@@ -94,9 +102,7 @@ export default async function GroupLayout({
               )}
             </div>
             {group.description && (
-              <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                {group.description}
-              </p>
+              <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{group.description}</p>
             )}
           </div>
 

@@ -77,7 +77,11 @@ describe("Admin API", () => {
         response: [
           {
             league: { id: 39, name: "Premier League", type: "League", logo: null },
-            country: { name: "England", code: "GB", flag: "https://media.api-sports.io/flags/gb.svg" },
+            country: {
+              name: "England",
+              code: "GB",
+              flag: "https://media.api-sports.io/flags/gb.svg",
+            },
             seasons: [
               { year: 2025, start: "2025-08-01", end: "2026-05-31", current: true, coverage: {} },
             ],
@@ -224,8 +228,22 @@ describe("Admin API", () => {
     it("returns users list for admin", async () => {
       mockAuth.mockResolvedValue(adminSession);
       mockPrisma.user.findMany.mockResolvedValue([
-        { id: "admin-1", name: "Admin", email: "admin@test.com", image: null, role: "ADMIN", createdAt: new Date() },
-        { id: "user-2", name: "User", email: "user@test.com", image: null, role: "USER", createdAt: new Date() },
+        {
+          id: "admin-1",
+          name: "Admin",
+          email: "admin@test.com",
+          image: null,
+          role: "ADMIN",
+          createdAt: new Date(),
+        },
+        {
+          id: "user-2",
+          name: "User",
+          email: "user@test.com",
+          image: null,
+          role: "USER",
+          createdAt: new Date(),
+        },
       ]);
 
       const { GET } = await import("@/app/api/admin/users/route");

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { useTranslation } from "@/i18n/TranslationProvider";
 
 /* ---------- Types ---------- */
@@ -92,9 +93,10 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
     async (matchDay?: number | null) => {
       setLoading(true);
       try {
-        const url = matchDay != null
-          ? `/api/groups/${groupId}/matches?matchDay=${matchDay}`
-          : `/api/groups/${groupId}/matches`;
+        const url =
+          matchDay != null
+            ? `/api/groups/${groupId}/matches?matchDay=${matchDay}`
+            : `/api/groups/${groupId}/matches`;
         const res = await fetch(url);
         if (!res.ok) throw new Error("Failed to fetch matches");
         const data = await res.json();
@@ -104,16 +106,12 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
         // Auto-select the first match day with upcoming matches, or last
         if (matchDay == null && data.matchDays.length > 0) {
           const now = new Date();
-          const upcoming = data.matches.find(
-            (m: Match) => new Date(m.kickoffTime) > now,
-          );
+          const upcoming = data.matches.find((m: Match) => new Date(m.kickoffTime) > now);
           const defaultDay = upcoming?.matchDay ?? data.matchDays[data.matchDays.length - 1];
           if (defaultDay != null) {
             setSelectedDay(defaultDay);
             // Re-fetch filtered
-            const filtered = await fetch(
-              `/api/groups/${groupId}/matches?matchDay=${defaultDay}`,
-            );
+            const filtered = await fetch(`/api/groups/${groupId}/matches?matchDay=${defaultDay}`);
             if (filtered.ok) {
               const filteredData = await filtered.json();
               setMatches(filteredData.matches);
@@ -201,11 +199,7 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
   );
 
   /* ---- Handle input change ---- */
-  const handleScoreChange = (
-    matchId: string,
-    side: "home" | "away",
-    value: string,
-  ) => {
+  const handleScoreChange = (matchId: string, side: "home" | "away", value: string) => {
     const num = value === "" ? 0 : parseInt(value, 10);
     if (isNaN(num) || num < 0) return;
 
@@ -256,7 +250,14 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
       {error && (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
           {error}
-          <button onClick={() => { setError(null); fetchMatches(selectedDay); fetchPredictions(); }} className="ml-2 underline">
+          <button
+            onClick={() => {
+              setError(null);
+              fetchMatches(selectedDay);
+              fetchPredictions();
+            }}
+            className="ml-2 underline"
+          >
             {t("predictions.retry")}
           </button>
         </div>
@@ -269,7 +270,13 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
             disabled={dayIdx <= 0}
             className="rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
-            <svg className="inline h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <svg
+              className="inline h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>{" "}
             {t("predictions.prev")}
@@ -292,15 +299,18 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
             </select>
           </div>
           <button
-            onClick={() =>
-              dayIdx < matchDays.length - 1 &&
-              handleDayChange(matchDays[dayIdx + 1])
-            }
+            onClick={() => dayIdx < matchDays.length - 1 && handleDayChange(matchDays[dayIdx + 1])}
             disabled={dayIdx >= matchDays.length - 1}
             className="rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
             {t("predictions.next")}{" "}
-            <svg className="inline h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <svg
+              className="inline h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
             </svg>
           </button>
@@ -379,10 +389,13 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
                     {match.homeTeam.shortName || match.homeTeam.name}
                   </span>
                   {match.homeTeam.crest && (
-                    <img
+                    <Image
                       src={match.homeTeam.crest}
                       alt={match.homeTeam.name}
+                      width={24}
+                      height={24}
                       className="h-6 w-6 object-contain"
+                      unoptimized
                     />
                   )}
                 </div>
@@ -394,17 +407,19 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
                     min={0}
                     max={99}
                     value={pred?.homeGoals ?? ""}
-                    onChange={(e) =>
-                      handleScoreChange(match.id, "home", e.target.value)
-                    }
+                    onChange={(e) => handleScoreChange(match.id, "home", e.target.value)}
                     disabled={locked}
                     placeholder="-"
                     className={`h-10 w-12 rounded-lg border text-center text-lg font-bold
-                      ${locked
-                        ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500"
-                        : "border-zinc-300 bg-white text-zinc-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      ${
+                        locked
+                          ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500"
+                          : "border-zinc-300 bg-white text-zinc-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
                       } [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
-                    aria-label={t("predictions.homeScore", { home: match.homeTeam.name, away: match.awayTeam.name })}
+                    aria-label={t("predictions.homeScore", {
+                      home: match.homeTeam.name,
+                      away: match.awayTeam.name,
+                    })}
                   />
                   <span className="mx-1 text-sm font-medium text-zinc-400">–</span>
                   <input
@@ -412,27 +427,32 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
                     min={0}
                     max={99}
                     value={pred?.awayGoals ?? ""}
-                    onChange={(e) =>
-                      handleScoreChange(match.id, "away", e.target.value)
-                    }
+                    onChange={(e) => handleScoreChange(match.id, "away", e.target.value)}
                     disabled={locked}
                     placeholder="-"
                     className={`h-10 w-12 rounded-lg border text-center text-lg font-bold
-                      ${locked
-                        ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500"
-                        : "border-zinc-300 bg-white text-zinc-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      ${
+                        locked
+                          ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500"
+                          : "border-zinc-300 bg-white text-zinc-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
                       } [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
-                    aria-label={t("predictions.awayScore", { home: match.homeTeam.name, away: match.awayTeam.name })}
+                    aria-label={t("predictions.awayScore", {
+                      home: match.homeTeam.name,
+                      away: match.awayTeam.name,
+                    })}
                   />
                 </div>
 
                 {/* Away team */}
                 <div className="flex min-w-0 flex-1 items-center gap-2">
                   {match.awayTeam.crest && (
-                    <img
+                    <Image
                       src={match.awayTeam.crest}
                       alt={match.awayTeam.name}
+                      width={24}
+                      height={24}
                       className="h-6 w-6 shrink-0 object-contain"
+                      unoptimized
                     />
                   )}
                   <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
@@ -446,7 +466,10 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
                 match.homeGoals != null &&
                 match.awayGoals != null && (
                   <div className="mt-2 text-center text-xs text-zinc-500 dark:text-zinc-400">
-                    {t("predictions.result", { home: String(match.homeGoals), away: String(match.awayGoals) })}
+                    {t("predictions.result", {
+                      home: String(match.homeGoals),
+                      away: String(match.awayGoals),
+                    })}
                   </div>
                 )}
             </div>

@@ -20,9 +20,6 @@ export async function GET() {
     return NextResponse.json({ contests });
   } catch (error) {
     console.error("Failed to fetch contests:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch contests" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to fetch contests" }, { status: 500 });
   }
 }

@@ -131,9 +131,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
   } catch (error) {
     console.error("Failed to fetch standings:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch standings" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to fetch standings" }, { status: 500 });
   }
 }

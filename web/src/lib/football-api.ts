@@ -132,9 +132,7 @@ export class FootballApiClient {
 
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      throw new Error(
-        `API-Football error: ${res.status} ${res.statusText} — ${url}\n${body}`,
-      );
+      throw new Error(`API-Football error: ${res.status} ${res.statusText} — ${url}\n${body}`);
     }
 
     return res.json() as Promise<AfApiResponse<T>>;
@@ -158,10 +156,7 @@ export class FootballApiClient {
    * Fetch all fixtures for a league in a given season.
    * If no season is provided, the API returns the current season's fixtures.
    */
-  async getFixtures(
-    leagueId: number,
-    season?: number,
-  ): Promise<AfApiResponse<AfFixture>> {
+  async getFixtures(leagueId: number, season?: number): Promise<AfApiResponse<AfFixture>> {
     const params = [`league=${leagueId}`];
     if (season) params.push(`season=${season}`);
     return this.request<AfFixture>(`/fixtures?${params.join("&")}`);

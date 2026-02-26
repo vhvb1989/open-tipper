@@ -16,9 +16,7 @@ export function ThemeSelector() {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-        {t("theme.heading")}
-      </h3>
+      <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("theme.heading")}</h3>
       <div className="flex flex-wrap gap-3">
         {THEMES.map((th) => (
           <button
@@ -33,10 +31,7 @@ export function ThemeSelector() {
           >
             {/* Swatch — navy circle with gold ring */}
             <div className="relative h-10 w-10 overflow-hidden rounded-full shadow-sm">
-              <div
-                className="absolute inset-0"
-                style={{ backgroundColor: th.navy }}
-              />
+              <div className="absolute inset-0" style={{ backgroundColor: th.navy }} />
               <div
                 className="absolute bottom-0 right-0 h-5 w-5 rounded-tl-full"
                 style={{ backgroundColor: th.gold }}

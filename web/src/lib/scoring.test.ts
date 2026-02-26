@@ -16,8 +16,6 @@ import {
   isPlayoffStage,
   DEFAULT_SCORING_RULES,
   type ScoringRulesConfig,
-  type Prediction,
-  type MatchResult,
 } from "./scoring";
 
 // ---------------------------------------------------------------------------
@@ -26,113 +24,163 @@ import {
 
 describe("Factor 1: Exact Scoreline", () => {
   it("matches when prediction equals result", () => {
-    expect(matchesExactScore({ homeGoals: 2, awayGoals: 1 }, { homeGoals: 2, awayGoals: 1 })).toBe(true);
+    expect(matchesExactScore({ homeGoals: 2, awayGoals: 1 }, { homeGoals: 2, awayGoals: 1 })).toBe(
+      true,
+    );
   });
 
   it("matches 0-0 draws", () => {
-    expect(matchesExactScore({ homeGoals: 0, awayGoals: 0 }, { homeGoals: 0, awayGoals: 0 })).toBe(true);
+    expect(matchesExactScore({ homeGoals: 0, awayGoals: 0 }, { homeGoals: 0, awayGoals: 0 })).toBe(
+      true,
+    );
   });
 
   it("does not match when different", () => {
-    expect(matchesExactScore({ homeGoals: 2, awayGoals: 1 }, { homeGoals: 3, awayGoals: 1 })).toBe(false);
+    expect(matchesExactScore({ homeGoals: 2, awayGoals: 1 }, { homeGoals: 3, awayGoals: 1 })).toBe(
+      false,
+    );
   });
 
   it("does not match when reversed", () => {
-    expect(matchesExactScore({ homeGoals: 2, awayGoals: 1 }, { homeGoals: 1, awayGoals: 2 })).toBe(false);
+    expect(matchesExactScore({ homeGoals: 2, awayGoals: 1 }, { homeGoals: 1, awayGoals: 2 })).toBe(
+      false,
+    );
   });
 });
 
 describe("Factor 2: Goal Difference", () => {
   it("matches same goal difference", () => {
-    expect(matchesGoalDifference({ homeGoals: 3, awayGoals: 1 }, { homeGoals: 2, awayGoals: 0 })).toBe(true); // both +2
+    expect(
+      matchesGoalDifference({ homeGoals: 3, awayGoals: 1 }, { homeGoals: 2, awayGoals: 0 }),
+    ).toBe(true); // both +2
   });
 
   it("matches draw with draw (diff = 0)", () => {
-    expect(matchesGoalDifference({ homeGoals: 1, awayGoals: 1 }, { homeGoals: 2, awayGoals: 2 })).toBe(true);
+    expect(
+      matchesGoalDifference({ homeGoals: 1, awayGoals: 1 }, { homeGoals: 2, awayGoals: 2 }),
+    ).toBe(true);
   });
 
   it("does not match different diffs", () => {
-    expect(matchesGoalDifference({ homeGoals: 3, awayGoals: 0 }, { homeGoals: 2, awayGoals: 0 })).toBe(false); // +3 vs +2
+    expect(
+      matchesGoalDifference({ homeGoals: 3, awayGoals: 0 }, { homeGoals: 2, awayGoals: 0 }),
+    ).toBe(false); // +3 vs +2
   });
 
   it("does not match reverse", () => {
-    expect(matchesGoalDifference({ homeGoals: 3, awayGoals: 1 }, { homeGoals: 1, awayGoals: 3 })).toBe(false); // +2 vs -2
+    expect(
+      matchesGoalDifference({ homeGoals: 3, awayGoals: 1 }, { homeGoals: 1, awayGoals: 3 }),
+    ).toBe(false); // +2 vs -2
   });
 });
 
 describe("Factor 3: Outcome", () => {
   it("matches home win", () => {
-    expect(matchesOutcome({ homeGoals: 3, awayGoals: 0 }, { homeGoals: 1, awayGoals: 0 })).toBe(true);
+    expect(matchesOutcome({ homeGoals: 3, awayGoals: 0 }, { homeGoals: 1, awayGoals: 0 })).toBe(
+      true,
+    );
   });
 
   it("matches draw", () => {
-    expect(matchesOutcome({ homeGoals: 0, awayGoals: 0 }, { homeGoals: 3, awayGoals: 3 })).toBe(true);
+    expect(matchesOutcome({ homeGoals: 0, awayGoals: 0 }, { homeGoals: 3, awayGoals: 3 })).toBe(
+      true,
+    );
   });
 
   it("matches away win", () => {
-    expect(matchesOutcome({ homeGoals: 0, awayGoals: 1 }, { homeGoals: 0, awayGoals: 2 })).toBe(true);
+    expect(matchesOutcome({ homeGoals: 0, awayGoals: 1 }, { homeGoals: 0, awayGoals: 2 })).toBe(
+      true,
+    );
   });
 
   it("does not match wrong outcome", () => {
-    expect(matchesOutcome({ homeGoals: 2, awayGoals: 0 }, { homeGoals: 0, awayGoals: 1 })).toBe(false);
+    expect(matchesOutcome({ homeGoals: 2, awayGoals: 0 }, { homeGoals: 0, awayGoals: 1 })).toBe(
+      false,
+    );
   });
 });
 
 describe("Factor 4: One Team's Goals", () => {
   it("matches home team goals", () => {
-    expect(matchesOneTeamGoals({ homeGoals: 2, awayGoals: 0 }, { homeGoals: 2, awayGoals: 3 })).toBe(true);
+    expect(
+      matchesOneTeamGoals({ homeGoals: 2, awayGoals: 0 }, { homeGoals: 2, awayGoals: 3 }),
+    ).toBe(true);
   });
 
   it("matches away team goals", () => {
-    expect(matchesOneTeamGoals({ homeGoals: 0, awayGoals: 2 }, { homeGoals: 3, awayGoals: 2 })).toBe(true);
+    expect(
+      matchesOneTeamGoals({ homeGoals: 0, awayGoals: 2 }, { homeGoals: 3, awayGoals: 2 }),
+    ).toBe(true);
   });
 
   it("matches both teams", () => {
-    expect(matchesOneTeamGoals({ homeGoals: 2, awayGoals: 1 }, { homeGoals: 2, awayGoals: 1 })).toBe(true);
+    expect(
+      matchesOneTeamGoals({ homeGoals: 2, awayGoals: 1 }, { homeGoals: 2, awayGoals: 1 }),
+    ).toBe(true);
   });
 
   it("does not match when neither team is correct", () => {
-    expect(matchesOneTeamGoals({ homeGoals: 2, awayGoals: 0 }, { homeGoals: 1, awayGoals: 3 })).toBe(false);
+    expect(
+      matchesOneTeamGoals({ homeGoals: 2, awayGoals: 0 }, { homeGoals: 1, awayGoals: 3 }),
+    ).toBe(false);
   });
 });
 
 describe("Factor 5: Total Goals", () => {
   it("matches same total", () => {
-    expect(matchesTotalGoals({ homeGoals: 2, awayGoals: 1 }, { homeGoals: 0, awayGoals: 3 })).toBe(true); // 3 = 3
+    expect(matchesTotalGoals({ homeGoals: 2, awayGoals: 1 }, { homeGoals: 0, awayGoals: 3 })).toBe(
+      true,
+    ); // 3 = 3
   });
 
   it("matches 0-0", () => {
-    expect(matchesTotalGoals({ homeGoals: 0, awayGoals: 0 }, { homeGoals: 0, awayGoals: 0 })).toBe(true);
+    expect(matchesTotalGoals({ homeGoals: 0, awayGoals: 0 }, { homeGoals: 0, awayGoals: 0 })).toBe(
+      true,
+    );
   });
 
   it("does not match different totals", () => {
-    expect(matchesTotalGoals({ homeGoals: 2, awayGoals: 1 }, { homeGoals: 2, awayGoals: 2 })).toBe(false); // 3 ≠ 4
+    expect(matchesTotalGoals({ homeGoals: 2, awayGoals: 1 }, { homeGoals: 2, awayGoals: 2 })).toBe(
+      false,
+    ); // 3 ≠ 4
   });
 });
 
 describe("Factor 6: Reverse Goal Difference", () => {
   it("matches reverse goal diff", () => {
-    expect(matchesReverseGoalDifference({ homeGoals: 3, awayGoals: 1 }, { homeGoals: 1, awayGoals: 3 })).toBe(true); // +2 vs -2
+    expect(
+      matchesReverseGoalDifference({ homeGoals: 3, awayGoals: 1 }, { homeGoals: 1, awayGoals: 3 }),
+    ).toBe(true); // +2 vs -2
   });
 
   it("matches with different magnitudes than 2", () => {
-    expect(matchesReverseGoalDifference({ homeGoals: 3, awayGoals: 0 }, { homeGoals: 0, awayGoals: 3 })).toBe(true); // +3 vs -3
+    expect(
+      matchesReverseGoalDifference({ homeGoals: 3, awayGoals: 0 }, { homeGoals: 0, awayGoals: 3 }),
+    ).toBe(true); // +3 vs -3
   });
 
   it("does not apply to draws (pred is draw)", () => {
-    expect(matchesReverseGoalDifference({ homeGoals: 1, awayGoals: 1 }, { homeGoals: 2, awayGoals: 2 })).toBe(false);
+    expect(
+      matchesReverseGoalDifference({ homeGoals: 1, awayGoals: 1 }, { homeGoals: 2, awayGoals: 2 }),
+    ).toBe(false);
   });
 
   it("does not apply to draws (result is draw)", () => {
-    expect(matchesReverseGoalDifference({ homeGoals: 2, awayGoals: 1 }, { homeGoals: 1, awayGoals: 1 })).toBe(false);
+    expect(
+      matchesReverseGoalDifference({ homeGoals: 2, awayGoals: 1 }, { homeGoals: 1, awayGoals: 1 }),
+    ).toBe(false);
   });
 
   it("does not match when magnitudes differ", () => {
-    expect(matchesReverseGoalDifference({ homeGoals: 3, awayGoals: 1 }, { homeGoals: 0, awayGoals: 3 })).toBe(false); // +2 vs -3
+    expect(
+      matchesReverseGoalDifference({ homeGoals: 3, awayGoals: 1 }, { homeGoals: 0, awayGoals: 3 }),
+    ).toBe(false); // +2 vs -3
   });
 
   it("does not match when same sign", () => {
-    expect(matchesReverseGoalDifference({ homeGoals: 2, awayGoals: 0 }, { homeGoals: 3, awayGoals: 1 })).toBe(false); // +2 vs +2 (same)
+    expect(
+      matchesReverseGoalDifference({ homeGoals: 2, awayGoals: 0 }, { homeGoals: 3, awayGoals: 1 }),
+    ).toBe(false); // +2 vs +2 (same)
   });
 });
 
@@ -144,7 +192,11 @@ describe("SPEC §5.3 Scoring Examples (Accumulate, Default Points)", () => {
   const rules = DEFAULT_SCORING_RULES;
 
   it("2-1 predicted, 2-1 actual → 25 pts (Exact + Diff + Outcome + OneTeam + Total)", () => {
-    const score = calculateScore({ homeGoals: 2, awayGoals: 1 }, { homeGoals: 2, awayGoals: 1 }, rules);
+    const score = calculateScore(
+      { homeGoals: 2, awayGoals: 1 },
+      { homeGoals: 2, awayGoals: 1 },
+      rules,
+    );
     expect(score.exactScore).toBe(10);
     expect(score.goalDifference).toBe(6);
     expect(score.outcome).toBe(4);
@@ -155,7 +207,11 @@ describe("SPEC §5.3 Scoring Examples (Accumulate, Default Points)", () => {
   });
 
   it("3-1 predicted, 2-0 actual → 10 pts (Diff + Outcome)", () => {
-    const score = calculateScore({ homeGoals: 3, awayGoals: 1 }, { homeGoals: 2, awayGoals: 0 }, rules);
+    const score = calculateScore(
+      { homeGoals: 3, awayGoals: 1 },
+      { homeGoals: 2, awayGoals: 0 },
+      rules,
+    );
     expect(score.exactScore).toBe(0);
     expect(score.goalDifference).toBe(6);
     expect(score.outcome).toBe(4);
@@ -166,7 +222,11 @@ describe("SPEC §5.3 Scoring Examples (Accumulate, Default Points)", () => {
   });
 
   it("0-1 predicted, 0-2 actual → 7 pts (Outcome + OneTeam)", () => {
-    const score = calculateScore({ homeGoals: 0, awayGoals: 1 }, { homeGoals: 0, awayGoals: 2 }, rules);
+    const score = calculateScore(
+      { homeGoals: 0, awayGoals: 1 },
+      { homeGoals: 0, awayGoals: 2 },
+      rules,
+    );
     expect(score.exactScore).toBe(0);
     expect(score.goalDifference).toBe(0);
     expect(score.outcome).toBe(4);
@@ -177,7 +237,11 @@ describe("SPEC §5.3 Scoring Examples (Accumulate, Default Points)", () => {
   });
 
   it("1-1 predicted, 2-2 actual → 12 pts (Diff + Outcome + Total)", () => {
-    const score = calculateScore({ homeGoals: 1, awayGoals: 1 }, { homeGoals: 2, awayGoals: 2 }, rules);
+    const score = calculateScore(
+      { homeGoals: 1, awayGoals: 1 },
+      { homeGoals: 2, awayGoals: 2 },
+      rules,
+    );
     expect(score.exactScore).toBe(0);
     expect(score.goalDifference).toBe(6);
     expect(score.outcome).toBe(4);
@@ -189,7 +253,11 @@ describe("SPEC §5.3 Scoring Examples (Accumulate, Default Points)", () => {
 
   it("3-4 predicted, 1-2 actual → 10 pts (Diff + Outcome)", () => {
     // Both have diff=-1, both away wins
-    const score = calculateScore({ homeGoals: 3, awayGoals: 4 }, { homeGoals: 1, awayGoals: 2 }, rules);
+    const score = calculateScore(
+      { homeGoals: 3, awayGoals: 4 },
+      { homeGoals: 1, awayGoals: 2 },
+      rules,
+    );
     expect(score.exactScore).toBe(0);
     expect(score.goalDifference).toBe(6);
     expect(score.outcome).toBe(4);
@@ -201,7 +269,11 @@ describe("SPEC §5.3 Scoring Examples (Accumulate, Default Points)", () => {
 
   it("2-0 predicted, 1-3 actual → 1 pt (reverse goal diff only)", () => {
     // +2 vs -2: wrong outcome, wrong everything except reverse goal diff
-    const score = calculateScore({ homeGoals: 2, awayGoals: 0 }, { homeGoals: 1, awayGoals: 3 }, rules);
+    const score = calculateScore(
+      { homeGoals: 2, awayGoals: 0 },
+      { homeGoals: 1, awayGoals: 3 },
+      rules,
+    );
     expect(score.exactScore).toBe(0);
     expect(score.goalDifference).toBe(0);
     expect(score.outcome).toBe(0);
@@ -223,24 +295,40 @@ describe("Highest Only Mode", () => {
   };
 
   it("exact score hit → only 10 pts (highest factor)", () => {
-    const score = calculateScore({ homeGoals: 2, awayGoals: 1 }, { homeGoals: 2, awayGoals: 1 }, rules);
+    const score = calculateScore(
+      { homeGoals: 2, awayGoals: 1 },
+      { homeGoals: 2, awayGoals: 1 },
+      rules,
+    );
     expect(score.total).toBe(10);
   });
 
   it("diff + outcome → only 6 pts (goal diff is highest)", () => {
-    const score = calculateScore({ homeGoals: 3, awayGoals: 1 }, { homeGoals: 2, awayGoals: 0 }, rules);
+    const score = calculateScore(
+      { homeGoals: 3, awayGoals: 1 },
+      { homeGoals: 2, awayGoals: 0 },
+      rules,
+    );
     expect(score.total).toBe(6);
   });
 
   it("outcome only → 4 pts", () => {
-    const score = calculateScore({ homeGoals: 0, awayGoals: 1 }, { homeGoals: 0, awayGoals: 2 }, rules);
+    const score = calculateScore(
+      { homeGoals: 0, awayGoals: 1 },
+      { homeGoals: 0, awayGoals: 2 },
+      rules,
+    );
     // Outcome (4) + OneTeam (3) → highest = 4
     expect(score.total).toBe(4);
   });
 
   it("reverse diff only → 1 pt (highest factor is reverse diff)", () => {
     // 2-0 vs 1-3: +2 vs -2 → reverse goal diff (1pt)
-    const score = calculateScore({ homeGoals: 2, awayGoals: 0 }, { homeGoals: 1, awayGoals: 3 }, rules);
+    const score = calculateScore(
+      { homeGoals: 2, awayGoals: 0 },
+      { homeGoals: 1, awayGoals: 3 },
+      rules,
+    );
     expect(score.total).toBe(1);
   });
 });
@@ -311,7 +399,11 @@ describe("Custom Scoring Rules", () => {
       accumulationMode: "ACCUMULATE",
       playoffMultiplier: false,
     };
-    const score = calculateScore({ homeGoals: 2, awayGoals: 1 }, { homeGoals: 2, awayGoals: 1 }, rules);
+    const score = calculateScore(
+      { homeGoals: 2, awayGoals: 1 },
+      { homeGoals: 2, awayGoals: 1 },
+      rules,
+    );
     expect(score.total).toBe(20 + 12 + 5 + 4 + 3); // 44
   });
 
@@ -326,7 +418,11 @@ describe("Custom Scoring Rules", () => {
       accumulationMode: "ACCUMULATE",
       playoffMultiplier: false,
     };
-    const score = calculateScore({ homeGoals: 2, awayGoals: 1 }, { homeGoals: 2, awayGoals: 1 }, rules);
+    const score = calculateScore(
+      { homeGoals: 2, awayGoals: 1 },
+      { homeGoals: 2, awayGoals: 1 },
+      rules,
+    );
     expect(score.total).toBe(10);
   });
 });

@@ -30,7 +30,10 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
     }
 
     if (membership.role !== "ADMIN") {
-      return NextResponse.json({ error: "Only admins can regenerate invite links" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Only admins can regenerate invite links" },
+        { status: 403 },
+      );
     }
 
     // Generate a new unique invite code (URL-safe, 24 chars)
@@ -45,9 +48,6 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ inviteCode: updatedGroup.inviteCode });
   } catch (error) {
     console.error("Failed to regenerate invite link:", error);
-    return NextResponse.json(
-      { error: "Failed to regenerate invite link" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to regenerate invite link" }, { status: 500 });
   }
 }

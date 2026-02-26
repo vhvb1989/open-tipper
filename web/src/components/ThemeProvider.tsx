@@ -21,16 +21,18 @@ export function useTheme() {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeName>("classic");
+  const [theme, setThemeState] = useState<ThemeName>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("theme") as ThemeName | null;
+      if (saved && THEMES.some((t) => t.id === saved)) return saved;
+    }
+    return "classic";
+  });
 
   useEffect(() => {
-    // Read saved theme on mount
-    const saved = localStorage.getItem("theme") as ThemeName | null;
-    if (saved && THEMES.some((t) => t.id === saved)) {
-      setThemeState(saved);
-      document.documentElement.dataset.theme = saved;
-    }
-  }, []);
+    // Sync theme to DOM on mount and when theme changes
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
 
   const setTheme = (t: ThemeName) => {
     setThemeState(t);
@@ -38,9 +40,5 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.dataset.theme = t;
   };
 
-  return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={{ theme, setTheme }}>{children}</ThemeContext.Provider>;
 }

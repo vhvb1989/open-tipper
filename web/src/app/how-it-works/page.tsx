@@ -80,26 +80,32 @@ export default async function HowItWorks() {
               </thead>
               <tbody>
                 {[
-                  { match: t("howItWorks.exampleMatch"), prediction: t("howItWorks.examplePred1"), points: 3, reason: t("howItWorks.exampleWhy1") },
-                  { match: t("howItWorks.exampleMatch"), prediction: t("howItWorks.examplePred2"), points: 1, reason: t("howItWorks.exampleWhy2") },
-                  { match: t("howItWorks.exampleMatch"), prediction: t("howItWorks.examplePred3"), points: 0, reason: t("howItWorks.exampleWhy3") },
+                  {
+                    match: t("howItWorks.exampleMatch"),
+                    prediction: t("howItWorks.examplePred1"),
+                    points: 3,
+                    reason: t("howItWorks.exampleWhy1"),
+                  },
+                  {
+                    match: t("howItWorks.exampleMatch"),
+                    prediction: t("howItWorks.examplePred2"),
+                    points: 1,
+                    reason: t("howItWorks.exampleWhy2"),
+                  },
+                  {
+                    match: t("howItWorks.exampleMatch"),
+                    prediction: t("howItWorks.examplePred3"),
+                    points: 0,
+                    reason: t("howItWorks.exampleWhy3"),
+                  },
                 ].map((ex, i) => (
-                  <tr
-                    key={i}
-                    className="border-b border-navy-100 dark:border-navy-800"
-                  >
-                    <td className="px-3 py-3 text-navy-700 dark:text-navy-300">
-                      {ex.match}
-                    </td>
-                    <td className="px-3 py-3 text-navy-700 dark:text-navy-300">
-                      {ex.prediction}
-                    </td>
+                  <tr key={i} className="border-b border-navy-100 dark:border-navy-800">
+                    <td className="px-3 py-3 text-navy-700 dark:text-navy-300">{ex.match}</td>
+                    <td className="px-3 py-3 text-navy-700 dark:text-navy-300">{ex.prediction}</td>
                     <td className="px-3 py-3 text-center font-bold text-gold-600 dark:text-gold-400">
                       {ex.points}
                     </td>
-                    <td className="px-3 py-3 text-navy-500 dark:text-navy-400">
-                      {ex.reason}
-                    </td>
+                    <td className="px-3 py-3 text-navy-500 dark:text-navy-400">{ex.reason}</td>
                   </tr>
                 ))}
               </tbody>

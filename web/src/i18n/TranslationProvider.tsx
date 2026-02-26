@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useMemo,
-} from "react";
+import { createContext, useContext, useState, useCallback, useMemo } from "react";
 import type { Locale } from "./index";
 import { LOCALES, DEFAULT_LOCALE, getT } from "./index";
 
@@ -45,14 +39,7 @@ export function TranslationProvider({
 
   const t = useMemo(() => getT(locale), [locale]);
 
-  const value = useMemo(
-    () => ({ locale, setLocale, t }),
-    [locale, setLocale, t],
-  );
+  const value = useMemo(() => ({ locale, setLocale, t }), [locale, setLocale, t]);
 
-  return (
-    <TranslationContext.Provider value={value}>
-      {children}
-    </TranslationContext.Provider>
-  );
+  return <TranslationContext.Provider value={value}>{children}</TranslationContext.Provider>;
 }

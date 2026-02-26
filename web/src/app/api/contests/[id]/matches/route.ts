@@ -10,10 +10,7 @@ import { prisma } from "@/lib/db";
  *   - matchDay: filter by match day / round number
  *   - stage: filter by stage (e.g. GROUP_STAGE, QUARTER_FINALS)
  */
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const { searchParams } = new URL(request.url);
@@ -65,9 +62,6 @@ export async function GET(
     return NextResponse.json({ contest, matches });
   } catch (error) {
     console.error("Failed to fetch matches:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch matches" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to fetch matches" }, { status: 500 });
   }
 }

@@ -53,7 +53,10 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     });
 
     if (!match || match.contestId !== group.contestId) {
-      return NextResponse.json({ error: "Match not found in this group's contest" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Match not found in this group's contest" },
+        { status: 404 },
+      );
     }
 
     if (match.homeGoals === null || match.awayGoals === null) {
@@ -131,9 +134,6 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     });
   } catch (error) {
     console.error("Failed to fetch match scores:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch scores" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to fetch scores" }, { status: 500 });
   }
 }

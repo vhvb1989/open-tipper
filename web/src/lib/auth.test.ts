@@ -63,8 +63,7 @@ describe("Auth configuration", () => {
     const NextAuth = (await import("next-auth")).default;
     await import("./auth");
 
-    const config = (NextAuth as unknown as ReturnType<typeof vi.fn>).mock
-      .calls[0][0];
+    const config = (NextAuth as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0];
     expect(config.pages.signIn).toBe("/signin");
   });
 });

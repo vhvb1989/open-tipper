@@ -60,9 +60,6 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     });
   } catch (error) {
     console.error("Failed to fetch members:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch members" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to fetch members" }, { status: 500 });
   }
 }

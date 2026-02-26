@@ -35,20 +35,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       where: { userId_groupId: { userId: session.user.id, groupId: id } },
     });
     if (existing) {
-      return NextResponse.json(
-        { error: "Already a member of this group" },
-        { status: 409 },
-      );
+      return NextResponse.json({ error: "Already a member of this group" }, { status: 409 });
     }
 
     // Private groups require invite code
     if (group.visibility === "PRIVATE") {
       const body = await request.json().catch(() => ({}));
       if (!body.inviteCode || body.inviteCode !== group.inviteCode) {
-        return NextResponse.json(
-          { error: "Invalid invite code" },
-          { status: 403 },
-        );
+        return NextResponse.json({ error: "Invalid invite code" }, { status: 403 });
       }
     }
 
@@ -63,9 +57,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ membership }, { status: 201 });
   } catch (error) {
     console.error("Failed to join group:", error);
-    return NextResponse.json(
-      { error: "Failed to join group" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to join group" }, { status: 500 });
   }
 }

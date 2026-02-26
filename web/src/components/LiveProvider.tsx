@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -63,13 +56,12 @@ export function LiveProvider({
   contestIds: string[];
   children: React.ReactNode;
 }) {
-  const [liveMatches, setLiveMatches] = useState<Map<string, LiveMatch>>(
-    new Map(),
-  );
+  const [liveMatches, setLiveMatches] = useState<Map<string, LiveMatch>>(new Map());
   const [connected, setConnected] = useState(false);
   const [scoresVersion, setScoresVersion] = useState(0);
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const connectRef = useRef<() => void>(() => {});
 
   const connect = useCallback(() => {
     // Don't connect if no contest IDs provided
@@ -110,10 +102,15 @@ export function LiveProvider({
 
       // Reconnect after 5 seconds
       reconnectTimeoutRef.current = setTimeout(() => {
-        connect();
+        connectRef.current();
       }, 5000);
     };
   }, [contestIds]);
+
+  // Keep the ref in sync so reconnection always uses the latest connect
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   useEffect(() => {
     connect();

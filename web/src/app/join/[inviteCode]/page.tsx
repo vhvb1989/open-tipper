@@ -10,11 +10,7 @@ import { redirect, notFound } from "next/navigation";
  * - Already a member → redirect to group
  * - Valid invite → auto-join and redirect to group
  */
-export default async function JoinPage({
-  params,
-}: {
-  params: Promise<{ inviteCode: string }>;
-}) {
+export default async function JoinPage({ params }: { params: Promise<{ inviteCode: string }> }) {
   const session = await auth();
   const { inviteCode } = await params;
 

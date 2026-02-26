@@ -73,9 +73,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Determine which match day to show
     // Default to the latest finished match day when no param is provided
-    const effectiveMatchDay = matchDayParam
-      ? parseInt(matchDayParam, 10)
-      : matchDays[0] ?? null;
+    const effectiveMatchDay = matchDayParam ? parseInt(matchDayParam, 10) : (matchDays[0] ?? null);
 
     // Build match filter: finished + live matches in this contest
     const matchWhere: Record<string, unknown> = {
@@ -203,9 +201,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ results, matchDays });
   } catch (error) {
     console.error("Failed to fetch results:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch results" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to fetch results" }, { status: 500 });
   }
 }

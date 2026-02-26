@@ -10,12 +10,12 @@ export function NavBar() {
   const { t } = useTranslation();
 
   return (
-    <nav className="border-b border-navy-700/30 bg-navy-800" aria-label={t("accessibility.navigation")}>
+    <nav
+      className="border-b border-navy-700/30 bg-navy-800"
+      aria-label={t("accessibility.navigation")}
+    >
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-        <Link
-          href="/"
-          className="text-lg font-bold tracking-tight text-gold-400"
-        >
+        <Link href="/" className="text-lg font-bold tracking-tight text-gold-400">
           {t("nav.brand")}
         </Link>
 
@@ -76,15 +76,14 @@ export function NavBar() {
                     className="rounded-full"
                   />
                 ) : (
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-navy-700 text-xs font-medium text-navy-200" aria-hidden="true">
-                    {(session.user.name ?? session.user.email ?? "U")
-                      .charAt(0)
-                      .toUpperCase()}
+                  <div
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-navy-700 text-xs font-medium text-navy-200"
+                    aria-hidden="true"
+                  >
+                    {(session.user.name ?? session.user.email ?? "U").charAt(0).toUpperCase()}
                   </div>
                 )}
-                <span className="hidden sm:inline">
-                  {session.user.name ?? session.user.email}
-                </span>
+                <span className="hidden sm:inline">{session.user.name ?? session.user.email}</span>
               </Link>
 
               <button

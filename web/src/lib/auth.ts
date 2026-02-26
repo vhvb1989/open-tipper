@@ -46,10 +46,7 @@ function getProviders() {
     );
   }
 
-  if (
-    process.env.AUTH_MICROSOFT_ENTRA_ID_ID &&
-    process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET
-  ) {
+  if (process.env.AUTH_MICROSOFT_ENTRA_ID_ID && process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET) {
     providers.push(
       MicrosoftEntraId({
         clientId: process.env.AUTH_MICROSOFT_ENTRA_ID_ID,

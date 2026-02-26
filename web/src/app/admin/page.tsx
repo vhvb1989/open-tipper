@@ -39,7 +39,9 @@ export default function AdminCompetitionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState<string | null>(null);
-  const [syncResult, setSyncResult] = useState<{ leagueId: number; result: SyncResult } | null>(null);
+  const [syncResult, setSyncResult] = useState<{ leagueId: number; result: SyncResult } | null>(
+    null,
+  );
   const [syncError, setSyncError] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
   const { t } = useTranslation();
@@ -141,19 +143,22 @@ export default function AdminCompetitionsPage() {
 
       {/* Sync result banner */}
       {syncResult && (
-        <div className={`rounded-lg border p-4 text-sm ${
-          syncResult.result.warning
-            ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400"
-            : "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400"
-        }`}>
+        <div
+          className={`rounded-lg border p-4 text-sm ${
+            syncResult.result.warning
+              ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400"
+              : "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400"
+          }`}
+        >
           <strong>{t("admin.syncComplete", { league: String(syncResult.leagueId) })}:</strong>{" "}
-          {t("admin.teamsMatches", { teams: String(syncResult.result.teamsUpserted), matches: String(syncResult.result.matchesUpserted) })}
+          {t("admin.teamsMatches", {
+            teams: String(syncResult.result.teamsUpserted),
+            matches: String(syncResult.result.matchesUpserted),
+          })}
           {syncResult.result.predictionsScored > 0 &&
             `, ${syncResult.result.predictionsScored} predictions scored`}
           {syncResult.result.warning && (
-            <div className="mt-1 text-xs">
-              ⚠️ API note: {syncResult.result.warning}
-            </div>
+            <div className="mt-1 text-xs">⚠️ API note: {syncResult.result.warning}</div>
           )}
           <button
             onClick={() => setSyncResult(null)}
@@ -226,7 +231,8 @@ export default function AdminCompetitionsPage() {
                   </div>
                   <div className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
                     {comp.area} · {comp.type}
-                    {comp.currentSeason?.startDate && comp.currentSeason?.endDate &&
+                    {comp.currentSeason?.startDate &&
+                      comp.currentSeason?.endDate &&
                       ` · Season: ${comp.currentSeason.startDate.slice(0, 4)}–${comp.currentSeason.endDate.slice(0, 4)}`}
                   </div>
                 </div>
@@ -260,7 +266,10 @@ export default function AdminCompetitionsPage() {
       </div>
 
       <p className="text-xs text-zinc-400 dark:text-zinc-500">
-        {t("admin.showingLeagues", { shown: String(filtered.length), total: String(competitions.length) })}
+        {t("admin.showingLeagues", {
+          shown: String(filtered.length),
+          total: String(competitions.length),
+        })}
       </p>
     </div>
   );

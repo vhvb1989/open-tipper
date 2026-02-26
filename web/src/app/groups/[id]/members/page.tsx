@@ -6,11 +6,7 @@ import { RemoveMemberButton } from "@/components/RemoveMemberButton";
 import { LeaveGroupButton } from "@/components/LeaveGroupButton";
 import { InviteSection } from "@/components/InviteSection";
 
-export default async function GroupMembersPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function GroupMembersPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   const { id } = await params;
 
@@ -34,29 +30,20 @@ export default async function GroupMembersPage({
 
   if (!group) notFound();
 
-  const currentUserMembership = group.memberships.find(
-    (m) => m.user.id === session?.user?.id,
-  );
+  const currentUserMembership = group.memberships.find((m) => m.user.id === session?.user?.id);
   const isAdmin = currentUserMembership?.role === "ADMIN";
 
   return (
     <div className="space-y-6">
       {/* Invite link (admin only) */}
       {isAdmin && (
-        <InviteSection
-          groupId={group.id}
-          groupName={group.name}
-          inviteCode={group.inviteCode}
-        />
+        <InviteSection groupId={group.id} groupName={group.name} inviteCode={group.inviteCode} />
       )}
 
       {/* Member list */}
       <div className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
         {group.memberships.map((membership) => (
-          <div
-            key={membership.id}
-            className="flex items-center justify-between px-4 py-3"
-          >
+          <div key={membership.id} className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center gap-3">
               {membership.user.image ? (
                 <Image
@@ -68,9 +55,7 @@ export default async function GroupMembersPage({
                 />
               ) : (
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-200 text-sm font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
-                  {(membership.user.name ?? membership.user.email ?? "U")
-                    .charAt(0)
-                    .toUpperCase()}
+                  {(membership.user.name ?? membership.user.email ?? "U").charAt(0).toUpperCase()}
                 </div>
               )}
               <div>
@@ -99,10 +84,9 @@ export default async function GroupMembersPage({
                 />
               )}
               {/* Non-admin members can leave */}
-              {membership.user.id === session?.user?.id &&
-                membership.role !== "ADMIN" && (
-                  <LeaveGroupButton groupId={group.id} />
-                )}
+              {membership.user.id === session?.user?.id && membership.role !== "ADMIN" && (
+                <LeaveGroupButton groupId={group.id} />
+              )}
             </div>
           </div>
         ))}

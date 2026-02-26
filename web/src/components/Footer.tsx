@@ -12,12 +12,8 @@ export function Footer() {
         <div className="flex flex-col gap-8 sm:flex-row sm:justify-between">
           {/* Brand */}
           <div className="max-w-xs">
-            <p className="text-lg font-bold tracking-tight text-gold-400">
-              {t("footer.brand")}
-            </p>
-            <p className="mt-2 text-sm leading-6 text-navy-300">
-              {t("footer.description")}
-            </p>
+            <p className="text-lg font-bold tracking-tight text-gold-400">{t("footer.brand")}</p>
+            <p className="mt-2 text-sm leading-6 text-navy-300">{t("footer.description")}</p>
           </div>
 
           {/* Links */}
@@ -51,14 +47,10 @@ export function Footer() {
               </h3>
               <ul className="mt-3 space-y-2">
                 <li>
-                  <span className="text-sm text-navy-400">
-                    {t("footer.privacyPolicy")}
-                  </span>
+                  <span className="text-sm text-navy-400">{t("footer.privacyPolicy")}</span>
                 </li>
                 <li>
-                  <span className="text-sm text-navy-400">
-                    {t("footer.termsOfService")}
-                  </span>
+                  <span className="text-sm text-navy-400">{t("footer.termsOfService")}</span>
                 </li>
               </ul>
             </div>

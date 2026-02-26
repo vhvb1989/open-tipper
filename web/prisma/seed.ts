@@ -20,7 +20,9 @@ async function main() {
 
   console.log("\n📊 Seed summary:");
   for (const r of results) {
-    console.log(`   Contest ${r.contestId}: ${r.teamsUpserted} teams, ${r.matchesUpserted} matches`);
+    console.log(
+      `   Contest ${r.contestId}: ${r.teamsUpserted} teams, ${r.matchesUpserted} matches`,
+    );
   }
 
   console.log("\n✅ Seed complete.");

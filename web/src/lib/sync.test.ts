@@ -150,33 +150,51 @@ describe("syncCompetition", () => {
     await syncCompetition(2, undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
 
     expect(mockApi.getLeague).toHaveBeenCalledWith(2);
-    expect((mockDb as unknown as { contest: { upsert: ReturnType<typeof vi.fn> } }).contest.upsert).toHaveBeenCalledTimes(1);
+    expect(
+      (mockDb as unknown as { contest: { upsert: ReturnType<typeof vi.fn> } }).contest.upsert,
+    ).toHaveBeenCalledTimes(1);
 
-    const upsertCall = (mockDb as unknown as { contest: { upsert: ReturnType<typeof vi.fn> } }).contest.upsert.mock.calls[0][0];
+    const upsertCall = (mockDb as unknown as { contest: { upsert: ReturnType<typeof vi.fn> } })
+      .contest.upsert.mock.calls[0][0];
     expect(upsertCall.create.code).toBe("2");
     expect(upsertCall.create.name).toBe("UEFA Champions League");
     expect(upsertCall.create.season).toBe("2025");
   });
 
   it("extracts unique teams from fixtures and upserts them", async () => {
-    const result = await syncCompetition(2, undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
+    const result = await syncCompetition(
+      2,
+      undefined,
+      mockDb as PrismaClient,
+      mockApi as FootballApiClient,
+    );
 
     // 3 unique teams: Alpha (10), Beta (20), Gamma (30)
     expect(result.teamsUpserted).toBe(3);
-    expect((mockDb as unknown as { team: { upsert: ReturnType<typeof vi.fn> } }).team.upsert).toHaveBeenCalledTimes(3);
+    expect(
+      (mockDb as unknown as { team: { upsert: ReturnType<typeof vi.fn> } }).team.upsert,
+    ).toHaveBeenCalledTimes(3);
   });
 
   it("upserts all matches with correct team references", async () => {
-    const result = await syncCompetition(2, undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
+    const result = await syncCompetition(
+      2,
+      undefined,
+      mockDb as PrismaClient,
+      mockApi as FootballApiClient,
+    );
 
     expect(result.matchesUpserted).toBe(2);
-    expect((mockDb as unknown as { match: { upsert: ReturnType<typeof vi.fn> } }).match.upsert).toHaveBeenCalledTimes(2);
+    expect(
+      (mockDb as unknown as { match: { upsert: ReturnType<typeof vi.fn> } }).match.upsert,
+    ).toHaveBeenCalledTimes(2);
   });
 
   it("maps FT status to FINISHED correctly", async () => {
     await syncCompetition(2, undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
 
-    const firstMatchCall = (mockDb as unknown as { match: { upsert: ReturnType<typeof vi.fn> } }).match.upsert.mock.calls[0][0];
+    const firstMatchCall = (mockDb as unknown as { match: { upsert: ReturnType<typeof vi.fn> } })
+      .match.upsert.mock.calls[0][0];
     expect(firstMatchCall.create.status).toBe("FINISHED");
     expect(firstMatchCall.create.homeGoals).toBe(2);
     expect(firstMatchCall.create.awayGoals).toBe(1);
@@ -185,7 +203,8 @@ describe("syncCompetition", () => {
   it("handles NS (Not Started) fixtures with null scores", async () => {
     await syncCompetition(2, undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
 
-    const secondMatchCall = (mockDb as unknown as { match: { upsert: ReturnType<typeof vi.fn> } }).match.upsert.mock.calls[1][0];
+    const secondMatchCall = (mockDb as unknown as { match: { upsert: ReturnType<typeof vi.fn> } })
+      .match.upsert.mock.calls[1][0];
     expect(secondMatchCall.create.status).toBe("SCHEDULED");
     expect(secondMatchCall.create.homeGoals).toBeNull();
     expect(secondMatchCall.create.awayGoals).toBeNull();
@@ -193,11 +212,18 @@ describe("syncCompetition", () => {
 
   it("does not call $disconnect when db is provided", async () => {
     await syncCompetition(2, undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
-    expect((mockDb as unknown as { $disconnect: ReturnType<typeof vi.fn> }).$disconnect).not.toHaveBeenCalled();
+    expect(
+      (mockDb as unknown as { $disconnect: ReturnType<typeof vi.fn> }).$disconnect,
+    ).not.toHaveBeenCalled();
   });
 
   it("returns a SyncResult with correct counts", async () => {
-    const result = await syncCompetition(2, undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
+    const result = await syncCompetition(
+      2,
+      undefined,
+      mockDb as PrismaClient,
+      mockApi as FootballApiClient,
+    );
 
     expect(result).toEqual({
       contestId: "contest-1",
@@ -210,7 +236,8 @@ describe("syncCompetition", () => {
   it("sets group field from round prefix during upsert", async () => {
     await syncCompetition(2, undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
 
-    const firstMatchCall = (mockDb as unknown as { match: { upsert: ReturnType<typeof vi.fn> } }).match.upsert.mock.calls[0][0];
+    const firstMatchCall = (mockDb as unknown as { match: { upsert: ReturnType<typeof vi.fn> } })
+      .match.upsert.mock.calls[0][0];
     // "League Stage - 1" → group = "League Stage"
     expect(firstMatchCall.create.group).toBe("League Stage");
   });

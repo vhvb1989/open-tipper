@@ -9,10 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/db";
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { error, session } = await requireAdmin();
   if (error) return error;
 
@@ -20,10 +17,7 @@ export async function PATCH(
 
   // Prevent admin from demoting themselves
   if (id === session!.user.id) {
-    return NextResponse.json(
-      { error: "Cannot change your own role" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Cannot change your own role" }, { status: 400 });
   }
 
   let body: { role?: string };
@@ -34,10 +28,7 @@ export async function PATCH(
   }
 
   if (!body.role || !["ADMIN", "USER"].includes(body.role)) {
-    return NextResponse.json(
-      { error: "Invalid role — must be ADMIN or USER" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Invalid role — must be ADMIN or USER" }, { status: 400 });
   }
 
   const user = await prisma.user.findUnique({ where: { id } });

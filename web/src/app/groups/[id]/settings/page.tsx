@@ -24,11 +24,7 @@ interface GroupDetails {
   role: string | null;
 }
 
-export default function GroupSettingsPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default function GroupSettingsPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const [groupId, setGroupId] = useState<string>("");
   const [group, setGroup] = useState<GroupDetails | null>(null);
@@ -152,7 +148,10 @@ export default function GroupSettingsPage({
     <form onSubmit={handleSave} className="max-w-xl space-y-6">
       {/* Group Name */}
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <label
+          htmlFor="name"
+          className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+        >
           Group name
         </label>
         <input
@@ -167,7 +166,10 @@ export default function GroupSettingsPage({
 
       {/* Description */}
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <label
+          htmlFor="description"
+          className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+        >
           Description
         </label>
         <textarea
@@ -212,21 +214,24 @@ export default function GroupSettingsPage({
 
       {/* Scoring Rules */}
       <div className="space-y-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
-        <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Scoring Rules
-        </h3>
+        <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Scoring Rules</h3>
 
         <div className="grid grid-cols-2 gap-3">
-          {([
-            ["exactScore", "Exact score"],
-            ["goalDifference", "Goal difference"],
-            ["outcome", "Correct outcome"],
-            ["oneTeamGoals", "One team's goals"],
-            ["totalGoals", "Total goals"],
-            ["reverseGoalDifference", "Reverse goal diff"],
-          ] as const).map(([key, label]) => (
+          {(
+            [
+              ["exactScore", "Exact score"],
+              ["goalDifference", "Goal difference"],
+              ["outcome", "Correct outcome"],
+              ["oneTeamGoals", "One team's goals"],
+              ["totalGoals", "Total goals"],
+              ["reverseGoalDifference", "Reverse goal diff"],
+            ] as const
+          ).map(([key, label]) => (
             <div key={key}>
-              <label htmlFor={`settings-${key}`} className="block text-xs text-zinc-500 dark:text-zinc-400">
+              <label
+                htmlFor={`settings-${key}`}
+                className="block text-xs text-zinc-500 dark:text-zinc-400"
+              >
                 {label}
               </label>
               <input
@@ -245,7 +250,10 @@ export default function GroupSettingsPage({
         </div>
 
         <div>
-          <label htmlFor="settings-accumulationMode" className="block text-xs text-zinc-500 dark:text-zinc-400">
+          <label
+            htmlFor="settings-accumulationMode"
+            className="block text-xs text-zinc-500 dark:text-zinc-400"
+          >
             Accumulation mode
           </label>
           <select
@@ -268,9 +276,7 @@ export default function GroupSettingsPage({
           <input
             type="checkbox"
             checked={scoring.playoffMultiplier}
-            onChange={(e) =>
-              setScoring((s) => ({ ...s, playoffMultiplier: e.target.checked }))
-            }
+            onChange={(e) => setScoring((s) => ({ ...s, playoffMultiplier: e.target.checked }))}
             className="rounded text-zinc-900 focus:ring-zinc-500"
           />
           <span className="text-sm text-zinc-700 dark:text-zinc-300">

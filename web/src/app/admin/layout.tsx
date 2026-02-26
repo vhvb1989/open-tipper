@@ -4,11 +4,7 @@ import Link from "next/link";
 import { getLocale } from "@/i18n/server";
 import { getT } from "@/i18n";
 
-export default async function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/signin");
@@ -26,9 +22,7 @@ export default async function AdminLayout({
         <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
           {t("admin.heading")}
         </h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          {t("admin.description")}
-        </p>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t("admin.description")}</p>
       </div>
 
       {/* Tab navigation */}

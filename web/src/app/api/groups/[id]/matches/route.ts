@@ -80,9 +80,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
   } catch (error) {
     console.error("Failed to fetch group matches:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch matches" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to fetch matches" }, { status: 500 });
   }
 }

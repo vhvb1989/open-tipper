@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 import { useLive, useLiveMatch } from "./LiveProvider";
 import { LiveBadge } from "./LiveBadge";
 import { useTranslation } from "@/i18n/TranslationProvider";
@@ -74,12 +75,42 @@ const FACTOR_BADGES: Array<{
   titleKey: string;
   color: string;
 }> = [
-  { key: "exactScore", labelKey: "results.exactScoreShort", titleKey: "results.exactScore", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
-  { key: "goalDifference", labelKey: "results.goalDifferenceShort", titleKey: "results.goalDifference", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
-  { key: "outcome", labelKey: "results.outcomeShort", titleKey: "results.outcome", color: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400" },
-  { key: "oneTeamGoals", labelKey: "results.oneTeamGoalsShort", titleKey: "results.oneTeamGoals", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
-  { key: "totalGoals", labelKey: "results.totalGoalsShort", titleKey: "results.totalGoals", color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400" },
-  { key: "reverseGoalDifference", labelKey: "results.reverseGoalDiffShort", titleKey: "results.reverseGoalDiff", color: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" },
+  {
+    key: "exactScore",
+    labelKey: "results.exactScoreShort",
+    titleKey: "results.exactScore",
+    color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  },
+  {
+    key: "goalDifference",
+    labelKey: "results.goalDifferenceShort",
+    titleKey: "results.goalDifference",
+    color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  },
+  {
+    key: "outcome",
+    labelKey: "results.outcomeShort",
+    titleKey: "results.outcome",
+    color: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
+  },
+  {
+    key: "oneTeamGoals",
+    labelKey: "results.oneTeamGoalsShort",
+    titleKey: "results.oneTeamGoals",
+    color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  },
+  {
+    key: "totalGoals",
+    labelKey: "results.totalGoalsShort",
+    titleKey: "results.totalGoals",
+    color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400",
+  },
+  {
+    key: "reverseGoalDifference",
+    labelKey: "results.reverseGoalDiffShort",
+    titleKey: "results.reverseGoalDiff",
+    color: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400",
+  },
 ];
 
 function BreakdownBadges({ breakdown }: { breakdown: NonNullable<PredictionEntry["breakdown"]> }) {
@@ -92,7 +123,10 @@ function BreakdownBadges({ breakdown }: { breakdown: NonNullable<PredictionEntry
       {activeBadges.map((badge) => (
         <span
           key={badge.key}
-          title={t("results.factorTooltip", { factor: t(badge.titleKey), points: String(breakdown[badge.key]) })}
+          title={t("results.factorTooltip", {
+            factor: t(badge.titleKey),
+            points: String(breakdown[badge.key]),
+          })}
           className={`inline-flex items-center rounded px-1 py-0.5 text-[10px] font-bold leading-none ${badge.color}`}
         >
           {t(badge.labelKey)}
@@ -107,8 +141,11 @@ function BreakdownBadges({ breakdown }: { breakdown: NonNullable<PredictionEntry
 function MatchScore({ match }: { match: MatchResult }) {
   const liveData = useLiveMatch(match.id);
   const { t } = useTranslation();
-  const isLive = match.status === "IN_PLAY" || match.status === "PAUSED" ||
-    liveData?.status === "IN_PLAY" || liveData?.status === "PAUSED";
+  const isLive =
+    match.status === "IN_PLAY" ||
+    match.status === "PAUSED" ||
+    liveData?.status === "IN_PLAY" ||
+    liveData?.status === "PAUSED";
   const status = liveData?.status ?? match.status;
   const homeGoals = liveData?.homeGoals ?? match.homeGoals;
   const awayGoals = liveData?.awayGoals ?? match.awayGoals;
@@ -116,7 +153,9 @@ function MatchScore({ match }: { match: MatchResult }) {
   return (
     <div className="mx-3 min-w-[60px] text-center">
       {homeGoals !== null && awayGoals !== null ? (
-        <span className={`text-lg font-bold ${isLive ? "text-red-600 dark:text-red-400" : "text-zinc-900 dark:text-zinc-100"}`}>
+        <span
+          className={`text-lg font-bold ${isLive ? "text-red-600 dark:text-red-400" : "text-zinc-900 dark:text-zinc-100"}`}
+        >
           {homeGoals} – {awayGoals}
         </span>
       ) : (
@@ -221,7 +260,13 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
       {error && (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
           {error}
-          <button onClick={() => { setError(null); fetchResults(selectedDay); }} className="ml-2 underline">
+          <button
+            onClick={() => {
+              setError(null);
+              fetchResults(selectedDay);
+            }}
+            className="ml-2 underline"
+          >
             {t("results.retry")}
           </button>
         </div>
@@ -235,7 +280,13 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
             disabled={dayIdx <= 0}
             className="rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
-            <svg className="inline h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <svg
+              className="inline h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>{" "}
             {t("results.prev")}
@@ -257,15 +308,18 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
             </select>
           </div>
           <button
-            onClick={() =>
-              dayIdx < matchDays.length - 1 &&
-              handleDayChange(matchDays[dayIdx + 1])
-            }
+            onClick={() => dayIdx < matchDays.length - 1 && handleDayChange(matchDays[dayIdx + 1])}
             disabled={dayIdx >= matchDays.length - 1}
             className="rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
             {t("results.next")}{" "}
-            <svg className="inline h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <svg
+              className="inline h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
             </svg>
           </button>
@@ -294,10 +348,13 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
                       {match.homeTeam.shortName || match.homeTeam.name}
                     </span>
                     {match.homeTeam.crest && (
-                      <img
+                      <Image
                         src={match.homeTeam.crest}
                         alt={match.homeTeam.name}
+                        width={20}
+                        height={20}
                         className="h-5 w-5 object-contain"
+                        unoptimized
                       />
                     )}
                   </div>
@@ -308,10 +365,13 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
                   {/* Away team */}
                   <div className="flex min-w-0 flex-1 items-center gap-2">
                     {match.awayTeam.crest && (
-                      <img
+                      <Image
                         src={match.awayTeam.crest}
                         alt={match.awayTeam.name}
+                        width={20}
+                        height={20}
                         className="h-5 w-5 shrink-0 object-contain"
+                        unoptimized
                       />
                     )}
                     <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
@@ -332,7 +392,11 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
                     strokeWidth={2}
                     stroke="currentColor"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="m19.5 8.25-7.5 7.5-7.5-7.5"
+                    />
                   </svg>
                 </div>
               </button>
@@ -356,10 +420,13 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
                             {/* User info */}
                             <div className="flex items-center gap-2">
                               {pred.userImage ? (
-                                <img
+                                <Image
                                   src={pred.userImage}
                                   alt=""
+                                  width={24}
+                                  height={24}
                                   className="h-6 w-6 rounded-full"
+                                  unoptimized
                                 />
                               ) : (
                                 <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-200 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">

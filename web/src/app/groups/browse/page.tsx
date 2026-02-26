@@ -33,7 +33,7 @@ interface BrowseGroup {
 }
 
 export default function BrowseGroupsPage() {
-  const { data: session, status: authStatus } = useSession();
+  const { status: authStatus } = useSession();
   const router = useRouter();
   const [groups, setGroups] = useState<BrowseGroup[]>([]);
   const [contests, setContests] = useState<Contest[]>([]);
@@ -94,9 +94,7 @@ export default function BrowseGroupsPage() {
       setJoinedIds((prev) => new Set(prev).add(groupId));
       router.push(`/groups/${groupId}`);
     } catch (err) {
-      setJoinError(
-        err instanceof Error ? err.message : "Failed to join group"
-      );
+      setJoinError(err instanceof Error ? err.message : "Failed to join group");
     } finally {
       setJoiningId(null);
     }
@@ -110,9 +108,7 @@ export default function BrowseGroupsPage() {
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
             {t("browse.heading")}
           </h1>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            {t("browse.description")}
-          </p>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t("browse.description")}</p>
         </div>
 
         {/* Filters */}
@@ -169,10 +165,7 @@ export default function BrowseGroupsPage() {
         {error && (
           <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
             {error}
-            <button
-              onClick={fetchGroups}
-              className="ml-2 font-medium underline hover:no-underline"
-            >
+            <button onClick={fetchGroups} className="ml-2 font-medium underline hover:no-underline">
               {t("browse.retry")}
             </button>
           </div>
@@ -218,9 +211,7 @@ export default function BrowseGroupsPage() {
               />
             </svg>
             <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-              {search || contestFilter
-                ? t("browse.noMatchFilters")
-                : t("browse.noGroupsYet")}
+              {search || contestFilter ? t("browse.noMatchFilters") : t("browse.noGroupsYet")}
             </p>
             {(search || contestFilter) && (
               <button

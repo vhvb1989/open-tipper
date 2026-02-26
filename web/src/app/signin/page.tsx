@@ -20,9 +20,7 @@ export default function SignInPage() {
           <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
             {t("signIn.heading")}
           </h1>
-          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-            {t("signIn.description")}
-          </p>
+          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{t("signIn.description")}</p>
         </div>
 
         {status === "loading" ? (
@@ -87,7 +85,10 @@ export default function SignInPage() {
 
         <p className="text-center text-xs text-zinc-400 dark:text-zinc-500">
           {t("signIn.providerNote")}{" "}
-          <a href="https://github.com/your-username/open-tipper#authentication-providers" className="underline">
+          <a
+            href="https://github.com/your-username/open-tipper#authentication-providers"
+            className="underline"
+          >
             {t("signIn.setupGuide")}
           </a>
         </p>

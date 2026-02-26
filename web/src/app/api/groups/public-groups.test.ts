@@ -80,9 +80,7 @@ describe("Browse Groups API — GET /api/groups/browse", () => {
         createdAt: new Date("2026-01-01"),
       },
     ]);
-    mockPrisma.membership.findMany.mockResolvedValue([
-      { groupId: "g1" },
-    ]);
+    mockPrisma.membership.findMany.mockResolvedValue([{ groupId: "g1" }]);
     mockPrisma.contest.findMany.mockResolvedValue([]);
 
     const { GET } = await import("@/app/api/groups/browse/route");
@@ -138,7 +136,9 @@ describe("Browse Groups API — GET /api/groups/browse", () => {
     mockPrisma.contest.findMany.mockResolvedValue([]);
 
     const { GET } = await import("@/app/api/groups/browse/route");
-    const req = new NextRequest("http://localhost:3000/api/groups/browse?search=League&contestId=c2");
+    const req = new NextRequest(
+      "http://localhost:3000/api/groups/browse?search=League&contestId=c2",
+    );
     const res = await GET(req);
 
     expect(res.status).toBe(200);

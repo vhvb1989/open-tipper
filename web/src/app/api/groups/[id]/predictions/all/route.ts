@@ -88,9 +88,6 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ predictions: byMatch });
   } catch (error) {
     console.error("Failed to fetch all predictions:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch predictions" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to fetch predictions" }, { status: 500 });
   }
 }

@@ -7,11 +7,7 @@ import StandingsTab from "@/components/StandingsTab";
  * Ranked leaderboard showing total points, last-round points, and prediction count.
  * For public groups, this is visible to non-members too.
  */
-export default async function GroupStandingsPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function GroupStandingsPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   const currentUserId = session?.user?.id ?? "";
 

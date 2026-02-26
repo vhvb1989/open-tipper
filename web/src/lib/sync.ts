@@ -9,12 +9,7 @@
 
 import { PrismaClient, ContestStatus, MatchStatus } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import {
-  FootballApiClient,
-  AfFixture,
-  AfTeamRef,
-  SUPPORTED_COMPETITIONS,
-} from "./football-api";
+import { FootballApiClient, AfFixture, AfTeamRef, SUPPORTED_COMPETITIONS } from "./football-api";
 import { scoreFinishedMatches } from "./scoring-service";
 
 // ---------------------------------------------------------------------------
@@ -96,7 +91,7 @@ function parseMatchDay(round: string): number | null {
  *   "Quarter-finals"           → null
  */
 export function parseRoundPrefix(round: string): string | null {
-  const sepIdx = round.indexOf(' - ');
+  const sepIdx = round.indexOf(" - ");
   if (sepIdx <= 0) return null;
   return round.substring(0, sepIdx).trim() || null;
 }
@@ -176,10 +171,12 @@ export async function syncCompetition(
   db?: PrismaClient,
   apiClient?: FootballApiClient,
 ): Promise<SyncResult> {
-  const prisma = db ?? (() => {
-    const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
-    return new PrismaClient({ adapter });
-  })();
+  const prisma =
+    db ??
+    (() => {
+      const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+      return new PrismaClient({ adapter });
+    })();
   const api = apiClient ?? new FootballApiClient();
 
   try {
@@ -225,22 +222,19 @@ export async function syncCompetition(
     });
 
     // 3. Fetch fixtures
-    const fixturesResponse = await api.getFixtures(
-      leagueId,
-      season ?? currentSeason.year,
-    );
+    const fixturesResponse = await api.getFixtures(leagueId, season ?? currentSeason.year);
     const fixtures = fixturesResponse.response;
 
     // Check for API-level errors (e.g. free plan restrictions)
     let warning: string | undefined;
     const apiErrors = fixturesResponse.errors;
-    if (apiErrors && typeof apiErrors === 'object' && !Array.isArray(apiErrors)) {
+    if (apiErrors && typeof apiErrors === "object" && !Array.isArray(apiErrors)) {
       const msgs = Object.values(apiErrors).filter(Boolean);
       if (msgs.length > 0) {
-        warning = msgs.join('; ');
+        warning = msgs.join("; ");
       }
     } else if (Array.isArray(apiErrors) && apiErrors.length > 0) {
-      warning = apiErrors.join('; ');
+      warning = apiErrors.join("; ");
     }
 
     // 4. Filter to most recent sub-tournament when multiple exist
@@ -259,7 +253,7 @@ export async function syncCompetition(
       }
       if (prefixDates.size > 1) {
         // Multiple sub-tournaments detected — pick the one with the latest fixture
-        let latestPrefix = '';
+        let latestPrefix = "";
         let latestDate = new Date(0);
         for (const [prefix, date] of prefixDates) {
           if (date > latestDate) {
@@ -272,8 +266,8 @@ export async function syncCompetition(
           return prefix === latestPrefix || prefix === null;
         });
         console.log(
-          `  ℹ Multiple sub-tournaments detected (${[...prefixDates.keys()].join(', ')}). ` +
-          `Using "${latestPrefix}" (${activeFixtures.length} of ${fixtures.length} fixtures).`,
+          `  ℹ Multiple sub-tournaments detected (${[...prefixDates.keys()].join(", ")}). ` +
+            `Using "${latestPrefix}" (${activeFixtures.length} of ${fixtures.length} fixtures).`,
         );
       }
     }
@@ -307,10 +301,7 @@ export async function syncCompetition(
     let predictionsScored = 0;
     try {
       const scoringResults = await scoreFinishedMatches(contest.id, prisma);
-      predictionsScored = scoringResults.reduce(
-        (sum, r) => sum + r.predictionsScored,
-        0,
-      );
+      predictionsScored = scoringResults.reduce((sum, r) => sum + r.predictionsScored, 0);
       if (predictionsScored > 0) {
         console.log(`  ✓ Scored ${predictionsScored} predictions`);
       }
@@ -343,12 +334,7 @@ export async function syncAll(
   const results: SyncResult[] = [];
   for (const comp of SUPPORTED_COMPETITIONS) {
     try {
-      const result = await syncCompetition(
-        comp.id,
-        undefined,
-        db,
-        apiClient,
-      );
+      const result = await syncCompetition(comp.id, undefined, db, apiClient);
       results.push(result);
       console.log(
         `✓ Synced ${comp.name}: ${result.teamsUpserted} teams, ${result.matchesUpserted} matches`,

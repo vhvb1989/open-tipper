@@ -46,9 +46,6 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     console.error(`Sync failed for league ${leagueId}:`, err);
     const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json(
-      { error: `Sync failed: ${message}` },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: `Sync failed: ${message}` }, { status: 500 });
   }
 }

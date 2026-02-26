@@ -8,10 +8,7 @@ interface JoinGroupButtonProps {
   isAuthenticated: boolean;
 }
 
-export function JoinGroupButton({
-  groupId,
-  isAuthenticated,
-}: JoinGroupButtonProps) {
+export function JoinGroupButton({ groupId, isAuthenticated }: JoinGroupButtonProps) {
   const router = useRouter();
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,9 +56,7 @@ export function JoinGroupButton({
       >
         {joining ? "Joining..." : "Join group"}
       </button>
-      {error && (
-        <p className="text-xs text-red-500">{error}</p>
-      )}
+      {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
   );
 }

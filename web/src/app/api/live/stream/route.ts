@@ -24,9 +24,7 @@ const HEARTBEAT_INTERVAL_MS = 30_000; // 30 seconds
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const contestIdsParam = searchParams.get("contestIds");
-  const contestIds = contestIdsParam
-    ? contestIdsParam.split(",").filter(Boolean)
-    : [];
+  const contestIds = contestIdsParam ? contestIdsParam.split(",").filter(Boolean) : [];
 
   const encoder = new TextEncoder();
   let closed = false;
@@ -49,9 +47,7 @@ export async function GET(request: NextRequest) {
       function send(event: string, data: unknown) {
         if (closed) return;
         try {
-          controller.enqueue(
-            encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`),
-          );
+          controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
         } catch {
           closed = true;
         }
@@ -144,9 +140,7 @@ export async function GET(request: NextRequest) {
 
           // Check if any predictions were scored since our last check
           const contestFilter =
-            contestIds.length > 0
-              ? { group: { contestId: { in: contestIds } } }
-              : {};
+            contestIds.length > 0 ? { group: { contestId: { in: contestIds } } } : {};
 
           const recentlyScored = await prisma.prediction.count({
             where: {

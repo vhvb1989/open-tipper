@@ -49,12 +49,9 @@ describe("FootballApiClient", () => {
     const client = new FootballApiClient("my-secret-key");
     await client.getLeague(2);
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "https://v3.football.api-sports.io/leagues?id=2",
-      {
-        headers: { "x-apisports-key": "my-secret-key" },
-      },
-    );
+    expect(fetchSpy).toHaveBeenCalledWith("https://v3.football.api-sports.io/leagues?id=2", {
+      headers: { "x-apisports-key": "my-secret-key" },
+    });
   });
 
   it("throws on non-OK response", async () => {
@@ -63,9 +60,7 @@ describe("FootballApiClient", () => {
     );
 
     const client = new FootballApiClient("bad-key");
-    await expect(client.getLeague(2)).rejects.toThrow(
-      "API-Football error: 403",
-    );
+    await expect(client.getLeague(2)).rejects.toThrow("API-Football error: 403");
   });
 
   it("appends season query param when provided", async () => {
@@ -78,9 +73,9 @@ describe("FootballApiClient", () => {
       response: [],
     };
 
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify(mockResponse), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify(mockResponse), { status: 200 }));
 
     const client = new FootballApiClient("key");
     await client.getFixtures(2, 2024);

@@ -39,10 +39,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
       where: { userId_groupId: { userId, groupId: id } },
     });
     if (!targetMembership) {
-      return NextResponse.json(
-        { error: "User is not a member of this group" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "User is not a member of this group" }, { status: 404 });
     }
 
     await prisma.membership.delete({
@@ -52,9 +49,6 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to remove member:", error);
-    return NextResponse.json(
-      { error: "Failed to remove member" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to remove member" }, { status: 500 });
   }
 }

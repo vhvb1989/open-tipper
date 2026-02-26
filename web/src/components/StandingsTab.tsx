@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 import { useLive } from "./LiveProvider";
 import { useTranslation } from "@/i18n/TranslationProvider";
 
@@ -107,7 +108,13 @@ export default function StandingsTab({
       {error && (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
           {error}
-          <button onClick={() => { setError(null); fetchStandings(selectedDay); }} className="ml-2 underline">
+          <button
+            onClick={() => {
+              setError(null);
+              fetchStandings(selectedDay);
+            }}
+            className="ml-2 underline"
+          >
             {t("standings.retry")}
           </button>
         </div>
@@ -182,10 +189,13 @@ export default function StandingsTab({
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       {entry.userImage ? (
-                        <img
+                        <Image
                           src={entry.userImage}
                           alt=""
+                          width={32}
+                          height={32}
                           className="h-8 w-8 rounded-full"
+                          unoptimized
                         />
                       ) : (
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-200 text-sm font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">

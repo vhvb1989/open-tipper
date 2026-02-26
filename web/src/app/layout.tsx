@@ -18,7 +18,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Open Tipper",
-  description: "Score prediction with your mates — predict football match scores and compete on leaderboards.",
+  description:
+    "Score prediction with your mates — predict football match scores and compete on leaderboards.",
 };
 
 export default async function RootLayout({
@@ -38,9 +39,7 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {/* Skip-to-content link for keyboard / screen-reader users */}
         <a
           href="#main-content"
@@ -50,9 +49,7 @@ export default async function RootLayout({
         </a>
         <Providers locale={locale}>
           <NavBar />
-          <main id="main-content">
-            {children}
-          </main>
+          <main id="main-content">{children}</main>
         </Providers>
       </body>
     </html>
