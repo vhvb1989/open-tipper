@@ -158,8 +158,8 @@ A third-party API is needed to supply:
 - Live/final match results.
 
 Candidate APIs:
-- [football-data.org](https://www.football-data.org/) (free tier available)
-- [API-Football](https://www.api-football.com/)
+- **[API-Football](https://www.api-football.com/) v3** ← chosen provider (1,200+ leagues, World Cup, Liga MX, Champions League)
+- [football-data.org](https://www.football-data.org/) (original provider, limited coverage)
 - [OpenLigaDB](https://www.openligadb.de/) (free, community-driven)
 
 ### 7.2 Real-Time Updates

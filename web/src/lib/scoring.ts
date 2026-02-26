@@ -180,7 +180,7 @@ export function calculateScore(
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Known knockout/playoff stage identifiers from football-data.org */
+/** Known knockout/playoff stage identifiers from API-Football */
 const PLAYOFF_STAGES = new Set([
   "LAST_16",
   "QUARTER_FINALS",

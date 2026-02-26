@@ -102,7 +102,7 @@ enum MatchStatus {
 
 model Team {
   id         String   @id @default(cuid())
-  externalId Int      @unique /// football-data.org team ID
+  externalId Int      @unique /// API-Football team ID
   name       String
   shortName  String?
   tla        String? /// Three-letter abbreviation
@@ -118,7 +118,7 @@ model Team {
 
 model Contest {
   id         String        @id @default(cuid())
-  externalId Int           @unique /// football-data.org competition ID
+  externalId Int           @unique /// API-Football league ID
   name       String
   code       String /// e.g. CL, WC
   season     String /// e.g. "2025" or "2025/26"
@@ -139,7 +139,7 @@ model Contest {
 
 model Match {
   id          String      @id @default(cuid())
-  externalId  Int         @unique /// football-data.org match ID
+  externalId  Int         @unique /// API-Football fixture ID
   contestId   String
   contest     Contest     @relation(fields: [contestId], references: [id], onDelete: Cascade)
   matchDay    Int? /// Round number
