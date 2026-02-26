@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Azure Functions for Open Tipper — timer-triggered live sync",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "start": "func start",

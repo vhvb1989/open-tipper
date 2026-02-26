@@ -17,6 +17,5 @@ services:
     language: ts
     host: function
     resourceGroup: ${SERVICE_FUNCTIONS_RESOURCE_GROUP}
-    config:
-      remoteBuild: true
+    remoteBuild: true
     
