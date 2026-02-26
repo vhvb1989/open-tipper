@@ -76,6 +76,10 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
         name: 'node'
         version: '22'
       }
+      scaleAndConcurrency: {
+        instanceMemoryMB: 512
+        maximumInstanceCount: 10
+      }
       deployment: {
         storage: {
           type: 'blobContainer'
