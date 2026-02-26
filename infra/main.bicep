@@ -201,5 +201,7 @@ module functions 'core/host/function.bicep' = {
 output AZURE_LOCATION string = location
 output SERVICE_WEB_NAME string = web.outputs.appServiceName
 output SERVICE_WEB_URI string = web.outputs.appServiceUri
+output SERVICE_WEB_RESOURCE_GROUP string = rg.name
 output SERVICE_FUNCTIONS_NAME string = functions.outputs.functionAppName
+output SERVICE_FUNCTIONS_RESOURCE_GROUP string = rgFunctions.name
 output DATABASE_HOST string = 'psql-${resourceToken}.postgres.database.azure.com'

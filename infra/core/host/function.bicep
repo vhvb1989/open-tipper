@@ -83,6 +83,14 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
           name: 'CRON_SECRET'
           value: cronSecret
         }
+        {
+          name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
+          value: 'true'
+        }
+        {
+          name: 'ENABLE_ORYX_BUILD'
+          value: 'true'
+        }
       ]
     }
   }

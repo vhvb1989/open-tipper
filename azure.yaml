@@ -11,7 +11,9 @@ services:
     project: ./web
     language: js
     host: appservice
+    resourceGroup: ${SERVICE_WEB_RESOURCE_GROUP}
   functions:
     project: ./functions
     language: ts
     host: function
+    resourceGroup: ${SERVICE_FUNCTIONS_RESOURCE_GROUP}
