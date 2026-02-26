@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
-name: sport-predictor
+name: open-tipper
 metadata:
-  template: sport-predictor@0.1.0
+  template: open-tipper@0.1.0
 workflows:
   up:
    - azd: provision
