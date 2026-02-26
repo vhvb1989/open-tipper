@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useLive } from "./LiveProvider";
+import { useTranslation } from "@/i18n/TranslationProvider";
 
 /* ---------- Types ---------- */
 
@@ -31,6 +32,7 @@ export default function StandingsTab({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { scoresVersion } = useLive();
+  const { t } = useTranslation();
 
   const fetchStandings = useCallback(
     async (matchDay?: number | null) => {
@@ -90,10 +92,10 @@ export default function StandingsTab({
     return (
       <div className="rounded-xl border border-dashed border-zinc-300 px-8 py-16 text-center dark:border-zinc-700">
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-          No standings yet
+          {t("standings.noStandings")}
         </h2>
         <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-          Standings will appear once matches have been played and scored.
+          {t("standings.noStandingsDesc")}
         </p>
       </div>
     );
@@ -106,7 +108,7 @@ export default function StandingsTab({
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
           {error}
           <button onClick={() => { setError(null); fetchStandings(selectedDay); }} className="ml-2 underline">
-            Retry
+            {t("standings.retry")}
           </button>
         </div>
       )}
@@ -115,7 +117,7 @@ export default function StandingsTab({
       {matchDays.length > 0 && (
         <div className="mb-4 flex items-center gap-3">
           <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            Last round:
+            {t("standings.lastRound")}
           </label>
           <select
             value={selectedDay ?? ""}
@@ -124,7 +126,7 @@ export default function StandingsTab({
           >
             {matchDays.map((d) => (
               <option key={d} value={d}>
-                Match Day {d}
+                {t("standings.matchDay", { n: d })}
               </option>
             ))}
           </select>
@@ -136,14 +138,14 @@ export default function StandingsTab({
         <table className="w-full">
           <thead>
             <tr className="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-400">
-              <th className="w-12 px-4 py-3 text-center">#</th>
-              <th className="px-4 py-3">Player</th>
-              <th className="w-24 px-4 py-3 text-right">Points</th>
+              <th className="w-12 px-4 py-3 text-center">{t("standings.rank")}</th>
+              <th className="px-4 py-3">{t("standings.player")}</th>
+              <th className="w-24 px-4 py-3 text-right">{t("standings.pointsHeader")}</th>
               <th className="hidden w-24 px-4 py-3 text-right sm:table-cell">
-                Last Round
+                {t("standings.lastRoundHeader")}
               </th>
               <th className="hidden w-20 px-4 py-3 text-right sm:table-cell">
-                Tips
+                {t("standings.tips")}
               </th>
             </tr>
           </thead>
@@ -198,10 +200,10 @@ export default function StandingsTab({
                               : "text-zinc-900 dark:text-zinc-100"
                           }`}
                         >
-                          {entry.userName ?? "Unknown"}
+                          {entry.userName ?? t("standings.unknown")}
                           {isCurrentUser && (
                             <span className="ml-1 text-xs text-zinc-400 dark:text-zinc-500">
-                              (you)
+                              {t("standings.you")}
                             </span>
                           )}
                         </span>

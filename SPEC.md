@@ -92,7 +92,7 @@ Additional leagues (Premier League, La Liga, Bundesliga, Serie A, etc.) can be a
 |---------|-------------|
 | **Predictions** | List of matches organized by match day. Input fields (home score / away score) for each match. Auto-saves on input. Shows lock icon after kick-off. |
 | **Standings / Leaderboard** | Ranked table of all group members by total points. Columns: rank, member name, points, (optionally) last-round points. |
-| **Results** | Completed matches with: actual result, each member's prediction, and points awarded. Visual indicators for exact match, correct outcome, etc. |
+| **Results** | Completed matches with: actual result, each member's prediction, and points awarded. Visual indicators for exact match, correct outcome, etc. Scoring breakdown badges (2-letter color-coded tags: ES, GD, OC, OT, TG, RG) show which scoring factors contributed to each prediction's points. |
 | **Members** | List of group members. Admin tools: invite (link or email), remove member. |
 | **Settings** | (Admin only) Edit group name, description, visibility, scoring rules. |
 

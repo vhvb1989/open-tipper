@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLive, useLiveMatch } from "./LiveProvider";
 import { LiveBadge } from "./LiveBadge";
+import { useTranslation } from "@/i18n/TranslationProvider";
 
 /* ---------- Types ---------- */
 
@@ -69,19 +70,20 @@ function isExactHit(pred: PredictionEntry, result: MatchResult): boolean {
 /** Scoring factor badge definitions */
 const FACTOR_BADGES: Array<{
   key: keyof NonNullable<PredictionEntry["breakdown"]>;
-  label: string;
-  title: string;
+  labelKey: string;
+  titleKey: string;
   color: string;
 }> = [
-  { key: "exactScore", label: "ES", title: "Exact Score", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
-  { key: "goalDifference", label: "GD", title: "Goal Difference", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
-  { key: "outcome", label: "OC", title: "Outcome (W/D/L)", color: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400" },
-  { key: "oneTeamGoals", label: "OT", title: "One Team's Goals", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
-  { key: "totalGoals", label: "TG", title: "Total Goals", color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400" },
-  { key: "reverseGoalDifference", label: "RG", title: "Reverse Goal Diff", color: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" },
+  { key: "exactScore", labelKey: "results.exactScoreShort", titleKey: "results.exactScore", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
+  { key: "goalDifference", labelKey: "results.goalDifferenceShort", titleKey: "results.goalDifference", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+  { key: "outcome", labelKey: "results.outcomeShort", titleKey: "results.outcome", color: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400" },
+  { key: "oneTeamGoals", labelKey: "results.oneTeamGoalsShort", titleKey: "results.oneTeamGoals", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
+  { key: "totalGoals", labelKey: "results.totalGoalsShort", titleKey: "results.totalGoals", color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400" },
+  { key: "reverseGoalDifference", labelKey: "results.reverseGoalDiffShort", titleKey: "results.reverseGoalDiff", color: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" },
 ];
 
 function BreakdownBadges({ breakdown }: { breakdown: NonNullable<PredictionEntry["breakdown"]> }) {
+  const { t } = useTranslation();
   const activeBadges = FACTOR_BADGES.filter((f) => breakdown[f.key] > 0);
   if (activeBadges.length === 0) return null;
 
@@ -90,10 +92,10 @@ function BreakdownBadges({ breakdown }: { breakdown: NonNullable<PredictionEntry
       {activeBadges.map((badge) => (
         <span
           key={badge.key}
-          title={`${badge.title}: +${breakdown[badge.key]}`}
+          title={t("results.factorTooltip", { factor: t(badge.titleKey), points: String(breakdown[badge.key]) })}
           className={`inline-flex items-center rounded px-1 py-0.5 text-[10px] font-bold leading-none ${badge.color}`}
         >
-          {badge.label}
+          {t(badge.labelKey)}
         </span>
       ))}
     </div>
@@ -104,6 +106,7 @@ function BreakdownBadges({ breakdown }: { breakdown: NonNullable<PredictionEntry
 
 function MatchScore({ match }: { match: MatchResult }) {
   const liveData = useLiveMatch(match.id);
+  const { t } = useTranslation();
   const isLive = match.status === "IN_PLAY" || match.status === "PAUSED" ||
     liveData?.status === "IN_PLAY" || liveData?.status === "PAUSED";
   const status = liveData?.status ?? match.status;
@@ -117,7 +120,7 @@ function MatchScore({ match }: { match: MatchResult }) {
           {homeGoals} – {awayGoals}
         </span>
       ) : (
-        <span className="text-sm text-zinc-400">vs</span>
+        <span className="text-sm text-zinc-400">{t("results.vs")}</span>
       )}
       {(isLive || status === "IN_PLAY" || status === "PAUSED") && (
         <div className="mt-0.5">
@@ -136,6 +139,7 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { scoresVersion } = useLive();
+  const { t } = useTranslation();
 
   const fetchResults = useCallback(
     async (matchDay?: number | null) => {
@@ -202,10 +206,10 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
     return (
       <div className="rounded-xl border border-dashed border-zinc-300 px-8 py-16 text-center dark:border-zinc-700">
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-          No results yet
+          {t("results.noResults")}
         </h2>
         <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-          Results will appear here once matches have been played.
+          {t("results.noResultsDesc")}
         </p>
       </div>
     );
@@ -218,7 +222,7 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
           {error}
           <button onClick={() => { setError(null); fetchResults(selectedDay); }} className="ml-2 underline">
-            Retry
+            {t("results.retry")}
           </button>
         </div>
       )}
@@ -234,11 +238,11 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
             <svg className="inline h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>{" "}
-            Prev
+            {t("results.prev")}
           </button>
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-              Match Day {selectedDay}
+              {t("results.matchDay", { n: selectedDay ?? 0 })}
             </span>
             <select
               value={selectedDay ?? ""}
@@ -247,7 +251,7 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
             >
               {matchDays.map((d) => (
                 <option key={d} value={d}>
-                  MD {d}
+                  {t("results.mdShort", { n: d })}
                 </option>
               ))}
             </select>
@@ -260,7 +264,7 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
             disabled={dayIdx >= matchDays.length - 1}
             className="rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
-            Next{" "}
+            {t("results.next")}{" "}
             <svg className="inline h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
             </svg>
@@ -319,7 +323,7 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
                 {/* Expand/collapse indicator */}
                 <div className="ml-3 flex items-center gap-2">
                   <span className="text-xs text-zinc-400 dark:text-zinc-500">
-                    {match.predictions.length} tip{match.predictions.length !== 1 ? "s" : ""}
+                    {t("results.tipCount", { count: match.predictions.length })}
                   </span>
                   <svg
                     className={`h-4 w-4 text-zinc-400 transition-transform ${isExpanded ? "rotate-180" : ""}`}
@@ -338,7 +342,7 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
                 <div className="border-t border-zinc-100 bg-zinc-50/50 dark:border-zinc-800 dark:bg-zinc-800/20">
                   {match.predictions.length === 0 ? (
                     <div className="px-4 py-6 text-center text-sm text-zinc-400 dark:text-zinc-500">
-                      No predictions for this match
+                      {t("results.noPredictions")}
                     </div>
                   ) : (
                     <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -363,7 +367,7 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
                                 </div>
                               )}
                               <span className="text-sm text-zinc-700 dark:text-zinc-300">
-                                {pred.userName ?? "Unknown"}
+                                {pred.userName ?? t("results.unknown")}
                               </span>
                             </div>
 
@@ -375,7 +379,7 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
                               {pred.breakdown && <BreakdownBadges breakdown={pred.breakdown} />}
                               <div className="flex items-center gap-1">
                                 {exact && (
-                                  <span className="text-xs" title="Exact score!">
+                                  <span className="text-xs" title={t("results.exactScoreBang")}>
                                     🎯
                                   </span>
                                 )}
@@ -383,8 +387,8 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
                                   className={`min-w-[36px] text-right text-sm font-bold ${pointsColorClass(pred.pointsAwarded)}`}
                                 >
                                   {pred.pointsAwarded != null
-                                    ? `${pred.pointsAwarded} pt${pred.pointsAwarded !== 1 ? "s" : ""}`
-                                    : "–"}
+                                    ? t("results.points", { n: pred.pointsAwarded })
+                                    : t("results.noPoints")}
                                 </span>
                               </div>
                             </div>

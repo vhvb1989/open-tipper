@@ -2,9 +2,11 @@
 
 import { signIn, useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
+import { useTranslation } from "@/i18n/TranslationProvider";
 
 export default function SignInPage() {
   const { status } = useSession();
+  const { t } = useTranslation();
 
   // If already signed in, redirect to home
   if (status === "authenticated") {
@@ -16,10 +18,10 @@ export default function SignInPage() {
       <div className="w-full max-w-sm space-y-8 px-6">
         <div className="text-center">
           <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Open Tipper
+            {t("signIn.heading")}
           </h1>
           <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-            Sign in to start predicting
+            {t("signIn.description")}
           </p>
         </div>
 
@@ -31,7 +33,7 @@ export default function SignInPage() {
           <div className="space-y-3">
             <ProviderButton
               provider="google"
-              label="Sign in with Google"
+              label={t("signIn.google")}
               icon={
                 <svg className="h-5 w-5" viewBox="0 0 24 24">
                   <path
@@ -56,7 +58,7 @@ export default function SignInPage() {
 
             <ProviderButton
               provider="github"
-              label="Sign in with GitHub"
+              label={t("signIn.github")}
               icon={
                 <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
                   <path
@@ -70,7 +72,7 @@ export default function SignInPage() {
 
             <ProviderButton
               provider="microsoft-entra-id"
-              label="Sign in with Microsoft"
+              label={t("signIn.microsoft")}
               icon={
                 <svg className="h-5 w-5" viewBox="0 0 21 21">
                   <rect x="1" y="1" width="9" height="9" fill="#F25022" />
@@ -84,9 +86,9 @@ export default function SignInPage() {
         )}
 
         <p className="text-center text-xs text-zinc-400 dark:text-zinc-500">
-          Only providers you&apos;ve configured will work.{" "}
+          {t("signIn.providerNote")}{" "}
           <a href="https://github.com/your-username/open-tipper#authentication-providers" className="underline">
-            Setup guide
+            {t("signIn.setupGuide")}
           </a>
         </p>
       </div>

@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useTranslation } from "@/i18n/TranslationProvider";
 
 interface Contest {
   id: string;
@@ -47,6 +48,7 @@ export default function CreateGroupPage() {
   const [contestId, setContestId] = useState("");
   const [visibility, setVisibility] = useState<"PRIVATE" | "PUBLIC">("PRIVATE");
   const [scoring, setScoring] = useState<ScoringRulesForm>(DEFAULT_SCORING);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -109,17 +111,17 @@ export default function CreateGroupPage() {
   return (
     <div className="mx-auto max-w-xl px-4 py-8">
       <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-        Create a Group
+        {t("createGroup.heading")}
       </h1>
       <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-        Set up a prediction group for a football competition.
+        {t("createGroup.description")}
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-6">
         {/* Group Name */}
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            Group name <span className="text-red-500">*</span>
+            {t("createGroup.nameLabel")} <span className="text-red-500">*</span>
           </label>
           <input
             id="name"
@@ -127,7 +129,7 @@ export default function CreateGroupPage() {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. The Office Champions League"
+            placeholder={t("createGroup.namePlaceholder")}
             className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
           />
         </div>
@@ -135,14 +137,14 @@ export default function CreateGroupPage() {
         {/* Description */}
         <div>
           <label htmlFor="description" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            Description
+            {t("createGroup.descriptionLabel")}
           </label>
           <textarea
             id="description"
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="What's this group about?"
+            placeholder={t("createGroup.descriptionPlaceholder")}
             className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
           />
         </div>
@@ -150,7 +152,7 @@ export default function CreateGroupPage() {
         {/* Contest */}
         <div>
           <label htmlFor="contestId" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            Competition <span className="text-red-500">*</span>
+            {t("createGroup.competitionLabel")} <span className="text-red-500">*</span>
           </label>
           <select
             id="contestId"
@@ -160,7 +162,7 @@ export default function CreateGroupPage() {
             className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
           >
             {contests.length === 0 ? (
-              <option value="" disabled>No competitions available — sync one in the Admin panel</option>
+              <option value="" disabled>{t("createGroup.noCompetitions")}</option>
             ) : (
               contests.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -174,7 +176,7 @@ export default function CreateGroupPage() {
         {/* Visibility */}
         <div>
           <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            Visibility
+            {t("createGroup.visibilityLabel")}
           </label>
           <div className="mt-2 flex gap-4">
             <label className="flex cursor-pointer items-center gap-2">
@@ -187,7 +189,7 @@ export default function CreateGroupPage() {
                 className="text-zinc-900 focus:ring-zinc-500"
               />
               <span className="text-sm text-zinc-700 dark:text-zinc-300">
-                Private — invite only
+                {t("createGroup.visibilityPrivate")}
               </span>
             </label>
             <label className="flex cursor-pointer items-center gap-2">
@@ -200,7 +202,7 @@ export default function CreateGroupPage() {
                 className="text-zinc-900 focus:ring-zinc-500"
               />
               <span className="text-sm text-zinc-700 dark:text-zinc-300">
-                Public — anyone can join
+                {t("createGroup.visibilityPublic")}
               </span>
             </label>
           </div>
@@ -213,7 +215,7 @@ export default function CreateGroupPage() {
             onClick={() => setShowAdvanced(!showAdvanced)}
             className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300"
           >
-            <span>Scoring Rules</span>
+            <span>{t("createGroup.scoringRulesHeading")}</span>
             <svg
               className={`h-4 w-4 transition-transform ${showAdvanced ? "rotate-180" : ""}`}
               fill="none"
@@ -228,17 +230,17 @@ export default function CreateGroupPage() {
           {showAdvanced && (
             <div className="space-y-4 border-t border-zinc-200 px-4 py-4 dark:border-zinc-700">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Customize how points are awarded. Defaults match the standard scoring system.
+                {t("createGroup.scoringRulesDesc")}
               </p>
 
               <div className="grid grid-cols-2 gap-3">
                 {([
-                  ["exactScore", "Exact score"],
-                  ["goalDifference", "Goal difference"],
-                  ["outcome", "Correct outcome"],
-                  ["oneTeamGoals", "One team's goals"],
-                  ["totalGoals", "Total goals"],
-                  ["reverseGoalDifference", "Reverse goal diff"],
+                  ["exactScore", t("createGroup.exactScore")],
+                  ["goalDifference", t("createGroup.goalDifference")],
+                  ["outcome", t("createGroup.correctOutcome")],
+                  ["oneTeamGoals", t("createGroup.oneTeamGoals")],
+                  ["totalGoals", t("createGroup.totalGoals")],
+                  ["reverseGoalDifference", t("createGroup.reverseGoalDiff")],
                 ] as const).map(([key, label]) => (
                   <div key={key}>
                     <label htmlFor={key} className="block text-xs text-zinc-500 dark:text-zinc-400">
@@ -261,7 +263,7 @@ export default function CreateGroupPage() {
 
               <div>
                 <label htmlFor="accumulationMode" className="block text-xs text-zinc-500 dark:text-zinc-400">
-                  Accumulation mode
+                  {t("createGroup.accumulationMode")}
                 </label>
                 <select
                   id="accumulationMode"
@@ -274,8 +276,8 @@ export default function CreateGroupPage() {
                   }
                   className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                 >
-                  <option value="ACCUMULATE">Accumulate (sum all matching factors)</option>
-                  <option value="HIGHEST_ONLY">Highest only (best single factor)</option>
+                  <option value="ACCUMULATE">{t("createGroup.accumulate")}</option>
+                  <option value="HIGHEST_ONLY">{t("createGroup.highestOnly")}</option>
                 </select>
               </div>
 
@@ -289,7 +291,7 @@ export default function CreateGroupPage() {
                   className="rounded text-zinc-900 focus:ring-zinc-500"
                 />
                 <span className="text-sm text-zinc-700 dark:text-zinc-300">
-                  Double points for knockout/playoff matches
+                  {t("createGroup.playoffDouble")}
                 </span>
               </label>
 
@@ -298,7 +300,7 @@ export default function CreateGroupPage() {
                 onClick={() => setScoring(DEFAULT_SCORING)}
                 className="text-xs text-zinc-500 underline hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
               >
-                Reset to defaults
+                {t("createGroup.resetDefaults")}
               </button>
             </div>
           )}
@@ -318,14 +320,14 @@ export default function CreateGroupPage() {
             disabled={loading || !name.trim() || !contestId}
             className="rounded-lg bg-gold-500 px-5 py-2.5 text-sm font-medium text-navy-900 transition-colors hover:bg-gold-400 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? "Creating…" : "Create group"}
+            {loading ? t("createGroup.creating") : t("createGroup.create")}
           </button>
           <button
             type="button"
             onClick={() => router.back()}
             className="rounded-lg border border-zinc-300 px-5 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
-            Cancel
+            {t("createGroup.cancel")}
           </button>
         </div>
       </form>

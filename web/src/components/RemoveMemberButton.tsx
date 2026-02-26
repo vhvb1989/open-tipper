@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useTranslation } from "@/i18n/TranslationProvider";
 
 export function RemoveMemberButton({
   groupId,
@@ -14,9 +15,10 @@ export function RemoveMemberButton({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslation();
 
   const handleRemove = async () => {
-    if (!confirm(`Remove ${userName} from this group?`)) return;
+    if (!confirm(t("removeMember.confirm", { name: userName }))) return;
 
     setLoading(true);
     try {
@@ -27,10 +29,10 @@ export function RemoveMemberButton({
         router.refresh();
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to remove member");
+        alert(data.error || t("removeMember.failed"));
       }
     } catch {
-      alert("Failed to remove member");
+      alert(t("removeMember.failed"));
     } finally {
       setLoading(false);
     }
@@ -43,7 +45,7 @@ export function RemoveMemberButton({
       disabled={loading}
       className="rounded-lg px-2 py-1 text-xs text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-900/20"
     >
-      {loading ? "…" : "Remove"}
+      {loading ? t("removeMember.removing") : t("removeMember.remove")}
     </button>
   );
 }

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { GroupTabs } from "@/components/GroupTabs";
 import { JoinGroupButton } from "@/components/JoinGroupButton";
 import { LiveProvider } from "@/components/LiveProvider";
+import { getLocale } from "@/i18n/server";
+import { getT } from "@/i18n";
 
 export default async function GroupLayout({
   children,
@@ -48,6 +50,9 @@ export default async function GroupLayout({
     notFound();
   }
 
+  const locale = await getLocale();
+  const t = getT(locale);
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       {/* Header */}
@@ -59,7 +64,7 @@ export default async function GroupLayout({
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
           </svg>
-          {isMember ? "My Groups" : "Browse Groups"}
+          {isMember ? t("groupPage.myGroups") : t("groupPage.browseGroups")}
         </Link>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -72,12 +77,12 @@ export default async function GroupLayout({
               </span>
               <span>{group.contest.name} {group.contest.season}</span>
               <span>·</span>
-              <span>{group._count.memberships} member{group._count.memberships === 1 ? "" : "s"}</span>
+              <span>{t("groupPage.memberCount", { count: group._count.memberships })}</span>
               {group.visibility === "PUBLIC" && (
                 <>
                   <span>·</span>
                   <span className="rounded-md bg-emerald-100 px-1.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                    Public
+                    {t("groupPage.publicBadge")}
                   </span>
                 </>
               )}

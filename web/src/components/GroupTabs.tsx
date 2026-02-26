@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslation } from "@/i18n/TranslationProvider";
 
 interface GroupTabsProps {
   groupId: string;
@@ -11,13 +12,14 @@ interface GroupTabsProps {
 
 export function GroupTabs({ groupId, isAdmin, isMember }: GroupTabsProps) {
   const pathname = usePathname();
+  const { t } = useTranslation();
 
   const tabs = [
-    ...(isMember ? [{ label: "Predictions", href: `/groups/${groupId}`, exact: true }] : []),
-    { label: "Standings", href: `/groups/${groupId}/standings` },
-    { label: "Results", href: `/groups/${groupId}/results` },
-    ...(isMember ? [{ label: "Members", href: `/groups/${groupId}/members` }] : []),
-    ...(isAdmin ? [{ label: "Settings", href: `/groups/${groupId}/settings` }] : []),
+    ...(isMember ? [{ label: t("groupTabs.predictions"), href: `/groups/${groupId}`, exact: true }] : []),
+    { label: t("groupTabs.standings"), href: `/groups/${groupId}/standings` },
+    { label: t("groupTabs.results"), href: `/groups/${groupId}/results` },
+    ...(isMember ? [{ label: t("groupTabs.members"), href: `/groups/${groupId}/members` }] : []),
+    ...(isAdmin ? [{ label: t("groupTabs.settings"), href: `/groups/${groupId}/settings` }] : []),
   ];
 
   return (

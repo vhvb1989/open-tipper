@@ -1,6 +1,11 @@
+"use client";
+
 import Link from "next/link";
+import { useTranslation } from "@/i18n/TranslationProvider";
 
 export function Footer() {
+  const { t } = useTranslation();
+
   return (
     <footer className="border-t border-navy-700/20 bg-navy-900 dark:bg-navy-950">
       <div className="mx-auto max-w-5xl px-4 py-10">
@@ -8,11 +13,10 @@ export function Footer() {
           {/* Brand */}
           <div className="max-w-xs">
             <p className="text-lg font-bold tracking-tight text-gold-400">
-              Open Tipper
+              {t("footer.brand")}
             </p>
             <p className="mt-2 text-sm leading-6 text-navy-300">
-              Predict football scores, compete with friends, and climb the
-              leaderboard. Free and open-source.
+              {t("footer.description")}
             </p>
           </div>
 
@@ -20,7 +24,7 @@ export function Footer() {
           <div className="flex gap-12">
             <div>
               <h3 className="text-xs font-semibold uppercase tracking-wider text-navy-400">
-                Product
+                {t("footer.product")}
               </h3>
               <ul className="mt-3 space-y-2">
                 <li>
@@ -28,7 +32,7 @@ export function Footer() {
                     href="/how-it-works"
                     className="text-sm text-navy-300 transition-colors hover:text-white"
                   >
-                    How It Works
+                    {t("footer.howItWorks")}
                   </Link>
                 </li>
                 <li>
@@ -36,24 +40,24 @@ export function Footer() {
                     href="/signin"
                     className="text-sm text-navy-300 transition-colors hover:text-white"
                   >
-                    Sign In
+                    {t("footer.signIn")}
                   </Link>
                 </li>
               </ul>
             </div>
             <div>
               <h3 className="text-xs font-semibold uppercase tracking-wider text-navy-400">
-                Legal
+                {t("footer.legal")}
               </h3>
               <ul className="mt-3 space-y-2">
                 <li>
                   <span className="text-sm text-navy-400">
-                    Privacy Policy
+                    {t("footer.privacyPolicy")}
                   </span>
                 </li>
                 <li>
                   <span className="text-sm text-navy-400">
-                    Terms of Service
+                    {t("footer.termsOfService")}
                   </span>
                 </li>
               </ul>
@@ -62,7 +66,7 @@ export function Footer() {
         </div>
 
         <div className="mt-8 border-t border-navy-800 pt-6 text-center text-xs text-navy-500">
-          © {new Date().getFullYear()} Open Tipper. All rights reserved.
+          {t("footer.copyright", { year: String(new Date().getFullYear()) })}
         </div>
       </div>
     </footer>

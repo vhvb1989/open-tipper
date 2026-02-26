@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Footer } from "@/components/Footer";
+import { useTranslation } from "@/i18n/TranslationProvider";
 
 interface Contest {
   id: string;
@@ -43,6 +44,7 @@ export default function BrowseGroupsPage() {
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
+  const { t } = useTranslation();
 
   const fetchGroups = useCallback(async () => {
     setLoading(true);
@@ -106,10 +108,10 @@ export default function BrowseGroupsPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Browse Groups
+            {t("browse.heading")}
           </h1>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Discover public prediction groups and join the competition.
+            {t("browse.description")}
           </p>
         </div>
 
@@ -138,7 +140,7 @@ export default function BrowseGroupsPage() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by group name..."
+                placeholder={t("browse.searchPlaceholder")}
                 className="block w-full rounded-lg border border-zinc-300 bg-white py-2 pl-10 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
               />
             </div>
@@ -153,7 +155,7 @@ export default function BrowseGroupsPage() {
               onChange={(e) => setContestFilter(e.target.value)}
               className="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
             >
-              <option value="">All competitions</option>
+              <option value="">{t("browse.allCompetitions")}</option>
               {contests.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name} ({c.season})
@@ -171,7 +173,7 @@ export default function BrowseGroupsPage() {
               onClick={fetchGroups}
               className="ml-2 font-medium underline hover:no-underline"
             >
-              Retry
+              {t("browse.retry")}
             </button>
           </div>
         )}
@@ -217,8 +219,8 @@ export default function BrowseGroupsPage() {
             </svg>
             <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
               {search || contestFilter
-                ? "No public groups match your filters."
-                : "No public groups available yet."}
+                ? t("browse.noMatchFilters")
+                : t("browse.noGroupsYet")}
             </p>
             {(search || contestFilter) && (
               <button
@@ -228,7 +230,7 @@ export default function BrowseGroupsPage() {
                 }}
                 className="mt-3 text-sm font-medium text-gold-600 hover:text-gold-500 dark:text-gold-400 dark:hover:text-gold-300"
               >
-                Clear filters
+                {t("browse.clearFilters")}
               </button>
             )}
             {authStatus === "authenticated" && (
@@ -236,7 +238,7 @@ export default function BrowseGroupsPage() {
                 href="/groups/create"
                 className="mt-4 inline-block rounded-lg bg-gold-500 px-4 py-2 text-sm font-medium text-navy-900 transition-colors hover:bg-gold-400"
               >
-                Create a public group
+                {t("browse.createPublicGroup")}
               </Link>
             )}
           </div>
@@ -257,7 +259,7 @@ export default function BrowseGroupsPage() {
                       {group.name}
                     </h2>
                     <span className="shrink-0 rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                      Public
+                      {t("groupPage.publicBadge")}
                     </span>
                   </div>
                   {group.description && (
@@ -290,8 +292,7 @@ export default function BrowseGroupsPage() {
                         d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
                       />
                     </svg>
-                    {group.memberCount} member
-                    {group.memberCount === 1 ? "" : "s"}
+                    {t("groupPage.memberCount", { count: group.memberCount })}
                   </span>
                   {group.admin && (
                     <>
@@ -306,7 +307,7 @@ export default function BrowseGroupsPage() {
                             className="rounded-full"
                           />
                         ) : null}
-                        {group.admin.name ?? "Admin"}
+                        {group.admin.name ?? t("browse.admin")}
                       </span>
                     </>
                   )}
@@ -318,14 +319,14 @@ export default function BrowseGroupsPage() {
                     href={`/groups/${group.id}/standings`}
                     className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
                   >
-                    View standings
+                    {t("browse.viewStandings")}
                   </Link>
                   {group.isMember || joinedIds.has(group.id) ? (
                     <Link
                       href={`/groups/${group.id}`}
                       className="rounded-lg bg-emerald-100 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
                     >
-                      Joined ✓
+                      {t("browse.joined")}
                     </Link>
                   ) : (
                     <button
@@ -333,7 +334,7 @@ export default function BrowseGroupsPage() {
                       disabled={joiningId === group.id}
                       className="rounded-lg bg-gold-500 px-3 py-1.5 text-xs font-medium text-navy-900 transition-colors hover:bg-gold-400 disabled:opacity-50"
                     >
-                      {joiningId === group.id ? "Joining..." : "Join group"}
+                      {joiningId === group.id ? t("browse.joining") : t("browse.joinGroup")}
                     </button>
                   )}
                 </div>

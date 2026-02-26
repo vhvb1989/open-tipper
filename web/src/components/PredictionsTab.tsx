@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "@/i18n/TranslationProvider";
 
 /* ---------- Types ---------- */
 
@@ -51,23 +52,23 @@ function formatKickoff(dateStr: string): string {
   });
 }
 
-function statusLabel(status: string): string {
+function statusLabel(status: string, t: (key: string) => string): string {
   switch (status) {
     case "SCHEDULED":
     case "TIMED":
       return "";
     case "IN_PLAY":
-      return "Live";
+      return t("predictions.live");
     case "PAUSED":
-      return "HT";
+      return t("predictions.ht");
     case "FINISHED":
-      return "FT";
+      return t("predictions.ft");
     case "AWARDED":
-      return "Awarded";
+      return t("predictions.awarded");
     case "POSTPONED":
-      return "Postponed";
+      return t("predictions.postponed");
     case "CANCELLED":
-      return "Cancelled";
+      return t("predictions.cancelled");
     default:
       return status;
   }
@@ -84,6 +85,7 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [saveStatuses, setSaveStatuses] = useState<Record<string, SaveStatus>>({});
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const { t } = useTranslation();
 
   /* ---- Fetch matches ---- */
   const fetchMatches = useCallback(
@@ -239,10 +241,10 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
     return (
       <div className="rounded-xl border border-dashed border-zinc-300 px-8 py-16 text-center dark:border-zinc-700">
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-          No matches yet
+          {t("predictions.noMatches")}
         </h2>
         <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-          Matches will appear here once the contest schedule is synced.
+          {t("predictions.noMatchesDesc")}
         </p>
       </div>
     );
@@ -255,7 +257,7 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
           {error}
           <button onClick={() => { setError(null); fetchMatches(selectedDay); fetchPredictions(); }} className="ml-2 underline">
-            Retry
+            {t("predictions.retry")}
           </button>
         </div>
       )}
@@ -270,11 +272,11 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
             <svg className="inline h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>{" "}
-            Prev
+            {t("predictions.prev")}
           </button>
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-              Match Day {selectedDay}
+              {t("predictions.matchDay", { n: selectedDay ?? 0 })}
             </span>
             {/* Quick-jump select */}
             <select
@@ -284,7 +286,7 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
             >
               {matchDays.map((d) => (
                 <option key={d} value={d}>
-                  MD {d}
+                  {t("predictions.mdShort", { n: d })}
                 </option>
               ))}
             </select>
@@ -297,7 +299,7 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
             disabled={dayIdx >= matchDays.length - 1}
             className="rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
-            Next{" "}
+            {t("predictions.next")}{" "}
             <svg className="inline h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
             </svg>
@@ -327,16 +329,16 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
                 <div className="flex items-center gap-2">
                   {/* Save status indicator */}
                   {status === "saving" && (
-                    <span className="text-amber-500">Saving…</span>
+                    <span className="text-amber-500">{t("predictions.saving")}</span>
                   )}
                   {status === "saved" && (
-                    <span className="text-emerald-500">✓ Saved</span>
+                    <span className="text-emerald-500">{t("predictions.saved")}</span>
                   )}
                   {status === "error" && (
-                    <span className="text-red-500">Failed to save</span>
+                    <span className="text-red-500">{t("predictions.failedToSave")}</span>
                   )}
                   {/* Status badge */}
-                  {statusLabel(match.status) && (
+                  {statusLabel(match.status, t) && (
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                         match.status === "IN_PLAY" || match.status === "PAUSED"
@@ -346,7 +348,7 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
                             : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
                       }`}
                     >
-                      {statusLabel(match.status)}
+                      {statusLabel(match.status, t)}
                     </span>
                   )}
                   {/* Lock icon */}
@@ -357,7 +359,7 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
                       viewBox="0 0 24 24"
                       strokeWidth={1.5}
                       stroke="currentColor"
-                      aria-label="Predictions locked"
+                      aria-label={t("predictions.locked")}
                     >
                       <path
                         strokeLinecap="round"
@@ -402,7 +404,7 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
                         ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500"
                         : "border-zinc-300 bg-white text-zinc-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
                       } [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
-                    aria-label={`Home score prediction for ${match.homeTeam.name} vs ${match.awayTeam.name}`}
+                    aria-label={t("predictions.homeScore", { home: match.homeTeam.name, away: match.awayTeam.name })}
                   />
                   <span className="mx-1 text-sm font-medium text-zinc-400">–</span>
                   <input
@@ -420,7 +422,7 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
                         ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500"
                         : "border-zinc-300 bg-white text-zinc-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
                       } [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
-                    aria-label={`Away score prediction for ${match.homeTeam.name} vs ${match.awayTeam.name}`}
+                    aria-label={t("predictions.awayScore", { home: match.homeTeam.name, away: match.awayTeam.name })}
                   />
                 </div>
 
@@ -444,7 +446,7 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
                 match.homeGoals != null &&
                 match.awayGoals != null && (
                   <div className="mt-2 text-center text-xs text-zinc-500 dark:text-zinc-400">
-                    Result: {match.homeGoals} – {match.awayGoals}
+                    {t("predictions.result", { home: String(match.homeGoals), away: String(match.awayGoals) })}
                   </div>
                 )}
             </div>

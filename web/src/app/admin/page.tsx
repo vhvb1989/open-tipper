@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
+import { useTranslation } from "@/i18n/TranslationProvider";
 
 interface Competition {
   id: number;
@@ -41,6 +42,7 @@ export default function AdminCompetitionsPage() {
   const [syncResult, setSyncResult] = useState<{ leagueId: number; result: SyncResult } | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
+  const { t } = useTranslation();
 
   const fetchCompetitions = useCallback(async () => {
     setLoading(true);
@@ -107,7 +109,7 @@ export default function AdminCompetitionsPage() {
       <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
         {error}
         <button onClick={fetchCompetitions} className="ml-2 underline">
-          Retry
+          {t("admin.retry")}
         </button>
       </div>
     );
@@ -119,7 +121,7 @@ export default function AdminCompetitionsPage() {
       {localContests.length > 0 && (
         <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/50">
           <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-            Synced Competitions ({localContests.length})
+            {t("admin.syncedCompetitions", { count: localContests.length })}
           </h3>
           <div className="mt-2 flex flex-wrap gap-2">
             {localContests.map((c) => (
@@ -144,8 +146,8 @@ export default function AdminCompetitionsPage() {
             ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400"
             : "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400"
         }`}>
-          <strong>Sync complete for {syncResult.leagueId}:</strong>{" "}
-          {syncResult.result.teamsUpserted} teams, {syncResult.result.matchesUpserted} matches
+          <strong>{t("admin.syncComplete", { league: String(syncResult.leagueId) })}:</strong>{" "}
+          {t("admin.teamsMatches", { teams: String(syncResult.result.teamsUpserted), matches: String(syncResult.result.matchesUpserted) })}
           {syncResult.result.predictionsScored > 0 &&
             `, ${syncResult.result.predictionsScored} predictions scored`}
           {syncResult.result.warning && (
@@ -157,7 +159,7 @@ export default function AdminCompetitionsPage() {
             onClick={() => setSyncResult(null)}
             className={`ml-2 underline ${syncResult.result.warning ? "text-amber-600 dark:text-amber-500" : "text-green-600 dark:text-green-500"}`}
           >
-            Dismiss
+            {t("admin.dismiss")}
           </button>
         </div>
       )}
@@ -169,7 +171,7 @@ export default function AdminCompetitionsPage() {
             onClick={() => setSyncError(null)}
             className="ml-2 text-red-600 underline dark:text-red-500"
           >
-            Dismiss
+            {t("admin.dismiss")}
           </button>
         </div>
       )}
@@ -180,7 +182,7 @@ export default function AdminCompetitionsPage() {
           type="text"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          placeholder="Search competitions by name, id, or region..."
+          placeholder={t("admin.searchPlaceholder")}
           className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
         />
       </div>
@@ -189,7 +191,7 @@ export default function AdminCompetitionsPage() {
       <div className="space-y-2">
         {filtered.length === 0 ? (
           <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
-            No competitions match your search.
+            {t("admin.noMatch")}
           </p>
         ) : (
           filtered.map((comp) => (
@@ -218,7 +220,7 @@ export default function AdminCompetitionsPage() {
                     </span>
                     {comp.synced && (
                       <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                        Synced
+                        {t("admin.syncedBadge")}
                       </span>
                     )}
                   </div>
@@ -244,12 +246,12 @@ export default function AdminCompetitionsPage() {
                 {syncing === String(comp.leagueId) ? (
                   <span className="flex items-center gap-2">
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-400 border-t-zinc-600" />
-                    Syncing...
+                    {t("admin.syncing")}
                   </span>
                 ) : comp.synced ? (
-                  "Re-sync"
+                  t("admin.resync")
                 ) : (
-                  "Sync"
+                  t("admin.sync")
                 )}
               </button>
             </div>
@@ -258,7 +260,7 @@ export default function AdminCompetitionsPage() {
       </div>
 
       <p className="text-xs text-zinc-400 dark:text-zinc-500">
-        Showing {filtered.length} of {competitions.length} leagues from API-Football.
+        {t("admin.showingLeagues", { shown: String(filtered.length), total: String(competitions.length) })}
       </p>
     </div>
   );

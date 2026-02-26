@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
+import { useTranslation } from "@/i18n/TranslationProvider";
 
 interface User {
   id: string;
@@ -17,6 +18,7 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -75,7 +77,7 @@ export default function AdminUsersPage() {
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
           {error}
           <button onClick={() => setError(null)} className="ml-2 underline">
-            Dismiss
+            {t("adminUsers.dismiss")}
           </button>
         </div>
       )}
@@ -83,7 +85,7 @@ export default function AdminUsersPage() {
       {users.length === 0 ? (
         <div className="rounded-xl border border-dashed border-zinc-300 px-8 py-16 text-center dark:border-zinc-700">
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            No users found.
+            {t("adminUsers.noUsers")}
           </p>
         </div>
       ) : (
@@ -92,19 +94,19 @@ export default function AdminUsersPage() {
           <thead>
             <tr className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800/50">
               <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">
-                User
+                {t("adminUsers.userHeader")}
               </th>
               <th className="hidden px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400 sm:table-cell">
-                Email
+                {t("adminUsers.emailHeader")}
               </th>
               <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">
-                Role
+                {t("adminUsers.roleHeader")}
               </th>
               <th className="hidden px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400 sm:table-cell">
-                Joined
+                {t("adminUsers.joinedHeader")}
               </th>
               <th className="px-4 py-3 text-right font-medium text-zinc-600 dark:text-zinc-400">
-                Actions
+                {t("adminUsers.actionsHeader")}
               </th>
             </tr>
           </thead>
@@ -130,12 +132,12 @@ export default function AdminUsersPage() {
                       </div>
                     )}
                     <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                      {user.name ?? "—"}
+                      {user.name ?? t("adminUsers.emptyValue")}
                     </span>
                   </div>
                 </td>
                 <td className="hidden px-4 py-3 text-zinc-600 dark:text-zinc-400 sm:table-cell">
-                  {user.email ?? "—"}
+                  {user.email ?? t("adminUsers.emptyValue")}
                 </td>
                 <td className="px-4 py-3">
                   <span
@@ -158,10 +160,10 @@ export default function AdminUsersPage() {
                     className="rounded-md border border-zinc-300 px-3 py-1 text-xs font-medium transition-colors hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-600 dark:hover:bg-zinc-700"
                   >
                     {updating === user.id
-                      ? "..."
+                      ? t("adminUsers.loading")
                       : user.role === "ADMIN"
-                        ? "Demote"
-                        : "Promote"}
+                        ? t("adminUsers.demote")
+                        : t("adminUsers.promote")}
                   </button>
                 </td>
               </tr>
@@ -172,8 +174,7 @@ export default function AdminUsersPage() {
       )}
 
       <p className="text-xs text-zinc-400 dark:text-zinc-500">
-        {users.length} user{users.length !== 1 ? "s" : ""} total ·{" "}
-        {users.filter((u) => u.role === "ADMIN").length} admin{users.filter((u) => u.role === "ADMIN").length !== 1 ? "s" : ""}
+        {t("adminUsers.totalUsers", { users: String(users.length), admins: String(users.filter((u) => u.role === "ADMIN").length) })}
       </p>
     </div>
   );

@@ -2,11 +2,21 @@
 
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "./ThemeProvider";
+import { TranslationProvider } from "@/i18n/TranslationProvider";
+import type { Locale } from "@/i18n";
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({
+  locale,
+  children,
+}: {
+  locale: Locale;
+  children: React.ReactNode;
+}) {
   return (
     <SessionProvider>
-      <ThemeProvider>{children}</ThemeProvider>
+      <TranslationProvider locale={locale}>
+        <ThemeProvider>{children}</ThemeProvider>
+      </TranslationProvider>
     </SessionProvider>
   );
 }
