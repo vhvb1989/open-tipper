@@ -59,6 +59,9 @@ param footballApiKey string
 @description('Key Vault reference URI for the cron token')
 param cronKvRef string = ''
 
+@description('Name of the Key Vault to grant read access to')
+param keyVaultName string = ''
+
 // App Service Plan
 resource appServicePlan 'Microsoft.Web/serverfarms@2024-04-01' = {
   name: appServicePlanName
@@ -175,6 +178,23 @@ resource appService 'Microsoft.Web/sites@2024-04-01' = {
       ]
     }
     httpsOnly: true
+  }
+}
+
+// Grant the App Service managed identity read access to Key Vault secrets
+resource keyVault 'Microsoft.KeyVault/vaults@2024-04-01-preview' existing = if (keyVaultName != '') {
+  name: keyVaultName
+}
+
+var kvSecretsUserRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
+
+resource webKvRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (keyVaultName != '') {
+  scope: keyVault
+  name: guid(keyVault.id, appService.id, kvSecretsUserRoleId)
+  properties: {
+    roleDefinitionId: kvSecretsUserRoleId
+    principalId: appService.identity.principalId
+    principalType: 'ServicePrincipal'
   }
 }
 

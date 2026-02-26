@@ -117,15 +117,15 @@ module keyVault 'core/security/keyvault.bicep' = {
   }
 }
 
-// Grant both the Web App and Function App read access to Key Vault secrets.
-// Deployed after all three resources exist to avoid circular dependencies.
-module keyVaultAccess 'core/security/keyvault-access.bicep' = {
-  name: 'keyvaultAccess'
+// Grant the Function App read access to Key Vault secrets.
+// Deployed to rg (where the KV lives) — the Function App is in rgFunctions.
+// The timer function retries every 2 minutes, so brief RBAC propagation delay is fine.
+module keyVaultAccessForFunctions 'core/security/keyvault-access.bicep' = {
+  name: 'keyvaultAccessForFunctions'
   scope: rg
   params: {
     keyVaultName: 'kv-${resourceToken}'
     principalIds: [
-      web.outputs.appServicePrincipalId
       functions.outputs.functionAppPrincipalId
     ]
   }
@@ -187,6 +187,7 @@ module web 'app/web.bicep' = {
     authMicrosoftEntraIdIssuer: authMicrosoftEntraIdIssuer
     footballApiKey: footballApiKey
     cronKvRef: keyVault.outputs.cronSecretUri
+    keyVaultName: 'kv-${resourceToken}'
   }
 }
 
