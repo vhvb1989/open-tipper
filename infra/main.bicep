@@ -58,10 +58,6 @@ param authMicrosoftEntraIdIssuer string = ''
 @description('API-Football API Key')
 param footballApiKey string = ''
 
-@secure()
-@description('Shared secret for authenticating cron/timer requests between Function App and Web App')
-param cronSecret string = ''
-
 // Tags for all resources
 var tags = {
   'azd-env-name': environmentName
@@ -107,6 +103,31 @@ module storage 'core/storage/storage.bicep' = {
     location: location
     tags: tags
     storageAccountName: 'st${resourceToken}'
+  }
+}
+
+// Key Vault — auto-generates and stores shared secrets (e.g. CRON_SECRET)
+module keyVault 'core/security/keyvault.bicep' = {
+  name: 'keyvault'
+  scope: rg
+  params: {
+    location: location
+    tags: tags
+    keyVaultName: 'kv-${resourceToken}'
+  }
+}
+
+// Grant both the Web App and Function App read access to Key Vault secrets.
+// Deployed after all three resources exist to avoid circular dependencies.
+module keyVaultAccess 'core/security/keyvault-access.bicep' = {
+  name: 'keyvaultAccess'
+  scope: rg
+  params: {
+    keyVaultName: 'kv-${resourceToken}'
+    principalIds: [
+      web.outputs.appServicePrincipalId
+      functions.outputs.functionAppPrincipalId
+    ]
   }
 }
 
@@ -165,7 +186,7 @@ module web 'app/web.bicep' = {
     authMicrosoftEntraIdSecret: authMicrosoftEntraIdSecret
     authMicrosoftEntraIdIssuer: authMicrosoftEntraIdIssuer
     footballApiKey: footballApiKey
-    cronSecret: cronSecret
+    cronKvRef: keyVault.outputs.cronSecretUri
   }
 }
 
@@ -193,7 +214,7 @@ module functions 'core/host/function.bicep' = {
     storageAccountName: functionsStorage.outputs.storageAccountName
     applicationInsightsConnectionString: monitoring.outputs.applicationInsightsConnectionString
     cronTargetUrl: web.outputs.appServiceUri
-    cronSecret: cronSecret
+    cronKvRef: keyVault.outputs.cronSecretUri
   }
 }
 
@@ -205,3 +226,4 @@ output SERVICE_WEB_RESOURCE_GROUP string = rg.name
 output SERVICE_FUNCTIONS_NAME string = functions.outputs.functionAppName
 output SERVICE_FUNCTIONS_RESOURCE_GROUP string = rgFunctions.name
 output DATABASE_HOST string = 'psql-${resourceToken}.postgres.database.azure.com'
+output KEY_VAULT_NAME string = keyVault.outputs.keyVaultName

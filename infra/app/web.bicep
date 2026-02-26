@@ -56,9 +56,8 @@ param authMicrosoftEntraIdIssuer string
 @description('API-Football API Key')
 param footballApiKey string
 
-@secure()
-@description('Shared secret for authenticating cron/timer requests')
-param cronSecret string = ''
+@description('Key Vault reference URI for the cron token')
+param cronKvRef string = ''
 
 // App Service Plan
 resource appServicePlan 'Microsoft.Web/serverfarms@2024-04-01' = {
@@ -171,7 +170,7 @@ resource appService 'Microsoft.Web/sites@2024-04-01' = {
         }
         {
           name: 'CRON_SECRET'
-          value: cronSecret
+          value: cronKvRef != '' ? '@Microsoft.KeyVault(SecretUri=${cronKvRef})' : ''
         }
       ]
     }

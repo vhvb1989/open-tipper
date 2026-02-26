@@ -19,9 +19,8 @@ param applicationInsightsConnectionString string
 @description('The web app URL that the timer function will call')
 param cronTargetUrl string
 
-@secure()
-@description('Shared secret for authenticating cron requests')
-param cronSecret string = ''
+@description('Key Vault reference URI for the cron token')
+param cronKvRef string = ''
 
 // Storage account (must be declared before the function app references it)
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' existing = {
@@ -111,7 +110,7 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
         }
         {
           name: 'CRON_SECRET'
-          value: cronSecret
+          value: cronKvRef != '' ? '@Microsoft.KeyVault(SecretUri=${cronKvRef})' : ''
         }
       ]
     }
@@ -120,3 +119,4 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
 
 output functionAppName string = functionApp.name
 output functionAppUri string = 'https://${functionApp.properties.defaultHostName}'
+output functionAppPrincipalId string = functionApp.identity.principalId
