@@ -78,6 +78,15 @@ resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
   tags: tags
 }
 
+// Separate resource group for Azure Functions (Consumption plan).
+// Linux Dynamic (Y1) and Linux Dedicated workers cannot coexist in the same
+// resource group, so the Function App gets its own RG.
+resource rgFunctions 'Microsoft.Resources/resourceGroups@2024-03-01' = {
+  name: 'rg-${environmentName}-functions'
+  location: location
+  tags: tags
+}
+
 // Log Analytics Workspace + Application Insights
 module monitoring 'core/monitor/appinsights.bicep' = {
   name: 'monitoring'
@@ -160,16 +169,28 @@ module web 'app/web.bicep' = {
   }
 }
 
-// Azure Functions — timer-triggered live sync (Consumption plan)
+// Storage Account for Azure Functions runtime (in the functions resource group)
+module functionsStorage 'core/storage/storage.bicep' = {
+  name: 'functionsStorage'
+  scope: rgFunctions
+  params: {
+    location: location
+    tags: tags
+    storageAccountName: 'stfunc${resourceToken}'
+  }
+}
+
+// Azure Functions — timer-triggered live sync (Consumption plan).
+// Deployed to a separate resource group to avoid the Linux Dynamic vs Dedicated conflict.
 module functions 'core/host/function.bicep' = {
   name: 'functions'
-  scope: rg
+  scope: rgFunctions
   params: {
     location: location
     tags: tags
     functionAppName: 'func-${resourceToken}'
     functionPlanName: 'plan-func-${resourceToken}'
-    storageAccountName: storage.outputs.storageAccountName
+    storageAccountName: functionsStorage.outputs.storageAccountName
     applicationInsightsConnectionString: monitoring.outputs.applicationInsightsConnectionString
     cronTargetUrl: web.outputs.appServiceUri
     cronSecret: cronSecret
