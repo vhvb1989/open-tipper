@@ -82,16 +82,6 @@ export default function SignInPage() {
             />
           </div>
         )}
-
-        <p className="text-center text-xs text-zinc-400 dark:text-zinc-500">
-          {t("signIn.providerNote")}{" "}
-          <a
-            href="https://github.com/your-username/open-tipper#authentication-providers"
-            className="underline"
-          >
-            {t("signIn.setupGuide")}
-          </a>
-        </p>
       </div>
     </div>
   );

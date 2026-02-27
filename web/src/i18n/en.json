@@ -41,7 +41,6 @@
     "google": "Sign in with Google",
     "github": "Sign in with GitHub",
     "microsoft": "Sign in with Microsoft",
-    "providerNote": "Only providers you've configured will work.",
     "setupGuide": "Setup guide"
   },
   "profile": {

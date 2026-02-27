@@ -41,7 +41,6 @@
     "google": "Iniciar con Google",
     "github": "Iniciar con GitHub",
     "microsoft": "Iniciar con Microsoft",
-    "providerNote": "Solo funcionarán los proveedores que hayas configurado.",
     "setupGuide": "Guía de configuración"
   },
   "profile": {
