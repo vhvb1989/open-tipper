@@ -53,8 +53,13 @@ function getProviders() {
       MicrosoftEntraId({
         clientId: process.env.AUTH_MICROSOFT_ENTRA_ID_ID,
         clientSecret: process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET,
-        // issuer defaults to AUTH_MICROSOFT_ENTRA_ID_ISSUER env var,
-        // or "common" (multi-tenant) if not set
+        // Explicitly set issuer: use the env var when non-empty,
+        // otherwise fall back to multi-tenant ("common") endpoint.
+        // This prevents the provider from reading an empty
+        // AUTH_MICROSOFT_ENTRA_ID_ISSUER env var and failing with "Invalid URL".
+        issuer:
+          process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER ||
+          "https://login.microsoftonline.com/common/v2.0",
         allowDangerousEmailAccountLinking: true,
       }),
     );
