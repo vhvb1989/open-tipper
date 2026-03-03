@@ -33,6 +33,7 @@ function getProviders() {
       Google({
         clientId: process.env.AUTH_GOOGLE_ID,
         clientSecret: process.env.AUTH_GOOGLE_SECRET,
+        allowDangerousEmailAccountLinking: true,
       }),
     );
   }
@@ -42,6 +43,7 @@ function getProviders() {
       GitHub({
         clientId: process.env.AUTH_GITHUB_ID,
         clientSecret: process.env.AUTH_GITHUB_SECRET,
+        allowDangerousEmailAccountLinking: true,
       }),
     );
   }
@@ -53,6 +55,7 @@ function getProviders() {
         clientSecret: process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET,
         // issuer defaults to AUTH_MICROSOFT_ENTRA_ID_ISSUER env var,
         // or "common" (multi-tenant) if not set
+        allowDangerousEmailAccountLinking: true,
       }),
     );
   }
