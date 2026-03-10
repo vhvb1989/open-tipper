@@ -230,7 +230,8 @@
     "lastRoundHeader": "Última Jornada",
     "tips": "Predicciones",
     "unknown": "Desconocido",
-    "you": "(tú)"
+    "you": "(tú)",
+    "medalTooltip": "Ganador Jornada {n} — {pts} pts"
   },
   "invite": {
     "label": "Enlace de invitación",

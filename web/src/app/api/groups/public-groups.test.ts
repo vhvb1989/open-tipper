@@ -14,6 +14,7 @@ const mockPrisma = {
   membership: { findUnique: vi.fn(), findMany: vi.fn(), create: vi.fn() },
   prediction: { findMany: vi.fn() },
   match: { findMany: vi.fn() },
+  medal: { findMany: vi.fn() },
 };
 vi.mock("@/lib/db", () => ({
   prisma: mockPrisma,
@@ -197,6 +198,7 @@ describe("Browse Groups API — GET /api/groups/browse", () => {
 describe("Public Group Access", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.medal.findMany.mockResolvedValue([]);
   });
 
   describe("Standings — public group visible without auth", () => {

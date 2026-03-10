@@ -11,6 +11,7 @@ import { PrismaClient, ContestStatus, MatchStatus } from "@/generated/prisma/cli
 import { PrismaPg } from "@prisma/adapter-pg";
 import { FootballApiClient, AfFixture, AfTeamRef, SUPPORTED_COMPETITIONS } from "./football-api";
 import { scoreFinishedMatches } from "./scoring-service";
+import { awardMedalsForContest } from "./medals";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -307,6 +308,17 @@ export async function syncCompetition(
       }
     } catch (error) {
       console.error("  ✗ Scoring failed:", error);
+    }
+
+    // 9. Award match-day medals for completed match days
+    try {
+      const medalResults = await awardMedalsForContest(contest.id, prisma);
+      if (medalResults.length > 0) {
+        const totalMedals = medalResults.reduce((sum, r) => sum + r.winnersCount, 0);
+        console.log(`  ✓ Awarded ${totalMedals} medals across ${medalResults.length} match days`);
+      }
+    } catch (error) {
+      console.error("  ✗ Medal awarding failed:", error);
     }
 
     return {

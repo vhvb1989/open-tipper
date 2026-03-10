@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "graph.microsoft.com" },
       // Football competition emblems & team logos (API-Football / media.api-sports.io)
       { protocol: "https", hostname: "media.api-sports.io" },
+      // DiceBear avatars (used by demo seed data)
+      { protocol: "https", hostname: "api.dicebear.com" },
     ],
   },
 };

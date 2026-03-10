@@ -34,6 +34,7 @@ model User {
   sessions Session[]
   memberships Membership[]
   predictions Prediction[]
+  medals      Medal[]
 
   @@map("users")
 }
@@ -197,6 +198,7 @@ model Group {
   scoringRules ScoringRules?
   memberships  Membership[]
   predictions  Prediction[]
+  medals       Medal[]
 
   @@index([contestId])
   @@index([inviteCode])
@@ -259,4 +261,24 @@ model Prediction {
   @@index([matchId])
   @@index([userId])
   @@map("predictions")
+}
+
+// ---------------------------------------------------------------------------
+// Match-day Medals — awarded to the top scorer(s) of each match day
+// ---------------------------------------------------------------------------
+
+model Medal {
+  id        String   @id @default(cuid())
+  groupId   String   @map("group_id")
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  matchDay  Int      @map("match_day")
+  points    Int      /// Points scored that match day
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([groupId, userId, matchDay])
+  @@index([groupId])
+  @@index([userId])
+  @@map("medals")
 }

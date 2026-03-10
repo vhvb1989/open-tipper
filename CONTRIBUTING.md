@@ -12,7 +12,8 @@ Thank you for your interest in contributing! This project is open-source and wel
 
 1. **Read the docs first** — review [SPEC.md](SPEC.md) for product requirements and [ROADMAP.md](ROADMAP.md) for the implementation plan.
 2. **Pick a task** — check the ROADMAP for the current cycle and pick an uncompleted item.
-3. **Write code** — implement your changes with tests.
+3. **Set up test data** — run `npm run db:seed:demo` from `web/` to populate the database with realistic Liga MX demo data (no API key required). Use `-- --clean` to reset. See the [README](README.md#alternative-seed-with-demo-data-no-api-key-needed) for details.
+4. **Write code** — implement your changes with tests.
 4. **Run checks** before committing (from the `web/` directory):
    ```bash
    cd web

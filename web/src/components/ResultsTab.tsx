@@ -174,7 +174,7 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
   const [results, setResults] = useState<MatchResult[]>([]);
   const [matchDays, setMatchDays] = useState<number[]>([]);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
+  const [expandedMatches, setExpandedMatches] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { scoresVersion } = useLive();
@@ -221,12 +221,20 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
 
   const handleDayChange = (day: number) => {
     setSelectedDay(day);
-    setExpandedMatch(null);
+    setExpandedMatches(new Set());
     fetchResults(day);
   };
 
   const toggleMatch = (matchId: string) => {
-    setExpandedMatch((prev) => (prev === matchId ? null : matchId));
+    setExpandedMatches((prev) => {
+      const next = new Set(prev);
+      if (next.has(matchId)) {
+        next.delete(matchId);
+      } else {
+        next.add(matchId);
+      }
+      return next;
+    });
   };
 
   const dayIdx = matchDays.indexOf(selectedDay ?? -1);
@@ -329,7 +337,7 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
       {/* Match results */}
       <div className="space-y-3">
         {results.map((match) => {
-          const isExpanded = expandedMatch === match.id;
+          const isExpanded = expandedMatches.has(match.id);
 
           return (
             <div

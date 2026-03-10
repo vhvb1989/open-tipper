@@ -98,6 +98,21 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // Fetch medals for this group
+    const medals = await prisma.medal.findMany({
+      where: { groupId },
+      select: { userId: true, matchDay: true, points: true },
+      orderBy: { matchDay: "asc" },
+    });
+
+    // Group medals by userId
+    const medalsByUser = new Map<string, { matchDay: number; points: number }[]>();
+    for (const medal of medals) {
+      const list = medalsByUser.get(medal.userId) ?? [];
+      list.push({ matchDay: medal.matchDay, points: medal.points });
+      medalsByUser.set(medal.userId, list);
+    }
+
     // Build ranked standings
     const standings = members
       .map((m) => {
@@ -110,6 +125,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           totalPoints: stats.total,
           predictionsScored: stats.scored,
           lastRoundPoints: stats.lastRound,
+          medals: medalsByUser.get(m.user.id) ?? [],
         };
       })
       .sort((a, b) => {

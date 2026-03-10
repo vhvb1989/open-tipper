@@ -230,7 +230,8 @@
     "lastRoundHeader": "Last Round",
     "tips": "Tips",
     "unknown": "Unknown",
-    "you": "(you)"
+    "you": "(you)",
+    "medalTooltip": "Match Day {n} winner — {pts} pts"
   },
   "invite": {
     "label": "Invite link",

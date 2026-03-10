@@ -7,6 +7,11 @@ import { useTranslation } from "@/i18n/TranslationProvider";
 
 /* ---------- Types ---------- */
 
+interface MedalEntry {
+  matchDay: number;
+  points: number;
+}
+
 interface StandingEntry {
   rank: number;
   userId: string;
@@ -16,6 +21,7 @@ interface StandingEntry {
   totalPoints: number;
   predictionsScored: number;
   lastRoundPoints: number;
+  medals: MedalEntry[];
 }
 
 /* ---------- Component ---------- */
@@ -203,20 +209,38 @@ export default function StandingsTab({
                         </div>
                       )}
                       <div>
-                        <span
-                          className={`text-sm font-medium ${
-                            isCurrentUser
-                              ? "text-blue-700 dark:text-blue-400"
-                              : "text-zinc-900 dark:text-zinc-100"
-                          }`}
-                        >
-                          {entry.userName ?? t("standings.unknown")}
-                          {isCurrentUser && (
-                            <span className="ml-1 text-xs text-zinc-400 dark:text-zinc-500">
-                              {t("standings.you")}
-                            </span>
-                          )}
-                        </span>
+                        <div className="flex items-center gap-1">
+                          <span
+                            className={`text-sm font-medium ${
+                              isCurrentUser
+                                ? "text-blue-700 dark:text-blue-400"
+                                : "text-zinc-900 dark:text-zinc-100"
+                            }`}
+                          >
+                            {entry.userName ?? t("standings.unknown")}
+                            {isCurrentUser && (
+                              <span className="ml-1 text-xs text-zinc-400 dark:text-zinc-500">
+                                {t("standings.you")}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        {entry.medals.length > 0 && (
+                          <div className="mt-0.5 flex flex-wrap gap-1">
+                            {entry.medals.map((medal) => (
+                              <span
+                                key={medal.matchDay}
+                                title={t("standings.medalTooltip", {
+                                  n: medal.matchDay,
+                                  pts: medal.points,
+                                })}
+                                className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                              >
+                                🏅{medal.matchDay}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>

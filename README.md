@@ -121,6 +121,35 @@ This fetches current Champions League, World Cup, and Liga MX data from API-Foot
 ✓ Synced Liga MX: X teams, Y matches
 ```
 
+#### Alternative: Seed with demo data (no API key needed)
+
+If you don't have an API-Football key or simply want to explore all features quickly, you can seed the database with pre-built demo data instead:
+
+```bash
+npm run db:seed:demo
+```
+
+This creates a complete Liga MX Clausura 2026 scenario with:
+
+| Data | Details |
+|------|---------|
+| **Contest** | Liga MX Clausura 2026 (active) |
+| **Teams** | 18 teams with real names, abbreviations, and crests |
+| **Matches** | 153 matches across 17 match days — some finished with scores, some scheduled, and 2 marked as live (IN_PLAY) |
+| **Users** | 8 demo accounts with avatars |
+| **Group** | "Liga MX Fans" — public group with default scoring rules (invite code: `demo-liga-mx-2026`) |
+| **Predictions** | ~90% coverage on finished matches (scored with points) + ~60% coverage on the next 2 upcoming match days |
+
+This lets you explore: results with scoring breakdowns, standings/leaderboard, upcoming predictions, live match badges, and public group discovery — all without any external API calls.
+
+To wipe all data and re-seed from scratch:
+
+```bash
+npm run db:seed:demo -- --clean
+```
+
+> **Tip:** After seeding, sign in with any OAuth provider. Your account will be separate from the demo users, but you can join the "Liga MX Fans" group via the public groups page or using invite code `demo-liga-mx-2026`.
+
 #### 6. Start the dev server
 
 ```bash
@@ -199,6 +228,7 @@ All commands run from the `web/` directory:
 | `npm run test:e2e` | Run end-to-end tests (Playwright) |
 | `npm run db:migrate` | Run Prisma migrations (`prisma migrate dev`) |
 | `npm run db:seed` | Seed the database from API-Football |
+| `npm run db:seed:demo` | Seed demo data for local testing (no API key needed) |
 | `npm run db:sync` | Re-sync match data from API-Football |
 | `npx tsx scripts/live-poll.ts` | Start live-sync polling (every 90s) for local dev |
 
