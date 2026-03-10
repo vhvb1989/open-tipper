@@ -367,182 +367,192 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
               {formatDateHeader(dayMatches[0].kickoffTime)}
             </h3>
             <div className="space-y-3">
-        {dayMatches.map((match) => {
-          const locked = isLocked(match);
-          const pred = predictions[match.id];
-          const status = saveStatuses[match.id] || "idle";
+              {dayMatches.map((match) => {
+                const locked = isLocked(match);
+                const pred = predictions[match.id];
+                const status = saveStatuses[match.id] || "idle";
 
-          return (
-            <div
-              key={match.id}
-              className={`relative rounded-xl border p-4 transition-colors ${
-                locked
-                  ? "border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800/50"
-                  : "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
-              }`}
-            >
-              {/* Top row: kickoff time + status */}
-              <div className="mb-3 flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
-                <span>{formatTime(match.kickoffTime)}</span>
-                <div className="flex items-center gap-2">
-                  {/* Save status indicator */}
-                  {status === "saving" && (
-                    <span className="text-amber-500">{t("predictions.saving")}</span>
-                  )}
-                  {status === "saved" && (
-                    <span className="text-emerald-500">{t("predictions.saved")}</span>
-                  )}
-                  {status === "error" && (
-                    <span className="text-red-500">{t("predictions.failedToSave")}</span>
-                  )}
-                  {/* Status badge */}
-                  {statusLabel(match.status, t) && (
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        match.status === "IN_PLAY" || match.status === "PAUSED"
-                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                          : match.status === "FINISHED" || match.status === "AWARDED"
-                            ? "bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300"
-                            : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                      }`}
-                    >
-                      {statusLabel(match.status, t)}
-                    </span>
-                  )}
-                  {/* Lock icon */}
-                  {locked && (
-                    <svg
-                      className="h-4 w-4 text-zinc-400 dark:text-zinc-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                      aria-label={t("predictions.locked")}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
-                      />
-                    </svg>
-                  )}
-                </div>
-              </div>
+                return (
+                  <div
+                    key={match.id}
+                    className={`relative rounded-xl border p-4 transition-colors ${
+                      locked
+                        ? "border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800/50"
+                        : "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
+                    }`}
+                  >
+                    {/* Top row: kickoff time + status */}
+                    <div className="mb-3 flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
+                      <span>{formatTime(match.kickoffTime)}</span>
+                      <div className="flex items-center gap-2">
+                        {/* Save status indicator */}
+                        {status === "saving" && (
+                          <span className="text-amber-500">{t("predictions.saving")}</span>
+                        )}
+                        {status === "saved" && (
+                          <span className="text-emerald-500">{t("predictions.saved")}</span>
+                        )}
+                        {status === "error" && (
+                          <span className="text-red-500">{t("predictions.failedToSave")}</span>
+                        )}
+                        {/* Status badge */}
+                        {statusLabel(match.status, t) && (
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                              match.status === "IN_PLAY" || match.status === "PAUSED"
+                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                : match.status === "FINISHED" || match.status === "AWARDED"
+                                  ? "bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300"
+                                  : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                            }`}
+                          >
+                            {statusLabel(match.status, t)}
+                          </span>
+                        )}
+                        {/* Lock icon */}
+                        {locked && (
+                          <svg
+                            className="h-4 w-4 text-zinc-400 dark:text-zinc-500"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={1.5}
+                            stroke="currentColor"
+                            aria-label={t("predictions.locked")}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+                            />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
 
-              {/* Match card body: Home — Score Inputs — Away */}
-              <div className="flex items-center justify-between gap-4">
-                {/* Home team */}
-                <div className="flex min-w-0 flex-1 flex-col items-end gap-0.5">
-                  <div className="flex items-center justify-end gap-2">
-                    <span className="truncate text-xs font-medium text-zinc-900 dark:text-zinc-100">
-                      {match.homeTeam.shortName || match.homeTeam.name}
-                    </span>
-                    {match.homeTeam.crest && (
-                      <Image
-                        src={match.homeTeam.crest}
-                        alt={match.homeTeam.name}
-                        width={28}
-                        height={28}
-                        className="h-7 w-7 object-contain"
-                        unoptimized
-                      />
-                    )}
-                  </div>
-                  {match.homeTeam.record && (match.homeTeam.record.wins + match.homeTeam.record.losses + match.homeTeam.record.draws > 0) && (
-                    <span
-                      className={`rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none tabular-nums ${recordColorClasses(match.homeTeam.record)}`}
-                    >
-                      {match.homeTeam.record.wins}-{match.homeTeam.record.losses}-{match.homeTeam.record.draws}
-                    </span>
-                  )}
-                </div>
+                    {/* Match card body: Home — Score Inputs — Away */}
+                    <div className="flex items-center justify-between gap-4">
+                      {/* Home team */}
+                      <div className="flex min-w-0 flex-1 flex-col items-end gap-0.5">
+                        <div className="flex items-center justify-end gap-2">
+                          <span className="truncate text-xs font-medium text-zinc-900 dark:text-zinc-100">
+                            {match.homeTeam.shortName || match.homeTeam.name}
+                          </span>
+                          {match.homeTeam.crest && (
+                            <Image
+                              src={match.homeTeam.crest}
+                              alt={match.homeTeam.name}
+                              width={28}
+                              height={28}
+                              className="h-7 w-7 object-contain"
+                              unoptimized
+                            />
+                          )}
+                        </div>
+                        {match.homeTeam.record &&
+                          match.homeTeam.record.wins +
+                            match.homeTeam.record.losses +
+                            match.homeTeam.record.draws >
+                            0 && (
+                            <span
+                              className={`rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none tabular-nums ${recordColorClasses(match.homeTeam.record)}`}
+                            >
+                              {match.homeTeam.record.wins}-{match.homeTeam.record.losses}-
+                              {match.homeTeam.record.draws}
+                            </span>
+                          )}
+                      </div>
 
-                {/* Score inputs */}
-                <div className="flex items-center gap-1">
-                  <input
-                    type="number"
-                    min={0}
-                    max={99}
-                    value={pred?.homeGoals ?? ""}
-                    onChange={(e) => handleScoreChange(match.id, "home", e.target.value)}
-                    disabled={locked}
-                    placeholder="-"
-                    className={`h-10 w-12 rounded-lg border text-center text-lg font-bold
+                      {/* Score inputs */}
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min={0}
+                          max={99}
+                          value={pred?.homeGoals ?? ""}
+                          onChange={(e) => handleScoreChange(match.id, "home", e.target.value)}
+                          disabled={locked}
+                          placeholder="-"
+                          className={`h-10 w-12 rounded-lg border text-center text-lg font-bold
                       ${
                         locked
                           ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500"
                           : "border-zinc-300 bg-white text-zinc-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
                       } [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
-                    aria-label={t("predictions.homeScore", {
-                      home: match.homeTeam.name,
-                      away: match.awayTeam.name,
-                    })}
-                  />
-                  <span className="mx-1 text-sm font-medium text-zinc-400">–</span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={99}
-                    value={pred?.awayGoals ?? ""}
-                    onChange={(e) => handleScoreChange(match.id, "away", e.target.value)}
-                    disabled={locked}
-                    placeholder="-"
-                    className={`h-10 w-12 rounded-lg border text-center text-lg font-bold
+                          aria-label={t("predictions.homeScore", {
+                            home: match.homeTeam.name,
+                            away: match.awayTeam.name,
+                          })}
+                        />
+                        <span className="mx-1 text-sm font-medium text-zinc-400">–</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={99}
+                          value={pred?.awayGoals ?? ""}
+                          onChange={(e) => handleScoreChange(match.id, "away", e.target.value)}
+                          disabled={locked}
+                          placeholder="-"
+                          className={`h-10 w-12 rounded-lg border text-center text-lg font-bold
                       ${
                         locked
                           ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500"
                           : "border-zinc-300 bg-white text-zinc-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
                       } [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
-                    aria-label={t("predictions.awayScore", {
-                      home: match.homeTeam.name,
-                      away: match.awayTeam.name,
-                    })}
-                  />
-                </div>
+                          aria-label={t("predictions.awayScore", {
+                            home: match.homeTeam.name,
+                            away: match.awayTeam.name,
+                          })}
+                        />
+                      </div>
 
-                {/* Away team */}
-                <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
-                  <div className="flex items-center gap-2">
-                    {match.awayTeam.crest && (
-                      <Image
-                        src={match.awayTeam.crest}
-                        alt={match.awayTeam.name}
-                        width={28}
-                        height={28}
-                        className="h-7 w-7 shrink-0 object-contain"
-                        unoptimized
-                      />
-                    )}
-                    <span className="truncate text-xs font-medium text-zinc-900 dark:text-zinc-100">
-                      {match.awayTeam.shortName || match.awayTeam.name}
-                    </span>
-                  </div>
-                  {match.awayTeam.record && (match.awayTeam.record.wins + match.awayTeam.record.losses + match.awayTeam.record.draws > 0) && (
-                    <span
-                      className={`rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none tabular-nums ${recordColorClasses(match.awayTeam.record)}`}
-                    >
-                      {match.awayTeam.record.wins}-{match.awayTeam.record.losses}-{match.awayTeam.record.draws}
-                    </span>
-                  )}
-                </div>
-              </div>
+                      {/* Away team */}
+                      <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
+                        <div className="flex items-center gap-2">
+                          {match.awayTeam.crest && (
+                            <Image
+                              src={match.awayTeam.crest}
+                              alt={match.awayTeam.name}
+                              width={28}
+                              height={28}
+                              className="h-7 w-7 shrink-0 object-contain"
+                              unoptimized
+                            />
+                          )}
+                          <span className="truncate text-xs font-medium text-zinc-900 dark:text-zinc-100">
+                            {match.awayTeam.shortName || match.awayTeam.name}
+                          </span>
+                        </div>
+                        {match.awayTeam.record &&
+                          match.awayTeam.record.wins +
+                            match.awayTeam.record.losses +
+                            match.awayTeam.record.draws >
+                            0 && (
+                            <span
+                              className={`rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none tabular-nums ${recordColorClasses(match.awayTeam.record)}`}
+                            >
+                              {match.awayTeam.record.wins}-{match.awayTeam.record.losses}-
+                              {match.awayTeam.record.draws}
+                            </span>
+                          )}
+                      </div>
+                    </div>
 
-              {/* Actual result (for finished matches) */}
-              {(match.status === "FINISHED" || match.status === "AWARDED") &&
-                match.homeGoals != null &&
-                match.awayGoals != null && (
-                  <div className="mt-3 flex justify-center">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200">
-                      {t("predictions.result", {
-                        home: String(match.homeGoals),
-                        away: String(match.awayGoals),
-                      })}
-                    </span>
+                    {/* Actual result (for finished matches) */}
+                    {(match.status === "FINISHED" || match.status === "AWARDED") &&
+                      match.homeGoals != null &&
+                      match.awayGoals != null && (
+                        <div className="mt-3 flex justify-center">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200">
+                            {t("predictions.result", {
+                              home: String(match.homeGoals),
+                              away: String(match.awayGoals),
+                            })}
+                          </span>
+                        </div>
+                      )}
                   </div>
-                )}
-            </div>
-          );
-        })}
+                );
+              })}
             </div>
           </div>
         ))}
