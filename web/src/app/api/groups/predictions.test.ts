@@ -296,7 +296,8 @@ describe("Predictions API", () => {
             awayTeam: { id: "t2", name: "Team B", shortName: "TMB", tla: "TMB", crest: null },
           },
         ])
-        .mockResolvedValueOnce([{ matchDay: 1 }, { matchDay: 2 }, { matchDay: 3 }]);
+        .mockResolvedValueOnce([{ matchDay: 1 }, { matchDay: 2 }, { matchDay: 3 }])
+        .mockResolvedValueOnce([]); // finishedMatches for W-L-D records
 
       const { GET } = await import("@/app/api/groups/[id]/matches/route");
       const req = new NextRequest("http://localhost/api/groups/g1/matches?matchDay=1");
