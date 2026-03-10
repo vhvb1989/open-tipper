@@ -49,17 +49,6 @@ function isLocked(match: Match): boolean {
   return new Date(match.kickoffTime) <= new Date();
 }
 
-function formatKickoff(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
 /** Date-only label for day group headers */
 function formatDateHeader(dateStr: string): string {
   const d = new Date(dateStr);
