@@ -60,6 +60,37 @@ function formatKickoff(dateStr: string): string {
   });
 }
 
+/** Date-only label for day group headers */
+function formatDateHeader(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+/** Time-only label for individual match rows */
+function formatTime(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/** Group matches by calendar date string */
+function groupMatchesByDate(matches: Match[]): [string, Match[]][] {
+  const groups = new Map<string, Match[]>();
+  for (const match of matches) {
+    const dateKey = new Date(match.kickoffTime).toLocaleDateString();
+    const list = groups.get(dateKey) ?? [];
+    list.push(match);
+    groups.set(dateKey, list);
+  }
+  return Array.from(groups.entries());
+}
+
 function statusLabel(status: string, t: (key: string) => string): string {
   switch (status) {
     case "SCHEDULED":
@@ -338,9 +369,16 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
         </div>
       )}
 
-      {/* Match list */}
-      <div className="space-y-3">
-        {matches.map((match) => {
+      {/* Match list grouped by date */}
+      <div className="space-y-6">
+        {groupMatchesByDate(matches).map(([dateKey, dayMatches]) => (
+          <div key={dateKey}>
+            {/* Date header */}
+            <h3 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-700 pb-2">
+              {formatDateHeader(dayMatches[0].kickoffTime)}
+            </h3>
+            <div className="space-y-3">
+        {dayMatches.map((match) => {
           const locked = isLocked(match);
           const pred = predictions[match.id];
           const status = saveStatuses[match.id] || "idle";
@@ -356,7 +394,7 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
             >
               {/* Top row: kickoff time + status */}
               <div className="mb-3 flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
-                <span>{formatKickoff(match.kickoffTime)}</span>
+                <span>{formatTime(match.kickoffTime)}</span>
                 <div className="flex items-center gap-2">
                   {/* Save status indicator */}
                   {status === "saving" && (
@@ -407,16 +445,16 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
                 {/* Home team */}
                 <div className="flex min-w-0 flex-1 flex-col items-end gap-0.5">
                   <div className="flex items-center justify-end gap-2">
-                    <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                    <span className="truncate text-xs font-medium text-zinc-900 dark:text-zinc-100">
                       {match.homeTeam.shortName || match.homeTeam.name}
                     </span>
                     {match.homeTeam.crest && (
                       <Image
                         src={match.homeTeam.crest}
                         alt={match.homeTeam.name}
-                        width={24}
-                        height={24}
-                        className="h-6 w-6 object-contain"
+                        width={28}
+                        height={28}
+                        className="h-7 w-7 object-contain"
                         unoptimized
                       />
                     )}
@@ -480,13 +518,13 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
                       <Image
                         src={match.awayTeam.crest}
                         alt={match.awayTeam.name}
-                        width={24}
-                        height={24}
-                        className="h-6 w-6 shrink-0 object-contain"
+                        width={28}
+                        height={28}
+                        className="h-7 w-7 shrink-0 object-contain"
                         unoptimized
                       />
                     )}
-                    <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                    <span className="truncate text-xs font-medium text-zinc-900 dark:text-zinc-100">
                       {match.awayTeam.shortName || match.awayTeam.name}
                     </span>
                   </div>
@@ -504,16 +542,21 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
               {(match.status === "FINISHED" || match.status === "AWARDED") &&
                 match.homeGoals != null &&
                 match.awayGoals != null && (
-                  <div className="mt-2 text-center text-xs text-zinc-500 dark:text-zinc-400">
-                    {t("predictions.result", {
-                      home: String(match.homeGoals),
-                      away: String(match.awayGoals),
-                    })}
+                  <div className="mt-3 flex justify-center">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200">
+                      {t("predictions.result", {
+                        home: String(match.homeGoals),
+                        away: String(match.awayGoals),
+                      })}
+                    </span>
                   </div>
                 )}
             </div>
           );
         })}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Loading overlay for day change */}
