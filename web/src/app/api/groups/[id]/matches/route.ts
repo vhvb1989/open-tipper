@@ -73,8 +73,42 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .map((m) => m.matchDay)
       .filter((d): d is number => d !== null);
 
+    // Compute W-L-D records for every team from finished matches
+    const finishedMatches = await prisma.match.findMany({
+      where: { contestId: group.contestId, status: "FINISHED" },
+      select: { homeTeamId: true, awayTeamId: true, homeGoals: true, awayGoals: true },
+    });
+
+    const teamRecords: Record<string, { wins: number; losses: number; draws: number }> = {};
+    const ensure = (id: string) => {
+      if (!teamRecords[id]) teamRecords[id] = { wins: 0, losses: 0, draws: 0 };
+    };
+    for (const m of finishedMatches) {
+      if (m.homeGoals == null || m.awayGoals == null) continue;
+      ensure(m.homeTeamId);
+      ensure(m.awayTeamId);
+      if (m.homeGoals > m.awayGoals) {
+        teamRecords[m.homeTeamId].wins++;
+        teamRecords[m.awayTeamId].losses++;
+      } else if (m.homeGoals < m.awayGoals) {
+        teamRecords[m.awayTeamId].wins++;
+        teamRecords[m.homeTeamId].losses++;
+      } else {
+        teamRecords[m.homeTeamId].draws++;
+        teamRecords[m.awayTeamId].draws++;
+      }
+    }
+
+    // Attach record to each team in the match list
+    const defaultRecord = { wins: 0, losses: 0, draws: 0 };
+    const matchesWithRecords = matches.map((m) => ({
+      ...m,
+      homeTeam: { ...m.homeTeam, record: teamRecords[m.homeTeam.id] ?? defaultRecord },
+      awayTeam: { ...m.awayTeam, record: teamRecords[m.awayTeam.id] ?? defaultRecord },
+    }));
+
     return NextResponse.json({
-      matches,
+      matches: matchesWithRecords,
       matchDays: availableMatchDays,
       currentMatchDay: matchDay ? parseInt(matchDay, 10) : null,
     });

@@ -6,12 +6,19 @@ import { useTranslation } from "@/i18n/TranslationProvider";
 
 /* ---------- Types ---------- */
 
+interface TeamRecord {
+  wins: number;
+  losses: number;
+  draws: number;
+}
+
 interface Team {
   id: string;
   name: string;
   shortName: string | null;
   tla: string | null;
   crest: string | null;
+  record?: TeamRecord;
 }
 
 interface Match {
@@ -73,6 +80,20 @@ function statusLabel(status: string, t: (key: string) => string): string {
     default:
       return status;
   }
+}
+
+/** Return Tailwind classes for W-L-D badge based on record comparison */
+function recordColorClasses(r: TeamRecord): string {
+  if (r.wins > r.losses && r.wins > r.draws) {
+    // More wins
+    return "text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30";
+  }
+  if (r.losses > r.wins && r.losses > r.draws) {
+    // More losses
+    return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/30";
+  }
+  // Draws dominate or equal
+  return "text-amber-700 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30";
 }
 
 /* ---------- Component ---------- */
@@ -384,19 +405,28 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
               {/* Match card body: Home — Score Inputs — Away */}
               <div className="flex items-center justify-between gap-4">
                 {/* Home team */}
-                <div className="flex min-w-0 flex-1 items-center justify-end gap-2 text-right">
-                  <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                    {match.homeTeam.shortName || match.homeTeam.name}
-                  </span>
-                  {match.homeTeam.crest && (
-                    <Image
-                      src={match.homeTeam.crest}
-                      alt={match.homeTeam.name}
-                      width={24}
-                      height={24}
-                      className="h-6 w-6 object-contain"
-                      unoptimized
-                    />
+                <div className="flex min-w-0 flex-1 flex-col items-end gap-0.5">
+                  <div className="flex items-center justify-end gap-2">
+                    <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                      {match.homeTeam.shortName || match.homeTeam.name}
+                    </span>
+                    {match.homeTeam.crest && (
+                      <Image
+                        src={match.homeTeam.crest}
+                        alt={match.homeTeam.name}
+                        width={24}
+                        height={24}
+                        className="h-6 w-6 object-contain"
+                        unoptimized
+                      />
+                    )}
+                  </div>
+                  {match.homeTeam.record && (match.homeTeam.record.wins + match.homeTeam.record.losses + match.homeTeam.record.draws > 0) && (
+                    <span
+                      className={`rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none tabular-nums ${recordColorClasses(match.homeTeam.record)}`}
+                    >
+                      {match.homeTeam.record.wins}-{match.homeTeam.record.losses}-{match.homeTeam.record.draws}
+                    </span>
                   )}
                 </div>
 
@@ -444,20 +474,29 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
                 </div>
 
                 {/* Away team */}
-                <div className="flex min-w-0 flex-1 items-center gap-2">
-                  {match.awayTeam.crest && (
-                    <Image
-                      src={match.awayTeam.crest}
-                      alt={match.awayTeam.name}
-                      width={24}
-                      height={24}
-                      className="h-6 w-6 shrink-0 object-contain"
-                      unoptimized
-                    />
+                <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
+                  <div className="flex items-center gap-2">
+                    {match.awayTeam.crest && (
+                      <Image
+                        src={match.awayTeam.crest}
+                        alt={match.awayTeam.name}
+                        width={24}
+                        height={24}
+                        className="h-6 w-6 shrink-0 object-contain"
+                        unoptimized
+                      />
+                    )}
+                    <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                      {match.awayTeam.shortName || match.awayTeam.name}
+                    </span>
+                  </div>
+                  {match.awayTeam.record && (match.awayTeam.record.wins + match.awayTeam.record.losses + match.awayTeam.record.draws > 0) && (
+                    <span
+                      className={`rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none tabular-nums ${recordColorClasses(match.awayTeam.record)}`}
+                    >
+                      {match.awayTeam.record.wins}-{match.awayTeam.record.losses}-{match.awayTeam.record.draws}
+                    </span>
                   )}
-                  <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                    {match.awayTeam.shortName || match.awayTeam.name}
-                  </span>
                 </div>
               </div>
 
