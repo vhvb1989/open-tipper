@@ -49,24 +49,132 @@ interface DemoTeam {
 }
 
 const LIGA_MX_TEAMS: DemoTeam[] = [
-  { externalId: 902283, name: "Club América", shortName: "América", tla: "AME", crest: "https://media.api-sports.io/football/teams/2283.png" },
-  { externalId: 902282, name: "Guadalajara (Chivas)", shortName: "Chivas", tla: "CHI", crest: "https://media.api-sports.io/football/teams/2282.png" },
-  { externalId: 902284, name: "Cruz Azul", shortName: "Cruz Azul", tla: "CRA", crest: "https://media.api-sports.io/football/teams/2284.png" },
-  { externalId: 902286, name: "UNAM Pumas", shortName: "Pumas", tla: "PUM", crest: "https://media.api-sports.io/football/teams/2286.png" },
-  { externalId: 902288, name: "Tigres UANL", shortName: "Tigres", tla: "TIG", crest: "https://media.api-sports.io/football/teams/2288.png" },
-  { externalId: 902287, name: "Monterrey", shortName: "Monterrey", tla: "MTY", crest: "https://media.api-sports.io/football/teams/2287.png" },
-  { externalId: 902290, name: "Santos Laguna", shortName: "Santos", tla: "SAN", crest: "https://media.api-sports.io/football/teams/2290.png" },
-  { externalId: 902285, name: "Toluca", shortName: "Toluca", tla: "TOL", crest: "https://media.api-sports.io/football/teams/2285.png" },
-  { externalId: 902291, name: "León", shortName: "León", tla: "LEO", crest: "https://media.api-sports.io/football/teams/2291.png" },
-  { externalId: 902289, name: "Atlas", shortName: "Atlas", tla: "ATL", crest: "https://media.api-sports.io/football/teams/2289.png" },
-  { externalId: 902292, name: "Pachuca", shortName: "Pachuca", tla: "PAC", crest: "https://media.api-sports.io/football/teams/2292.png" },
-  { externalId: 902293, name: "Puebla", shortName: "Puebla", tla: "PUE", crest: "https://media.api-sports.io/football/teams/2293.png" },
-  { externalId: 902294, name: "Necaxa", shortName: "Necaxa", tla: "NEC", crest: "https://media.api-sports.io/football/teams/2294.png" },
-  { externalId: 902296, name: "Querétaro", shortName: "Querétaro", tla: "QRO", crest: "https://media.api-sports.io/football/teams/2296.png" },
-  { externalId: 902297, name: "Tijuana", shortName: "Tijuana", tla: "TIJ", crest: "https://media.api-sports.io/football/teams/2297.png" },
-  { externalId: 902298, name: "Mazatlán FC", shortName: "Mazatlán", tla: "MAZ", crest: "https://media.api-sports.io/football/teams/2298.png" },
-  { externalId: 902299, name: "FC Juárez", shortName: "Juárez", tla: "JUA", crest: "https://media.api-sports.io/football/teams/2299.png" },
-  { externalId: 902295, name: "San Luis", shortName: "San Luis", tla: "SLU", crest: "https://media.api-sports.io/football/teams/2295.png" },
+  {
+    externalId: 902283,
+    name: "Club América",
+    shortName: "América",
+    tla: "AME",
+    crest: "https://media.api-sports.io/football/teams/2283.png",
+  },
+  {
+    externalId: 902282,
+    name: "Guadalajara (Chivas)",
+    shortName: "Chivas",
+    tla: "CHI",
+    crest: "https://media.api-sports.io/football/teams/2282.png",
+  },
+  {
+    externalId: 902284,
+    name: "Cruz Azul",
+    shortName: "Cruz Azul",
+    tla: "CRA",
+    crest: "https://media.api-sports.io/football/teams/2284.png",
+  },
+  {
+    externalId: 902286,
+    name: "UNAM Pumas",
+    shortName: "Pumas",
+    tla: "PUM",
+    crest: "https://media.api-sports.io/football/teams/2286.png",
+  },
+  {
+    externalId: 902288,
+    name: "Tigres UANL",
+    shortName: "Tigres",
+    tla: "TIG",
+    crest: "https://media.api-sports.io/football/teams/2288.png",
+  },
+  {
+    externalId: 902287,
+    name: "Monterrey",
+    shortName: "Monterrey",
+    tla: "MTY",
+    crest: "https://media.api-sports.io/football/teams/2287.png",
+  },
+  {
+    externalId: 902290,
+    name: "Santos Laguna",
+    shortName: "Santos",
+    tla: "SAN",
+    crest: "https://media.api-sports.io/football/teams/2290.png",
+  },
+  {
+    externalId: 902285,
+    name: "Toluca",
+    shortName: "Toluca",
+    tla: "TOL",
+    crest: "https://media.api-sports.io/football/teams/2285.png",
+  },
+  {
+    externalId: 902291,
+    name: "León",
+    shortName: "León",
+    tla: "LEO",
+    crest: "https://media.api-sports.io/football/teams/2291.png",
+  },
+  {
+    externalId: 902289,
+    name: "Atlas",
+    shortName: "Atlas",
+    tla: "ATL",
+    crest: "https://media.api-sports.io/football/teams/2289.png",
+  },
+  {
+    externalId: 902292,
+    name: "Pachuca",
+    shortName: "Pachuca",
+    tla: "PAC",
+    crest: "https://media.api-sports.io/football/teams/2292.png",
+  },
+  {
+    externalId: 902293,
+    name: "Puebla",
+    shortName: "Puebla",
+    tla: "PUE",
+    crest: "https://media.api-sports.io/football/teams/2293.png",
+  },
+  {
+    externalId: 902294,
+    name: "Necaxa",
+    shortName: "Necaxa",
+    tla: "NEC",
+    crest: "https://media.api-sports.io/football/teams/2294.png",
+  },
+  {
+    externalId: 902296,
+    name: "Querétaro",
+    shortName: "Querétaro",
+    tla: "QRO",
+    crest: "https://media.api-sports.io/football/teams/2296.png",
+  },
+  {
+    externalId: 902297,
+    name: "Tijuana",
+    shortName: "Tijuana",
+    tla: "TIJ",
+    crest: "https://media.api-sports.io/football/teams/2297.png",
+  },
+  {
+    externalId: 902298,
+    name: "Mazatlán FC",
+    shortName: "Mazatlán",
+    tla: "MAZ",
+    crest: "https://media.api-sports.io/football/teams/2298.png",
+  },
+  {
+    externalId: 902299,
+    name: "FC Juárez",
+    shortName: "Juárez",
+    tla: "JUA",
+    crest: "https://media.api-sports.io/football/teams/2299.png",
+  },
+  {
+    externalId: 902295,
+    name: "San Luis",
+    shortName: "San Luis",
+    tla: "SLU",
+    crest: "https://media.api-sports.io/football/teams/2295.png",
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -80,14 +188,46 @@ interface DemoUser {
 }
 
 const DEMO_USERS: DemoUser[] = [
-  { name: "Carlos García", email: "carlos@demo.local", image: "https://api.dicebear.com/9.x/avataaars/svg?seed=Carlos" },
-  { name: "María López", email: "maria@demo.local", image: "https://api.dicebear.com/9.x/avataaars/svg?seed=Maria" },
-  { name: "Juan Hernández", email: "juan@demo.local", image: "https://api.dicebear.com/9.x/avataaars/svg?seed=Juan" },
-  { name: "Ana Martínez", email: "ana@demo.local", image: "https://api.dicebear.com/9.x/avataaars/svg?seed=Ana" },
-  { name: "Pedro Rodríguez", email: "pedro@demo.local", image: "https://api.dicebear.com/9.x/avataaars/svg?seed=Pedro" },
-  { name: "Sofía Ramírez", email: "sofia@demo.local", image: "https://api.dicebear.com/9.x/avataaars/svg?seed=Sofia" },
-  { name: "Diego Torres", email: "diego@demo.local", image: "https://api.dicebear.com/9.x/avataaars/svg?seed=Diego" },
-  { name: "Lucía Flores", email: "lucia@demo.local", image: "https://api.dicebear.com/9.x/avataaars/svg?seed=Lucia" },
+  {
+    name: "Carlos García",
+    email: "carlos@demo.local",
+    image: "https://api.dicebear.com/9.x/avataaars/svg?seed=Carlos",
+  },
+  {
+    name: "María López",
+    email: "maria@demo.local",
+    image: "https://api.dicebear.com/9.x/avataaars/svg?seed=Maria",
+  },
+  {
+    name: "Juan Hernández",
+    email: "juan@demo.local",
+    image: "https://api.dicebear.com/9.x/avataaars/svg?seed=Juan",
+  },
+  {
+    name: "Ana Martínez",
+    email: "ana@demo.local",
+    image: "https://api.dicebear.com/9.x/avataaars/svg?seed=Ana",
+  },
+  {
+    name: "Pedro Rodríguez",
+    email: "pedro@demo.local",
+    image: "https://api.dicebear.com/9.x/avataaars/svg?seed=Pedro",
+  },
+  {
+    name: "Sofía Ramírez",
+    email: "sofia@demo.local",
+    image: "https://api.dicebear.com/9.x/avataaars/svg?seed=Sofia",
+  },
+  {
+    name: "Diego Torres",
+    email: "diego@demo.local",
+    image: "https://api.dicebear.com/9.x/avataaars/svg?seed=Diego",
+  },
+  {
+    name: "Lucía Flores",
+    email: "lucia@demo.local",
+    image: "https://api.dicebear.com/9.x/avataaars/svg?seed=Lucia",
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -189,9 +329,9 @@ function generateMatchScore(rng: SeededRandom): [number, number] {
 function generatePrediction(rng: SeededRandom, actual: [number, number]): [number, number] {
   const r = rng.next();
   // 10% chance of exact match
-  if (r < 0.10) return [actual[0], actual[1]];
+  if (r < 0.1) return [actual[0], actual[1]];
   // 20% chance of close prediction (±1 on one side)
-  if (r < 0.30) {
+  if (r < 0.3) {
     const side = rng.int(0, 1);
     const delta = rng.pick([-1, 1]);
     const pred: [number, number] = [...actual];
@@ -282,7 +422,12 @@ async function main() {
 
   // We'll produce exactly as many rounds as the round-robin gives (17 for 18 teams)
   let fixtureExternalId = 900000; // starting fake external ID
-  const allMatchIds: { matchId: string; matchDay: number; homeGoals: number | null; awayGoals: number | null }[] = [];
+  const allMatchIds: {
+    matchId: string;
+    matchDay: number;
+    homeGoals: number | null;
+    awayGoals: number | null;
+  }[] = [];
 
   for (let day = 0; day < schedule.length; day++) {
     const matchDay = day + 1;
@@ -342,7 +487,9 @@ async function main() {
 
   const finishedMatches = allMatchIds.filter((m) => m.homeGoals !== null);
   const scheduledMatches = allMatchIds.filter((m) => m.homeGoals === null);
-  console.log(`   ${allMatchIds.length} matches: ${finishedMatches.length} finished, ${scheduledMatches.length} scheduled`);
+  console.log(
+    `   ${allMatchIds.length} matches: ${finishedMatches.length} finished, ${scheduledMatches.length} scheduled`,
+  );
 
   // -----------------------------------------------------------------------
   // 4. Users
@@ -426,7 +573,7 @@ async function main() {
   for (const fm of finishedMatches) {
     for (const userId of userIds) {
       // Each user has a 90% chance of having predicted any given finished match
-      if (!rng.chance(0.90)) continue;
+      if (!rng.chance(0.9)) continue;
 
       const [predHome, predAway] = generatePrediction(rng, [fm.homeGoals!, fm.awayGoals!]);
       const breakdown = calculateScore(
@@ -464,12 +611,14 @@ async function main() {
   let upcomingPredCount = 0;
 
   // Only predict on the next 2 match days of scheduled matches
-  const nextMatchDays = Array.from(new Set(scheduledMatches.map((m) => m.matchDay))).sort((a, b) => a - b).slice(0, 2);
+  const nextMatchDays = Array.from(new Set(scheduledMatches.map((m) => m.matchDay)))
+    .sort((a, b) => a - b)
+    .slice(0, 2);
 
   for (const sm of scheduledMatches.filter((m) => nextMatchDays.includes(m.matchDay))) {
     for (const userId of userIds) {
       // 60% chance a user has already predicted upcoming matches
-      if (!rng.chance(0.60)) continue;
+      if (!rng.chance(0.6)) continue;
 
       const [predHome, predAway] = generateMatchScore(rng);
       await prisma.prediction.upsert({
@@ -508,7 +657,9 @@ async function main() {
   console.log("\n📊 Demo seed summary:");
   console.log(`   Contest:     ${contest.name}`);
   console.log(`   Teams:       ${LIGA_MX_TEAMS.length}`);
-  console.log(`   Matches:     ${allMatchIds.length} (${finishedMatches.length} finished, ${scheduledMatches.length} scheduled)`);
+  console.log(
+    `   Matches:     ${allMatchIds.length} (${finishedMatches.length} finished, ${scheduledMatches.length} scheduled)`,
+  );
   console.log(`   Users:       ${DEMO_USERS.length}`);
   console.log(`   Group:       ${group.name} (${group.visibility}, invite: ${group.inviteCode})`);
   console.log(`   Predictions: ${predCount} scored + ${upcomingPredCount} pending`);

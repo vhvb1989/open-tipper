@@ -167,9 +167,7 @@ export async function awardMedalsForContest(
     distinct: ["matchDay"],
   });
 
-  const matchDays = finishedMatchDays
-    .map((m) => m.matchDay!)
-    .sort((a, b) => a - b);
+  const matchDays = finishedMatchDays.map((m) => m.matchDay!).sort((a, b) => a - b);
 
   const results: AwardMedalsResult[] = [];
 

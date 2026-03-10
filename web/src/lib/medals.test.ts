@@ -56,9 +56,7 @@ describe("awardMatchDayMedals", () => {
   });
 
   it("skips when there are unscored predictions", async () => {
-    mockPrisma.match.findMany.mockResolvedValue([
-      { id: "m1", status: "FINISHED" },
-    ]);
+    mockPrisma.match.findMany.mockResolvedValue([{ id: "m1", status: "FINISHED" }]);
     mockPrisma.prediction.count.mockResolvedValue(2);
 
     const result = await awardMatchDayMedals("c1", "g1", 1, db);
@@ -66,9 +64,7 @@ describe("awardMatchDayMedals", () => {
   });
 
   it("skips when no predictions exist", async () => {
-    mockPrisma.match.findMany.mockResolvedValue([
-      { id: "m1", status: "FINISHED" },
-    ]);
+    mockPrisma.match.findMany.mockResolvedValue([{ id: "m1", status: "FINISHED" }]);
     mockPrisma.prediction.count.mockResolvedValue(0);
     mockPrisma.prediction.findMany.mockResolvedValue([]);
 
@@ -77,9 +73,7 @@ describe("awardMatchDayMedals", () => {
   });
 
   it("awards medal to single top scorer", async () => {
-    mockPrisma.match.findMany.mockResolvedValue([
-      { id: "m1", status: "FINISHED" },
-    ]);
+    mockPrisma.match.findMany.mockResolvedValue([{ id: "m1", status: "FINISHED" }]);
     mockPrisma.prediction.count.mockResolvedValue(0);
     mockPrisma.prediction.findMany.mockResolvedValue([
       { userId: "u1", pointsAwarded: 10 },
@@ -103,9 +97,7 @@ describe("awardMatchDayMedals", () => {
   });
 
   it("awards medals to multiple users on tie", async () => {
-    mockPrisma.match.findMany.mockResolvedValue([
-      { id: "m1", status: "FINISHED" },
-    ]);
+    mockPrisma.match.findMany.mockResolvedValue([{ id: "m1", status: "FINISHED" }]);
     mockPrisma.prediction.count.mockResolvedValue(0);
     mockPrisma.prediction.findMany.mockResolvedValue([
       { userId: "u1", pointsAwarded: 10 },
@@ -143,9 +135,7 @@ describe("awardMatchDayMedals", () => {
   });
 
   it("does not award medals when max points is 0", async () => {
-    mockPrisma.match.findMany.mockResolvedValue([
-      { id: "m1", status: "FINISHED" },
-    ]);
+    mockPrisma.match.findMany.mockResolvedValue([{ id: "m1", status: "FINISHED" }]);
     mockPrisma.prediction.count.mockResolvedValue(0);
     mockPrisma.prediction.findMany.mockResolvedValue([
       { userId: "u1", pointsAwarded: 0 },
@@ -158,9 +148,7 @@ describe("awardMatchDayMedals", () => {
   });
 
   it("removes stale medals when re-scoring changes the winner", async () => {
-    mockPrisma.match.findMany.mockResolvedValue([
-      { id: "m1", status: "FINISHED" },
-    ]);
+    mockPrisma.match.findMany.mockResolvedValue([{ id: "m1", status: "FINISHED" }]);
     mockPrisma.prediction.count.mockResolvedValue(0);
     mockPrisma.prediction.findMany.mockResolvedValue([
       { userId: "u1", pointsAwarded: 10 },
@@ -182,13 +170,9 @@ describe("awardMatchDayMedals", () => {
   });
 
   it("handles AWARDED match status", async () => {
-    mockPrisma.match.findMany.mockResolvedValue([
-      { id: "m1", status: "AWARDED" },
-    ]);
+    mockPrisma.match.findMany.mockResolvedValue([{ id: "m1", status: "AWARDED" }]);
     mockPrisma.prediction.count.mockResolvedValue(0);
-    mockPrisma.prediction.findMany.mockResolvedValue([
-      { userId: "u1", pointsAwarded: 5 },
-    ]);
+    mockPrisma.prediction.findMany.mockResolvedValue([{ userId: "u1", pointsAwarded: 5 }]);
     mockPrisma.medal.deleteMany.mockResolvedValue({ count: 0 });
     mockPrisma.medal.upsert.mockResolvedValue({});
 
@@ -222,9 +206,7 @@ describe("awardMedalsForContest", () => {
       .mockResolvedValue([{ id: "m1", status: "FINISHED" }]); // subsequent per-group calls
 
     mockPrisma.prediction.count.mockResolvedValue(0);
-    mockPrisma.prediction.findMany.mockResolvedValue([
-      { userId: "u1", pointsAwarded: 10 },
-    ]);
+    mockPrisma.prediction.findMany.mockResolvedValue([{ userId: "u1", pointsAwarded: 10 }]);
     mockPrisma.medal.deleteMany.mockResolvedValue({ count: 0 });
     mockPrisma.medal.upsert.mockResolvedValue({});
 
