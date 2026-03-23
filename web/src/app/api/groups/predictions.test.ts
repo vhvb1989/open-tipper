@@ -290,6 +290,7 @@ describe("Predictions API", () => {
           {
             id: "m1",
             matchDay: 1,
+            group: "Clausura",
             kickoffTime: new Date("2025-06-20T20:00:00Z"),
             status: "SCHEDULED",
             homeTeam: { id: "t1", name: "Team A", shortName: "TMA", tla: "TMA", crest: null },
@@ -308,6 +309,55 @@ describe("Predictions API", () => {
       expect(body.matches).toHaveLength(1);
       expect(body.matchDays).toEqual([1, 2, 3]);
       expect(body.currentMatchDay).toBe(1);
+    });
+
+    it("filters team records to active sub-tournament only", async () => {
+      mockAuth.mockResolvedValue({ user: { id: "u1" } });
+      mockPrisma.group.findUnique.mockResolvedValue({
+        id: "g1",
+        contestId: "c1",
+        visibility: "PUBLIC",
+        memberships: [{ role: "MEMBER" }],
+      });
+
+      // Matches returned for the current view belong to "Clausura"
+      mockPrisma.match.findMany
+        .mockResolvedValueOnce([
+          {
+            id: "m1",
+            matchDay: 1,
+            group: "Clausura",
+            kickoffTime: new Date("2025-06-20T20:00:00Z"),
+            status: "SCHEDULED",
+            homeTeam: { id: "t1", name: "Team A", shortName: "TMA", tla: "TMA", crest: null },
+            awayTeam: { id: "t2", name: "Team B", shortName: "TMB", tla: "TMB", crest: null },
+          },
+        ])
+        .mockResolvedValueOnce([{ matchDay: 1 }]) // matchDays navigation
+        .mockResolvedValueOnce([
+          // Only the Clausura match should be returned by the filtered query
+          { homeTeamId: "t1", awayTeamId: "t2", homeGoals: 2, awayGoals: 1 },
+        ]);
+
+      const { GET } = await import("@/app/api/groups/[id]/matches/route");
+      const req = new NextRequest("http://localhost/api/groups/g1/matches?matchDay=1");
+      const res = await GET(req, { params: Promise.resolve({ id: "g1" }) });
+      const body = await res.json();
+
+      expect(res.status).toBe(200);
+
+      // Verify the records query filters by group and matchDay
+      const recordsQueryCall = mockPrisma.match.findMany.mock.calls[2][0];
+      expect(recordsQueryCall.where).toEqual({
+        contestId: "c1",
+        status: "FINISHED",
+        matchDay: { not: null },
+        group: { in: ["Clausura"] },
+      });
+
+      // Verify records are computed from the filtered results
+      expect(body.matches[0].homeTeam.record).toEqual({ wins: 1, losses: 0, draws: 0 });
+      expect(body.matches[0].awayTeam.record).toEqual({ wins: 0, losses: 1, draws: 0 });
     });
   });
 });
