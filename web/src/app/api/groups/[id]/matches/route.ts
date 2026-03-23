@@ -73,9 +73,25 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .map((m) => m.matchDay)
       .filter((d): d is number => d !== null);
 
-    // Compute W-L-D records for every team from finished matches
+    // Compute W-L-D records from finished matches in the same sub-tournament.
+    // The `group` column stores the round prefix (e.g. "Clausura", "League Stage")
+    // so we filter to the active sub-tournament to avoid mixing results from
+    // different phases (e.g. Apertura + Clausura) or knockout rounds.
+    const activeGroups = [
+      ...new Set(matches.map((m) => m.group).filter((g): g is string => g !== null)),
+    ];
+
+    const recordWhere: Record<string, unknown> = {
+      contestId: group.contestId,
+      status: "FINISHED",
+      matchDay: { not: null },
+    };
+    if (activeGroups.length > 0) {
+      recordWhere.group = { in: activeGroups };
+    }
+
     const finishedMatches = await prisma.match.findMany({
-      where: { contestId: group.contestId, status: "FINISHED" },
+      where: recordWhere,
       select: { homeTeamId: true, awayTeamId: true, homeGoals: true, awayGoals: true },
     });
 
