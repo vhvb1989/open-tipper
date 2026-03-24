@@ -94,7 +94,7 @@ resource appService 'Microsoft.Web/sites@2024-04-01' = {
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       appCommandLine: 'node scripts/migrate-and-start.js'
-      appSettings: [
+      appSettings: concat([
         {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
           value: applicationInsightsConnectionString
@@ -144,10 +144,6 @@ resource appService 'Microsoft.Web/sites@2024-04-01' = {
           value: authMicrosoftEntraIdSecret
         }
         {
-          name: 'AUTH_MICROSOFT_ENTRA_ID_ISSUER'
-          value: authMicrosoftEntraIdIssuer
-        }
-        {
           name: 'FOOTBALL_API_KEY'
           value: footballApiKey
         }
@@ -175,7 +171,12 @@ resource appService 'Microsoft.Web/sites@2024-04-01' = {
           name: 'CRON_SECRET'
           value: cronKvRef != '' ? '@Microsoft.KeyVault(SecretUri=${cronKvRef})' : ''
         }
-      ]
+      ], !empty(authMicrosoftEntraIdIssuer) ? [
+        {
+          name: 'AUTH_MICROSOFT_ENTRA_ID_ISSUER'
+          value: authMicrosoftEntraIdIssuer
+        }
+      ] : [])
     }
     httpsOnly: true
   }

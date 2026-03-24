@@ -5,6 +5,13 @@ import GitHub from "next-auth/providers/github";
 import MicrosoftEntraId from "next-auth/providers/microsoft-entra-id";
 import { prisma } from "./db";
 
+// Auth.js v5 auto-reads AUTH_MICROSOFT_ENTRA_ID_ISSUER from the environment.
+// An empty string causes InvalidEndpoints ("missing issuer"). Remove it so
+// the explicit fallback in getProviders() takes effect.
+if (!process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER) {
+  delete process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER;
+}
+
 // Extend the session types to include role
 declare module "next-auth" {
   interface Session {
