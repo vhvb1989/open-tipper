@@ -133,8 +133,7 @@ export default function StandingsTab({
     );
   }
 
-  const sortIndicator = (field: SortField) =>
-    sortBy === field ? " ▼" : "";
+  const sortIndicator = (field: SortField) => (sortBy === field ? " ▼" : "");
 
   return (
     <div>
@@ -186,7 +185,8 @@ export default function StandingsTab({
                   onClick={() => toggleSort("totalPoints")}
                   className={`transition-colors ${sortBy === "totalPoints" ? "text-zinc-900 dark:text-zinc-100" : "hover:text-zinc-700 dark:hover:text-zinc-300"}`}
                 >
-                  {t("standings.pointsHeader")}{sortIndicator("totalPoints")}
+                  {t("standings.pointsHeader")}
+                  {sortIndicator("totalPoints")}
                 </button>
               </th>
               <th className="w-24 px-4 py-3 text-right">
@@ -194,7 +194,8 @@ export default function StandingsTab({
                   onClick={() => toggleSort("lastRoundPoints")}
                   className={`transition-colors ${sortBy === "lastRoundPoints" ? "text-zinc-900 dark:text-zinc-100" : "hover:text-zinc-700 dark:hover:text-zinc-300"}`}
                 >
-                  {t("standings.lastRoundHeader")}{sortIndicator("lastRoundPoints")}
+                  {t("standings.lastRoundHeader")}
+                  {sortIndicator("lastRoundPoints")}
                 </button>
               </th>
             </tr>
@@ -284,14 +285,18 @@ export default function StandingsTab({
 
                   {/* Total points */}
                   <td className="px-4 py-3 text-right">
-                    <span className={`text-lg font-bold ${sortBy === "totalPoints" ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-500 dark:text-zinc-400"}`}>
+                    <span
+                      className={`text-lg font-bold ${sortBy === "totalPoints" ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-500 dark:text-zinc-400"}`}
+                    >
                       {entry.totalPoints}
                     </span>
                   </td>
 
                   {/* Last round */}
                   <td className="px-4 py-3 text-right">
-                    <span className={`text-sm ${sortBy === "lastRoundPoints" ? "font-bold text-zinc-900 dark:text-zinc-100" : "text-zinc-600 dark:text-zinc-400"}`}>
+                    <span
+                      className={`text-sm ${sortBy === "lastRoundPoints" ? "font-bold text-zinc-900 dark:text-zinc-100" : "text-zinc-600 dark:text-zinc-400"}`}
+                    >
                       {entry.lastRoundPoints > 0 ? `+${entry.lastRoundPoints}` : "0"}
                     </span>
                   </td>
