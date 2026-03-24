@@ -24,6 +24,8 @@ interface StandingEntry {
   medals: MedalEntry[];
 }
 
+type SortField = "totalPoints" | "lastRoundPoints";
+
 /* ---------- Component ---------- */
 
 export default function StandingsTab({
@@ -36,6 +38,7 @@ export default function StandingsTab({
   const [standings, setStandings] = useState<StandingEntry[]>([]);
   const [matchDays, setMatchDays] = useState<number[]>([]);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [sortBy, setSortBy] = useState<SortField>("totalPoints");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { scoresVersion } = useLive();
@@ -85,6 +88,28 @@ export default function StandingsTab({
     fetchStandings(day);
   };
 
+  const toggleSort = (field: SortField) => {
+    setSortBy(field);
+  };
+
+  // Sort standings client-side based on selected sort field
+  const sortedStandings = [...standings].sort((a, b) => {
+    const primary = b[sortBy] - a[sortBy];
+    if (primary !== 0) return primary;
+    // Tiebreaker: the other column
+    const secondary =
+      sortBy === "totalPoints"
+        ? b.lastRoundPoints - a.lastRoundPoints
+        : b.totalPoints - a.totalPoints;
+    return secondary;
+  });
+
+  // Re-rank after sorting
+  const rankedStandings = sortedStandings.map((entry, index) => ({
+    ...entry,
+    rank: index + 1,
+  }));
+
   /* ---- Render ---- */
 
   if (loading && standings.length === 0) {
@@ -107,6 +132,9 @@ export default function StandingsTab({
       </div>
     );
   }
+
+  const sortIndicator = (field: SortField) =>
+    sortBy === field ? " ▼" : "";
 
   return (
     <div>
@@ -153,17 +181,26 @@ export default function StandingsTab({
             <tr className="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-400">
               <th className="w-12 px-4 py-3 text-center">{t("standings.rank")}</th>
               <th className="px-4 py-3">{t("standings.player")}</th>
-              <th className="w-24 px-4 py-3 text-right">{t("standings.pointsHeader")}</th>
-              <th className="hidden w-24 px-4 py-3 text-right sm:table-cell">
-                {t("standings.lastRoundHeader")}
+              <th className="w-24 px-4 py-3 text-right">
+                <button
+                  onClick={() => toggleSort("totalPoints")}
+                  className={`transition-colors ${sortBy === "totalPoints" ? "text-zinc-900 dark:text-zinc-100" : "hover:text-zinc-700 dark:hover:text-zinc-300"}`}
+                >
+                  {t("standings.pointsHeader")}{sortIndicator("totalPoints")}
+                </button>
               </th>
-              <th className="hidden w-20 px-4 py-3 text-right sm:table-cell">
-                {t("standings.tips")}
+              <th className="w-24 px-4 py-3 text-right">
+                <button
+                  onClick={() => toggleSort("lastRoundPoints")}
+                  className={`transition-colors ${sortBy === "lastRoundPoints" ? "text-zinc-900 dark:text-zinc-100" : "hover:text-zinc-700 dark:hover:text-zinc-300"}`}
+                >
+                  {t("standings.lastRoundHeader")}{sortIndicator("lastRoundPoints")}
+                </button>
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-            {standings.map((entry) => {
+            {rankedStandings.map((entry) => {
               const isCurrentUser = entry.userId === currentUserId;
               return (
                 <tr
@@ -247,22 +284,15 @@ export default function StandingsTab({
 
                   {/* Total points */}
                   <td className="px-4 py-3 text-right">
-                    <span className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+                    <span className={`text-lg font-bold ${sortBy === "totalPoints" ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-500 dark:text-zinc-400"}`}>
                       {entry.totalPoints}
                     </span>
                   </td>
 
                   {/* Last round */}
-                  <td className="hidden px-4 py-3 text-right sm:table-cell">
-                    <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                  <td className="px-4 py-3 text-right">
+                    <span className={`text-sm ${sortBy === "lastRoundPoints" ? "font-bold text-zinc-900 dark:text-zinc-100" : "text-zinc-600 dark:text-zinc-400"}`}>
                       {entry.lastRoundPoints > 0 ? `+${entry.lastRoundPoints}` : "0"}
-                    </span>
-                  </td>
-
-                  {/* Tips count */}
-                  <td className="hidden px-4 py-3 text-right sm:table-cell">
-                    <span className="text-sm text-zinc-500 dark:text-zinc-400">
-                      {entry.predictionsScored}
                     </span>
                   </td>
                 </tr>
