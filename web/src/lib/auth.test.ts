@@ -42,6 +42,7 @@ describe("Auth configuration", () => {
     delete process.env.AUTH_MICROSOFT_ENTRA_ID_ID;
     delete process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET;
     delete process.env.AUTH_MICROSOFT_ENTRA_ID_TENANT_ID;
+    delete process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER;
   });
 
   it("exports auth, signIn, signOut, and handlers", async () => {
@@ -65,5 +66,20 @@ describe("Auth configuration", () => {
 
     const config = (NextAuth as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0];
     expect(config.pages.signIn).toBe("/signin");
+  });
+
+  it("removes empty AUTH_MICROSOFT_ENTRA_ID_ISSUER from env to prevent InvalidEndpoints", async () => {
+    process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER = "";
+    await import("./auth");
+
+    expect(process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER).toBeUndefined();
+  });
+
+  it("preserves non-empty AUTH_MICROSOFT_ENTRA_ID_ISSUER in env", async () => {
+    const issuer = "https://login.microsoftonline.com/my-tenant/v2.0";
+    process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER = issuer;
+    await import("./auth");
+
+    expect(process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER).toBe(issuer);
   });
 });
