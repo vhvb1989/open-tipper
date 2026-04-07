@@ -113,6 +113,19 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       medalsByUser.set(medal.userId, list);
     }
 
+    // Fetch podium badges for this group
+    const podiumBadges = await prisma.podiumBadge.findMany({
+      where: { groupId },
+      select: { userId: true, position: true, points: true },
+    });
+
+    const podiumBadgesByUser = new Map<string, { position: string; points: number }[]>();
+    for (const badge of podiumBadges) {
+      const list = podiumBadgesByUser.get(badge.userId) ?? [];
+      list.push({ position: badge.position, points: badge.points });
+      podiumBadgesByUser.set(badge.userId, list);
+    }
+
     // Build ranked standings
     const standings = members
       .map((m) => {
@@ -126,6 +139,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           predictionsScored: stats.scored,
           lastRoundPoints: stats.lastRound,
           medals: medalsByUser.get(m.user.id) ?? [],
+          podiumBadges: podiumBadgesByUser.get(m.user.id) ?? [],
         };
       })
       .sort((a, b) => {

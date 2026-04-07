@@ -26,6 +26,7 @@ export default async function GroupLayout({
       contest: {
         select: { name: true, code: true, season: true, emblem: true },
       },
+      podiumSettings: { select: { enabled: true } },
       _count: { select: { memberships: true } },
       ...(userId
         ? {
@@ -114,7 +115,7 @@ export default async function GroupLayout({
       </div>
 
       {/* Tabs */}
-      <GroupTabs groupId={id} isAdmin={userRole === "ADMIN"} isMember={isMember} />
+      <GroupTabs groupId={id} isAdmin={userRole === "ADMIN"} isMember={isMember} hasPodium={!!group.podiumSettings?.enabled} />
 
       {/* Tab content — wrapped with LiveProvider for real-time updates */}
       <LiveProvider contestIds={[group.contestId]}>

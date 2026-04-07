@@ -10,6 +10,7 @@ interface Contest {
   name: string;
   code: string;
   season: string;
+  hasStarted: boolean;
 }
 
 interface ScoringRulesForm {
@@ -34,6 +35,20 @@ const DEFAULT_SCORING: ScoringRulesForm = {
   playoffMultiplier: false,
 };
 
+interface PodiumSettingsForm {
+  enabled: boolean;
+  firstPlacePoints: number;
+  secondPlacePoints: number;
+  thirdPlacePoints: number;
+}
+
+const DEFAULT_PODIUM: PodiumSettingsForm = {
+  enabled: false,
+  firstPlacePoints: 100,
+  secondPlacePoints: 50,
+  thirdPlacePoints: 100,
+};
+
 export default function CreateGroupPage() {
   const { status } = useSession();
   const router = useRouter();
@@ -48,6 +63,7 @@ export default function CreateGroupPage() {
   const [contestId, setContestId] = useState("");
   const [visibility, setVisibility] = useState<"PRIVATE" | "PUBLIC">("PRIVATE");
   const [scoring, setScoring] = useState<ScoringRulesForm>(DEFAULT_SCORING);
+  const [podium, setPodium] = useState<PodiumSettingsForm>(DEFAULT_PODIUM);
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -84,6 +100,7 @@ export default function CreateGroupPage() {
           contestId,
           visibility,
           scoringRules: scoring,
+          podiumSettings: podium.enabled ? podium : undefined,
         }),
       });
 
@@ -321,6 +338,104 @@ export default function CreateGroupPage() {
             </div>
           )}
         </div>
+
+        {/* Podium Predictions */}
+        {(() => {
+          const selectedContest = contests.find((c) => c.id === contestId);
+          const contestHasStarted = selectedContest?.hasStarted ?? false;
+          const isWorldCup = selectedContest?.code === "WC";
+
+          return (
+            <div className="rounded-lg border border-zinc-200 dark:border-zinc-700">
+              <div className="px-4 py-3">
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={podium.enabled}
+                    disabled={contestHasStarted}
+                    onChange={(e) =>
+                      setPodium((s) => ({ ...s, enabled: e.target.checked }))
+                    }
+                    className="rounded text-zinc-900 focus:ring-zinc-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    {t("createGroup.podiumEnable")}
+                  </span>
+                </label>
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  {t("createGroup.podiumDesc")}
+                </p>
+                {contestHasStarted && (
+                  <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                    {t("createGroup.podiumDisabled")}
+                  </p>
+                )}
+              </div>
+
+              {podium.enabled && !contestHasStarted && (
+                <div className="space-y-3 border-t border-zinc-200 px-4 py-4 dark:border-zinc-700">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label htmlFor="podium1st" className="block text-xs text-zinc-500 dark:text-zinc-400">
+                        {t("createGroup.podiumFirstPlace")}
+                      </label>
+                      <input
+                        id="podium1st"
+                        type="number"
+                        min={0}
+                        max={1000}
+                        value={podium.firstPlacePoints}
+                        onChange={(e) =>
+                          setPodium((s) => ({ ...s, firstPlacePoints: parseInt(e.target.value) || 0 }))
+                        }
+                        className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="podium2nd" className="block text-xs text-zinc-500 dark:text-zinc-400">
+                        {t("createGroup.podiumSecondPlace")}
+                      </label>
+                      <input
+                        id="podium2nd"
+                        type="number"
+                        min={0}
+                        max={1000}
+                        value={podium.secondPlacePoints}
+                        onChange={(e) =>
+                          setPodium((s) => ({ ...s, secondPlacePoints: parseInt(e.target.value) || 0 }))
+                        }
+                        className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      />
+                    </div>
+                  </div>
+
+                  {isWorldCup ? (
+                    <div>
+                      <label htmlFor="podium3rd" className="block text-xs text-zinc-500 dark:text-zinc-400">
+                        {t("createGroup.podiumThirdPlace")}
+                      </label>
+                      <input
+                        id="podium3rd"
+                        type="number"
+                        min={0}
+                        max={1000}
+                        value={podium.thirdPlacePoints}
+                        onChange={(e) =>
+                          setPodium((s) => ({ ...s, thirdPlacePoints: parseInt(e.target.value) || 0 }))
+                        }
+                        className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-xs text-zinc-400 dark:text-zinc-500 italic">
+                      {t("createGroup.podiumThirdPlaceNote")}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Error */}
         {error && (

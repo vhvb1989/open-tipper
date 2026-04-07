@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, contestId, visibility, scoringRules } = body;
+    const { name, description, contestId, visibility, scoringRules, podiumSettings } = body;
 
     if (!name || typeof name !== "string" || name.trim().length === 0) {
       return NextResponse.json({ error: "Group name is required" }, { status: 400 });
@@ -77,10 +77,28 @@ export async function POST(request: NextRequest) {
     // Verify contest exists
     const contest = await prisma.contest.findUnique({
       where: { id: contestId },
+      include: {
+        matches: {
+          where: { status: { notIn: ["SCHEDULED", "TIMED"] } },
+          select: { id: true },
+          take: 1,
+        },
+      },
     });
     if (!contest) {
       return NextResponse.json({ error: "Contest not found" }, { status: 404 });
     }
+
+    // Validate podium settings
+    const podiumEnabled = podiumSettings?.enabled === true;
+    if (podiumEnabled && contest.matches.length > 0) {
+      return NextResponse.json(
+        { error: "Podium predictions cannot be enabled for a tournament that has already started" },
+        { status: 400 },
+      );
+    }
+    const isWorldCup = contest.code === "WC";
+    const thirdPlaceEnabled = podiumEnabled && isWorldCup;
 
     // Create group with admin membership and default scoring rules
     const group = await prisma.group.create({
@@ -108,6 +126,19 @@ export async function POST(request: NextRequest) {
             playoffMultiplier: scoringRules?.playoffMultiplier ?? false,
           },
         },
+        ...(podiumEnabled
+          ? {
+              podiumSettings: {
+                create: {
+                  enabled: true,
+                  firstPlacePoints: podiumSettings?.firstPlacePoints ?? 100,
+                  secondPlacePoints: podiumSettings?.secondPlacePoints ?? 50,
+                  thirdPlacePoints: podiumSettings?.thirdPlacePoints ?? 100,
+                  thirdPlaceEnabled,
+                },
+              },
+            }
+          : {}),
       },
       include: {
         contest: { select: { id: true, name: true, code: true, season: true } },
