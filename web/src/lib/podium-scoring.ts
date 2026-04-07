@@ -65,14 +65,17 @@ export async function determineTournamentPodium(
   let second: string | null = null;
 
   if (finalMatch && finalMatch.homeGoals !== null && finalMatch.awayGoals !== null) {
-    if (finalMatch.homeGoals >= finalMatch.awayGoals) {
-      // Home team wins (or wins on penalties — in cup finals, home is typically the "winner" in our data)
+    if (finalMatch.homeGoals > finalMatch.awayGoals) {
       first = finalMatch.homeTeamId;
       second = finalMatch.awayTeamId;
-    } else {
+    } else if (finalMatch.awayGoals > finalMatch.homeGoals) {
       first = finalMatch.awayTeamId;
       second = finalMatch.homeTeamId;
     }
+    // When goals are tied (match decided by penalties), we cannot reliably
+    // determine the winner from stored regular/ET goals alone. first/second
+    // remain null and podium scoring will be skipped until penalty data is
+    // available in a future enhancement.
   }
 
   // Find 3rd place match (World Cup style)
@@ -95,10 +98,12 @@ export async function determineTournamentPodium(
 
   let third: string | null = null;
   if (thirdPlaceMatch && thirdPlaceMatch.homeGoals !== null && thirdPlaceMatch.awayGoals !== null) {
-    third =
-      thirdPlaceMatch.homeGoals >= thirdPlaceMatch.awayGoals
-        ? thirdPlaceMatch.homeTeamId
-        : thirdPlaceMatch.awayTeamId;
+    if (thirdPlaceMatch.homeGoals > thirdPlaceMatch.awayGoals) {
+      third = thirdPlaceMatch.homeTeamId;
+    } else if (thirdPlaceMatch.awayGoals > thirdPlaceMatch.homeGoals) {
+      third = thirdPlaceMatch.awayTeamId;
+    }
+    // Tied 3rd place match (penalties) — same limitation as final
   }
 
   return { first, second, third };
@@ -160,78 +165,81 @@ export async function scorePodiumPredictions(
     const settings = group.podiumSettings;
     if (!settings) continue;
 
-    // Find unscored predictions for this group
-    const predictions = await db.podiumPrediction.findMany({
-      where: {
-        groupId: group.id,
-        scoredAt: null,
-      },
-    });
-
-    if (predictions.length === 0) continue;
-
-    result.groupsScored++;
-
-    for (const pred of predictions) {
-      let firstPts = 0;
-      let secondPts = 0;
-      let thirdPts = 0;
-
-      // Check 1st place
-      if (pred.firstPlaceTeamId === podium.first) {
-        firstPts = settings.firstPlacePoints;
-      }
-
-      // Check 2nd place
-      if (pred.secondPlaceTeamId === podium.second) {
-        secondPts = settings.secondPlacePoints;
-      }
-
-      // Check 3rd place (only if enabled and there is a 3rd place result)
-      if (settings.thirdPlaceEnabled && podium.third && pred.thirdPlaceTeamId === podium.third) {
-        thirdPts = settings.thirdPlacePoints;
-      }
-
-      // Update prediction with scores
-      await db.podiumPrediction.update({
-        where: { id: pred.id },
-        data: {
-          firstPlacePoints: firstPts,
-          secondPlacePoints: secondPts,
-          thirdPlacePoints: thirdPts,
-          scoredAt: new Date(),
+    // Wrap per-group scoring in a transaction to prevent race conditions
+    await db.$transaction(async (tx) => {
+      // Find unscored predictions for this group
+      const predictions = await tx.podiumPrediction.findMany({
+        where: {
+          groupId: group.id,
+          scoredAt: null,
         },
       });
-      result.predictionsScored++;
 
-      // Award badges for correct predictions
-      const badgeEntries: { position: PodiumPosition; points: number }[] = [];
-      if (firstPts > 0) badgeEntries.push({ position: "FIRST", points: firstPts });
-      if (secondPts > 0) badgeEntries.push({ position: "SECOND", points: secondPts });
-      if (thirdPts > 0) badgeEntries.push({ position: "THIRD", points: thirdPts });
+      if (predictions.length === 0) return;
 
-      for (const badge of badgeEntries) {
-        await db.podiumBadge.upsert({
-          where: {
-            groupId_userId_position: {
+      result.groupsScored++;
+
+      for (const pred of predictions) {
+        let firstPts = 0;
+        let secondPts = 0;
+        let thirdPts = 0;
+
+        // Check 1st place
+        if (pred.firstPlaceTeamId === podium.first) {
+          firstPts = settings.firstPlacePoints;
+        }
+
+        // Check 2nd place
+        if (pred.secondPlaceTeamId === podium.second) {
+          secondPts = settings.secondPlacePoints;
+        }
+
+        // Check 3rd place (only if enabled and there is a 3rd place result)
+        if (settings.thirdPlaceEnabled && podium.third && pred.thirdPlaceTeamId === podium.third) {
+          thirdPts = settings.thirdPlacePoints;
+        }
+
+        // Update prediction with scores
+        await tx.podiumPrediction.update({
+          where: { id: pred.id },
+          data: {
+            firstPlacePoints: firstPts,
+            secondPlacePoints: secondPts,
+            thirdPlacePoints: thirdPts,
+            scoredAt: new Date(),
+          },
+        });
+        result.predictionsScored++;
+
+        // Award badges for correct predictions
+        const badgeEntries: { position: PodiumPosition; points: number }[] = [];
+        if (firstPts > 0) badgeEntries.push({ position: "FIRST", points: firstPts });
+        if (secondPts > 0) badgeEntries.push({ position: "SECOND", points: secondPts });
+        if (thirdPts > 0) badgeEntries.push({ position: "THIRD", points: thirdPts });
+
+        for (const badge of badgeEntries) {
+          await tx.podiumBadge.upsert({
+            where: {
+              groupId_userId_position: {
+                groupId: group.id,
+                userId: pred.userId,
+                position: badge.position,
+              },
+            },
+            create: {
               groupId: group.id,
               userId: pred.userId,
               position: badge.position,
+              points: badge.points,
             },
-          },
-          create: {
-            groupId: group.id,
-            userId: pred.userId,
-            position: badge.position,
-            points: badge.points,
-          },
-          update: {
-            points: badge.points,
-          },
-        });
-        result.badgesAwarded++;
+            update: {
+              points: badge.points,
+            },
+          });
+          result.badgesAwarded++;
+        }
       }
-    }
+    });
   }
 
   return result;
