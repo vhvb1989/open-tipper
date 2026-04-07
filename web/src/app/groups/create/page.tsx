@@ -353,9 +353,7 @@ export default function CreateGroupPage() {
                     type="checkbox"
                     checked={podium.enabled}
                     disabled={contestHasStarted}
-                    onChange={(e) =>
-                      setPodium((s) => ({ ...s, enabled: e.target.checked }))
-                    }
+                    onChange={(e) => setPodium((s) => ({ ...s, enabled: e.target.checked }))}
                     className="rounded text-zinc-900 focus:ring-zinc-500 disabled:cursor-not-allowed disabled:opacity-50"
                   />
                   <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
@@ -376,7 +374,10 @@ export default function CreateGroupPage() {
                 <div className="space-y-3 border-t border-zinc-200 px-4 py-4 dark:border-zinc-700">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label htmlFor="podium1st" className="block text-xs text-zinc-500 dark:text-zinc-400">
+                      <label
+                        htmlFor="podium1st"
+                        className="block text-xs text-zinc-500 dark:text-zinc-400"
+                      >
                         {t("createGroup.podiumFirstPlace")}
                       </label>
                       <input
@@ -386,13 +387,19 @@ export default function CreateGroupPage() {
                         max={1000}
                         value={podium.firstPlacePoints}
                         onChange={(e) =>
-                          setPodium((s) => ({ ...s, firstPlacePoints: parseInt(e.target.value) || 0 }))
+                          setPodium((s) => ({
+                            ...s,
+                            firstPlacePoints: parseInt(e.target.value) || 0,
+                          }))
                         }
                         className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                       />
                     </div>
                     <div>
-                      <label htmlFor="podium2nd" className="block text-xs text-zinc-500 dark:text-zinc-400">
+                      <label
+                        htmlFor="podium2nd"
+                        className="block text-xs text-zinc-500 dark:text-zinc-400"
+                      >
                         {t("createGroup.podiumSecondPlace")}
                       </label>
                       <input
@@ -402,7 +409,10 @@ export default function CreateGroupPage() {
                         max={1000}
                         value={podium.secondPlacePoints}
                         onChange={(e) =>
-                          setPodium((s) => ({ ...s, secondPlacePoints: parseInt(e.target.value) || 0 }))
+                          setPodium((s) => ({
+                            ...s,
+                            secondPlacePoints: parseInt(e.target.value) || 0,
+                          }))
                         }
                         className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                       />
@@ -411,7 +421,10 @@ export default function CreateGroupPage() {
 
                   {isWorldCup ? (
                     <div>
-                      <label htmlFor="podium3rd" className="block text-xs text-zinc-500 dark:text-zinc-400">
+                      <label
+                        htmlFor="podium3rd"
+                        className="block text-xs text-zinc-500 dark:text-zinc-400"
+                      >
                         {t("createGroup.podiumThirdPlace")}
                       </label>
                       <input
@@ -421,7 +434,10 @@ export default function CreateGroupPage() {
                         max={1000}
                         value={podium.thirdPlacePoints}
                         onChange={(e) =>
-                          setPodium((s) => ({ ...s, thirdPlacePoints: parseInt(e.target.value) || 0 }))
+                          setPodium((s) => ({
+                            ...s,
+                            thirdPlacePoints: parseInt(e.target.value) || 0,
+                          }))
                         }
                         className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                       />

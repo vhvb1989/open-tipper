@@ -84,13 +84,7 @@ const PODIUM_BADGES = [
   },
 ];
 
-function PodiumBadges({
-  badges,
-  userId,
-}: {
-  badges: PodiumBadge[];
-  userId: string;
-}) {
+function PodiumBadges({ badges, userId }: { badges: PodiumBadge[]; userId: string }) {
   const { t } = useTranslation();
   const userBadges = badges.filter((b) => b.userId === userId);
   if (userBadges.length === 0) return null;
@@ -264,10 +258,7 @@ export default function PodiumTab({
   );
 
   // Auto-save when selections change
-  const handleTeamChange = (
-    position: "first" | "second" | "third",
-    teamId: string,
-  ) => {
+  const handleTeamChange = (position: "first" | "second" | "third", teamId: string) => {
     const newFirst = position === "first" ? teamId : firstTeamId;
     const newSecond = position === "second" ? teamId : secondTeamId;
     const newThird = position === "third" ? teamId : thirdTeamId;
@@ -312,7 +303,8 @@ export default function PodiumTab({
   if (!data) return null;
 
   const { podiumSettings, isLocked, teams, allPredictions, podiumBadges } = data;
-  const isScored = !!data.userPrediction?.scoredAt || (allPredictions?.some((p) => p.scoredAt) ?? false);
+  const isScored =
+    !!data.userPrediction?.scoredAt || (allPredictions?.some((p) => p.scoredAt) ?? false);
   const excludeFirst = [secondTeamId, thirdTeamId].filter(Boolean) as string[];
   const excludeSecond = [firstTeamId, thirdTeamId].filter(Boolean) as string[];
   const excludeThird = [firstTeamId, secondTeamId].filter(Boolean) as string[];
@@ -324,24 +316,30 @@ export default function PodiumTab({
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
           {t("podium.heading")}
         </h2>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          {t("podium.description")}
-        </p>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t("podium.description")}</p>
       </div>
 
       {/* Lock / Save status */}
       {isLocked ? (
         <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+            />
           </svg>
           {t("podium.lockedNote")}
         </div>
       ) : (
         <div className="flex items-center justify-between">
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            {t("podium.unlockNote")}
-          </p>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("podium.unlockNote")}</p>
           {saveStatus !== "idle" && (
             <span
               className={`text-xs ${
@@ -465,23 +463,14 @@ export default function PodiumTab({
                       </td>
 
                       <td className="px-4 py-3">
-                        <TeamCell
-                          team={pred.firstPlaceTeam}
-                          points={pred.firstPlacePoints}
-                        />
+                        <TeamCell team={pred.firstPlaceTeam} points={pred.firstPlacePoints} />
                       </td>
                       <td className="px-4 py-3">
-                        <TeamCell
-                          team={pred.secondPlaceTeam}
-                          points={pred.secondPlacePoints}
-                        />
+                        <TeamCell team={pred.secondPlaceTeam} points={pred.secondPlacePoints} />
                       </td>
                       {podiumSettings.thirdPlaceEnabled && (
                         <td className="px-4 py-3">
-                          <TeamCell
-                            team={pred.thirdPlaceTeam}
-                            points={pred.thirdPlacePoints}
-                          />
+                          <TeamCell team={pred.thirdPlaceTeam} points={pred.thirdPlacePoints} />
                         </td>
                       )}
 

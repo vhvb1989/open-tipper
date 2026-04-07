@@ -269,7 +269,8 @@ export default function StandingsTab({
                             )}
                           </span>
                         </div>
-                        {(entry.medals.length > 0 || (entry.podiumBadges && entry.podiumBadges.length > 0)) && (
+                        {(entry.medals.length > 0 ||
+                          (entry.podiumBadges && entry.podiumBadges.length > 0)) && (
                           <div className="mt-0.5 flex flex-wrap gap-1">
                             {entry.medals.map((medal) => (
                               <span
@@ -284,18 +285,35 @@ export default function StandingsTab({
                               </span>
                             ))}
                             {entry.podiumBadges?.map((badge) => {
-                              const config = badge.position === "FIRST"
-                                ? { emoji: "🥇", label: "1P", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" }
-                                : badge.position === "SECOND"
-                                  ? { emoji: "🥈", label: "2P", color: "bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300" }
-                                  : { emoji: "🥉", label: "3P", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" };
+                              const config =
+                                badge.position === "FIRST"
+                                  ? {
+                                      emoji: "🥇",
+                                      label: "1P",
+                                      color:
+                                        "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+                                    }
+                                  : badge.position === "SECOND"
+                                    ? {
+                                        emoji: "🥈",
+                                        label: "2P",
+                                        color:
+                                          "bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300",
+                                      }
+                                    : {
+                                        emoji: "🥉",
+                                        label: "3P",
+                                        color:
+                                          "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+                                      };
                               return (
                                 <span
                                   key={badge.position}
                                   title={`${config.label}: +${badge.points} pts`}
                                   className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${config.color}`}
                                 >
-                                  {config.emoji}{config.label}
+                                  {config.emoji}
+                                  {config.label}
                                 </span>
                               );
                             })}

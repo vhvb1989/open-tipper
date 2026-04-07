@@ -50,10 +50,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     const firstStartedMatch = await prisma.match.findFirst({
       where: {
         contestId: group.contest.id,
-        OR: [
-          { status: { notIn: ["SCHEDULED", "TIMED"] } },
-          { kickoffTime: { lte: new Date() } },
-        ],
+        OR: [{ status: { notIn: ["SCHEDULED", "TIMED"] } }, { kickoffTime: { lte: new Date() } }],
       },
       select: { id: true },
     });
@@ -163,10 +160,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const firstStartedMatch = await prisma.match.findFirst({
       where: {
         contestId: group.contest.id,
-        OR: [
-          { status: { notIn: ["SCHEDULED", "TIMED"] } },
-          { kickoffTime: { lte: new Date() } },
-        ],
+        OR: [{ status: { notIn: ["SCHEDULED", "TIMED"] } }, { kickoffTime: { lte: new Date() } }],
       },
       select: { id: true },
     });
