@@ -17,6 +17,18 @@ interface PodiumBadgeEntry {
   points: number;
 }
 
+interface PodiumTeam {
+  id: string;
+  name: string;
+  crest: string | null;
+}
+
+interface PodiumPicks {
+  firstPlaceTeam: PodiumTeam | null;
+  secondPlaceTeam: PodiumTeam | null;
+  thirdPlaceTeam: PodiumTeam | null;
+}
+
 interface StandingEntry {
   rank: number;
   userId: string;
@@ -28,6 +40,7 @@ interface StandingEntry {
   lastRoundPoints: number;
   medals: MedalEntry[];
   podiumBadges?: PodiumBadgeEntry[];
+  podiumPicks?: PodiumPicks | null;
 }
 
 type SortField = "totalPoints" | "lastRoundPoints";
@@ -238,6 +251,40 @@ export default function StandingsTab({
                   {/* Player */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
+                      {/* Podium team crests (shown to the left when locked) */}
+                      {entry.podiumPicks && (
+                        <div className="flex -space-x-1" title={t("podium.heading")}>
+                          {[
+                            entry.podiumPicks.firstPlaceTeam,
+                            entry.podiumPicks.secondPlaceTeam,
+                            entry.podiumPicks.thirdPlaceTeam,
+                          ]
+                            .filter(Boolean)
+                            .map((team, i) => (
+                              <div
+                                key={team!.id}
+                                className="relative"
+                                style={{ zIndex: 3 - i }}
+                                title={team!.name}
+                              >
+                                {team!.crest ? (
+                                  <Image
+                                    src={team!.crest}
+                                    alt={team!.name}
+                                    width={20}
+                                    height={20}
+                                    className="h-5 w-5 rounded-full border border-white dark:border-zinc-900"
+                                    unoptimized
+                                  />
+                                ) : (
+                                  <div className="flex h-5 w-5 items-center justify-center rounded-full border border-white bg-zinc-200 text-[8px] font-bold text-zinc-500 dark:border-zinc-900 dark:bg-zinc-700 dark:text-zinc-400">
+                                    {team!.name[0]}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                        </div>
+                      )}
                       {entry.userImage ? (
                         <Image
                           src={entry.userImage}

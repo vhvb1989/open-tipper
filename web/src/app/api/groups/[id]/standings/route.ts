@@ -126,6 +126,50 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       podiumBadgesByUser.set(badge.userId, list);
     }
 
+    // Fetch podium predictions for this group (to show team crests in standings when locked)
+    const podiumPredictions = await prisma.podiumPrediction.findMany({
+      where: { groupId },
+      select: {
+        userId: true,
+        firstPlaceTeam: { select: { id: true, name: true, crest: true } },
+        secondPlaceTeam: { select: { id: true, name: true, crest: true } },
+        thirdPlaceTeam: { select: { id: true, name: true, crest: true } },
+      },
+    });
+
+    // Check if podium predictions are locked (tournament has started)
+    const podiumLocked =
+      podiumPredictions.length > 0
+        ? !!(await prisma.match.findFirst({
+            where: {
+              contestId: group.contestId,
+              OR: [
+                { status: { notIn: ["SCHEDULED", "TIMED"] } },
+                { kickoffTime: { lte: new Date() } },
+              ],
+            },
+            select: { id: true },
+          }))
+        : false;
+
+    const podiumByUser = new Map<
+      string,
+      {
+        firstPlaceTeam: { id: string; name: string; crest: string | null } | null;
+        secondPlaceTeam: { id: string; name: string; crest: string | null } | null;
+        thirdPlaceTeam: { id: string; name: string; crest: string | null } | null;
+      }
+    >();
+    if (podiumLocked) {
+      for (const pred of podiumPredictions) {
+        podiumByUser.set(pred.userId, {
+          firstPlaceTeam: pred.firstPlaceTeam,
+          secondPlaceTeam: pred.secondPlaceTeam,
+          thirdPlaceTeam: pred.thirdPlaceTeam,
+        });
+      }
+    }
+
     // Build ranked standings
     const standings = members
       .map((m) => {
@@ -140,6 +184,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           lastRoundPoints: stats.lastRound,
           medals: medalsByUser.get(m.user.id) ?? [],
           podiumBadges: podiumBadgesByUser.get(m.user.id) ?? [],
+          podiumPicks: podiumByUser.get(m.user.id) ?? null,
         };
       })
       .sort((a, b) => {

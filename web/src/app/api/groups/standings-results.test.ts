@@ -12,9 +12,10 @@ const mockPrisma = {
   membership: { findUnique: vi.fn(), findMany: vi.fn() },
   group: { findUnique: vi.fn() },
   prediction: { findMany: vi.fn() },
-  match: { findMany: vi.fn() },
+  match: { findMany: vi.fn(), findFirst: vi.fn() },
   medal: { findMany: vi.fn() },
   podiumBadge: { findMany: vi.fn() },
+  podiumPrediction: { findMany: vi.fn() },
 };
 vi.mock("@/lib/db", () => ({
   prisma: mockPrisma,
@@ -30,6 +31,7 @@ describe("Standings API — GET /api/groups/:id/standings", () => {
     vi.clearAllMocks();
     mockPrisma.medal.findMany.mockResolvedValue([]);
     mockPrisma.podiumBadge.findMany.mockResolvedValue([]);
+    mockPrisma.podiumPrediction.findMany.mockResolvedValue([]);
   });
 
   it("returns 404 when group does not exist (standings)", async () => {

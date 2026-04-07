@@ -8,19 +8,15 @@ interface GroupTabsProps {
   groupId: string;
   isAdmin: boolean;
   isMember: boolean;
-  hasPodium?: boolean;
 }
 
-export function GroupTabs({ groupId, isAdmin, isMember, hasPodium }: GroupTabsProps) {
+export function GroupTabs({ groupId, isAdmin, isMember }: GroupTabsProps) {
   const pathname = usePathname();
   const { t } = useTranslation();
 
   const tabs = [
     ...(isMember
       ? [{ label: t("groupTabs.predictions"), href: `/groups/${groupId}`, exact: true }]
-      : []),
-    ...(isMember && hasPodium
-      ? [{ label: t("groupTabs.podium"), href: `/groups/${groupId}/podium` }]
       : []),
     { label: t("groupTabs.standings"), href: `/groups/${groupId}/standings` },
     { label: t("groupTabs.results"), href: `/groups/${groupId}/results` },

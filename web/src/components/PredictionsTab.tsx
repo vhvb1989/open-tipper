@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useTranslation } from "@/i18n/TranslationProvider";
+import PodiumSection from "./PodiumSection";
 
 /* ---------- Types ---------- */
 
@@ -118,7 +119,13 @@ function recordColorClasses(r: TeamRecord): string {
 
 /* ---------- Component ---------- */
 
-export default function PredictionsTab({ groupId }: { groupId: string }) {
+export default function PredictionsTab({
+  groupId,
+  hasPodium,
+}: {
+  groupId: string;
+  hasPodium?: boolean;
+}) {
   const [matches, setMatches] = useState<Match[]>([]);
   const [predictions, setPredictions] = useState<Record<string, PredictionData>>({});
   const [matchDays, setMatchDays] = useState<number[]>([]);
@@ -303,6 +310,9 @@ export default function PredictionsTab({ groupId }: { groupId: string }) {
           </button>
         </div>
       )}
+      {/* Podium predictions — shown at top when enabled */}
+      {hasPodium && <PodiumSection groupId={groupId} />}
+
       {/* Match-day navigation */}
       {matchDays.length > 1 && (
         <div className="mb-6 flex items-center justify-between">

@@ -26,7 +26,11 @@ export default async function GroupPredictionsPage({
       where: { userId_groupId: { userId, groupId: id } },
     });
     if (membership) {
-      return <PredictionsTab groupId={id} />;
+      const group = await prisma.group.findUnique({
+        where: { id },
+        select: { podiumSettings: { select: { enabled: true } } },
+      });
+      return <PredictionsTab groupId={id} hasPodium={!!group?.podiumSettings?.enabled} />;
     }
   }
 
