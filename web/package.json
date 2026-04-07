@@ -23,7 +23,7 @@
     "@azure/identity": "^4.13.0",
     "@prisma/adapter-pg": "^7.4.1",
     "@prisma/client": "^7.4.1",
-    "next": "16.1.6",
+    "next": "^16.2.2",
     "next-auth": "^5.0.0-beta.30",
     "react": "19.2.3",
     "react-dom": "19.2.3"
