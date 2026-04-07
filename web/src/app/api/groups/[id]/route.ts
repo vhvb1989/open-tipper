@@ -25,6 +25,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
           select: { id: true, name: true, code: true, season: true, emblem: true, status: true },
         },
         scoringRules: true,
+        podiumSettings: true,
         _count: { select: { memberships: true } },
         memberships: {
           where: { userId: session.user.id },
@@ -52,6 +53,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
         inviteCode: userRole === "ADMIN" ? group.inviteCode : undefined,
         contest: group.contest,
         scoringRules: group.scoringRules,
+        podiumSettings: group.podiumSettings,
         memberCount: group._count.memberships,
         role: userRole,
         createdAt: group.createdAt,

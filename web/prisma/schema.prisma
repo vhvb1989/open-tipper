@@ -35,6 +35,8 @@ model User {
   memberships Membership[]
   predictions Prediction[]
   medals      Medal[]
+  podiumPredictions PodiumPrediction[]
+  podiumBadges      PodiumBadge[]
 
   @@map("users")
 }
@@ -113,6 +115,9 @@ model Team {
 
   homeMatches Match[] @relation("HomeTeam")
   awayMatches Match[] @relation("AwayTeam")
+  podiumFirst  PodiumPrediction[] @relation("PodiumFirst")
+  podiumSecond PodiumPrediction[] @relation("PodiumSecond")
+  podiumThird  PodiumPrediction[] @relation("PodiumThird")
 
   @@map("teams")
 }
@@ -196,9 +201,12 @@ model Group {
   updatedAt   DateTime        @updatedAt @map("updated_at")
 
   scoringRules ScoringRules?
+  podiumSettings PodiumSettings?
   memberships  Membership[]
   predictions  Prediction[]
   medals       Medal[]
+  podiumPredictions PodiumPrediction[]
+  podiumBadges      PodiumBadge[]
 
   @@index([contestId])
   @@index([inviteCode])
@@ -281,4 +289,70 @@ model Medal {
   @@index([groupId])
   @@index([userId])
   @@map("medals")
+}
+
+// ---------------------------------------------------------------------------
+// Podium Predictions — predict 1st/2nd/3rd place finishers of a tournament
+// ---------------------------------------------------------------------------
+
+enum PodiumPosition {
+  FIRST
+  SECOND
+  THIRD
+}
+
+model PodiumSettings {
+  id                String  @id @default(cuid())
+  groupId           String  @unique @map("group_id")
+  group             Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  enabled           Boolean @default(false)
+  firstPlacePoints  Int     @default(100) @map("first_place_points")
+  secondPlacePoints Int     @default(50) @map("second_place_points")
+  thirdPlacePoints  Int     @default(100) @map("third_place_points")
+  thirdPlaceEnabled Boolean @default(false) @map("third_place_enabled")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("podium_settings")
+}
+
+model PodiumPrediction {
+  id               String   @id @default(cuid())
+  groupId          String   @map("group_id")
+  group            Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId           String   @map("user_id")
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstPlaceTeamId String   @map("first_place_team_id")
+  firstPlaceTeam   Team     @relation("PodiumFirst", fields: [firstPlaceTeamId], references: [id])
+  secondPlaceTeamId String  @map("second_place_team_id")
+  secondPlaceTeam  Team     @relation("PodiumSecond", fields: [secondPlaceTeamId], references: [id])
+  thirdPlaceTeamId String?  @map("third_place_team_id")
+  thirdPlaceTeam   Team?    @relation("PodiumThird", fields: [thirdPlaceTeamId], references: [id])
+  firstPlacePoints  Int?    @map("first_place_points")
+  secondPlacePoints Int?    @map("second_place_points")
+  thirdPlacePoints  Int?    @map("third_place_points")
+  scoredAt         DateTime? @map("scored_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, groupId])
+  @@index([groupId])
+  @@index([userId])
+  @@map("podium_predictions")
+}
+
+model PodiumBadge {
+  id        String         @id @default(cuid())
+  groupId   String         @map("group_id")
+  group     Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId    String         @map("user_id")
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  position  PodiumPosition
+  points    Int            /// Points earned for this correct prediction
+  createdAt DateTime       @default(now()) @map("created_at")
+
+  @@unique([groupId, userId, position])
+  @@index([groupId])
+  @@index([userId])
+  @@map("podium_badges")
 }

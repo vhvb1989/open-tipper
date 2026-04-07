@@ -12,6 +12,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { FootballApiClient, AfFixture, AfTeamRef, SUPPORTED_COMPETITIONS } from "./football-api";
 import { scoreFinishedMatches } from "./scoring-service";
 import { awardMedalsForContest } from "./medals";
+import { scorePodiumPredictions } from "./podium-scoring";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -319,6 +320,20 @@ export async function syncCompetition(
       }
     } catch (error) {
       console.error("  ✗ Medal awarding failed:", error);
+    }
+
+    // 10. Score podium predictions (only runs when ALL matches are finished)
+    let podiumScored = 0;
+    try {
+      const podiumResult = await scorePodiumPredictions(contest.id, prisma);
+      podiumScored = podiumResult.predictionsScored;
+      if (podiumScored > 0) {
+        console.log(
+          `  ✓ Scored ${podiumScored} podium predictions, awarded ${podiumResult.badgesAwarded} badges`,
+        );
+      }
+    } catch (error) {
+      console.error("  ✗ Podium scoring failed:", error);
     }
 
     return {
