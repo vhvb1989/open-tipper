@@ -48,3 +48,6 @@ next-env.d.ts
 
 # prisma generated
 **/generated/prisma
+
+# functions build output
+functions/dist/

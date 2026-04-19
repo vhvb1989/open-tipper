@@ -1,8 +1,13 @@
 # Open Tipper
 
+[![CI](https://github.com/vhvb1989/open-tipper/actions/workflows/ci.yml/badge.svg)](https://github.com/vhvb1989/open-tipper/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 > Score prediction with your mates — predict football match scores and compete on leaderboards with friends, family, or co-workers.
 
 Inspired by [tipper.io](https://tipper.io), Open Tipper is an open-source, group-based football score prediction platform. Create or join a group, predict exact match scorelines, and earn points via a configurable scoring system.
+
+🚀 **[Live Demo](https://app-gm2exqjlonslm.azurewebsites.net/)** — try it out! This is a demo instance for exploration only. Data may be reset or the instance removed at any time.
 
 **[Full Product Spec](SPEC.md)** · **[Implementation Roadmap](ROADMAP.md)**
 
@@ -64,7 +69,7 @@ Some leagues have multiple sub-tournaments per season (e.g., Liga MX has Apertur
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/open-tipper.git
+git clone https://github.com/vhvb1989/open-tipper.git
 cd open-tipper
 ```
 
@@ -74,7 +79,7 @@ cd open-tipper
 docker compose up -d
 ```
 
-This starts a local PostgreSQL 16 instance on port 5432 (user: `postgres`, password: `postgres`, database: `open_tipper`).
+This starts a local PostgreSQL 16 instance on port 5432 (user: `postgres`, password: `postgres`, database: `sport_predictor`).
 
 #### 2. Install dependencies
 
@@ -166,9 +171,13 @@ To update match results and fixtures at any time, run:
 npm run db:sync
 ```
 
-### Deploy to Azure
+### Deploy Your Own Instance
 
-Deploy your own instance to Azure with one command:
+Fork this repo and deploy your own instance to Azure in minutes:
+
+1. **Fork** this repository on GitHub
+2. Install the [Azure Developer CLI (`azd`)](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd)
+3. Run the following commands:
 
 ```bash
 # Log in to Azure
@@ -177,6 +186,8 @@ azd auth login
 # Provision all Azure resources and deploy the app
 azd up
 ```
+
+That's it — your own Open Tipper instance is live! 🎉
 
 This provisions:
 - **Azure App Service** — hosts the Next.js web app
