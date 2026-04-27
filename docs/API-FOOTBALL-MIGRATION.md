@@ -420,3 +420,82 @@ The very first user to sign up is automatically promoted to **ADMIN** via the Au
 ### Free Plan Limitations
 
 The API-Football free tier allows 100 requests/day and may restrict certain leagues or historical seasons. If the API returns an error during sync, a warning banner is displayed in the admin panel. Upgrading to a paid plan ($19+/mo) removes these restrictions.
+
+---
+
+## 15. Playoff / Knockout Stage Handling
+
+Tournaments with knockout stages (Liga MX playoffs, World Cup knockouts, Champions League) require special handling because API-Football's `league.round` field uses named stages instead of numbered match days.
+
+### How API-Football represents playoff rounds
+
+| `league.round` value              | `matchDay` (parsed) | `stage` (stored) | `group` (parsed prefix) |
+|-----------------------------------|---------------------|-------------------|------------------------|
+| `"Clausura - 1"`                  | `1`                 | `"Clausura - 1"`  | `"Clausura"`           |
+| `"Clausura - 17"`                 | `17`                | `"Clausura - 17"` | `"Clausura"`           |
+| `"Clausura - Quarter-finals"`     | `null`              | `"Clausura - Quarter-finals"` | `"Clausura"` |
+| `"Clausura - Semi-finals"`        | `null`              | `"Clausura - Semi-finals"` | `"Clausura"` |
+| `"Clausura - Final"`              | `null`              | `"Clausura - Final"` | `"Clausura"`        |
+| `"Round of 16"` (World Cup)       | `null`              | `"Round of 16"`   | `null`                 |
+| `"Quarter-finals"` (World Cup)    | `null`              | `"Quarter-finals"` | `null`                |
+| `"Final"` (World Cup)             | `null`              | `"Final"`         | `null`                 |
+
+### Parsing logic (in `sync.ts`)
+
+- **`parseMatchDay(round)`** — extracts a trailing number via regex. Returns `null` for playoff rounds since they have no trailing digits.
+- **`parseRoundPrefix(round)`** — extracts the sub-tournament prefix before ` - `. Returns `null` for standalone round names like `"Round of 16"`.
+
+### Round navigation (in `rounds.ts`)
+
+The `Round` type and `buildRounds()` utility create a unified navigation model:
+
+```typescript
+interface Round {
+  key: string;           // "md:1" or "stage:Clausura - Quarter-finals"
+  label: string;         // "1" or "Quarter-finals"
+  type: "matchDay" | "playoff";
+  matchDay: number | null;
+  stage: string | null;  // full stage string for API filtering
+}
+```
+
+- Numeric match days are sorted ascending and come first
+- Playoff stages are sorted by earliest kickoff time and appended after match days
+- `getRoundLabel(stage)` strips the prefix for display: `"Clausura - Quarter-finals"` → `"Quarter-finals"`
+- `parseRoundKey(key)` converts a key back to filter params for API calls
+
+### Playoff detection (in `scoring.ts`)
+
+`isPlayoffStage(stage)` uses keyword-based detection that works with both raw API-Football strings and legacy `UPPER_CASE` identifiers:
+
+- Detects: `quarter-final(s)`, `semi-final(s)`, standalone `final`, `round of N`, `knockout`, `play-off`, `third place`, `preliminary`, `qualification`, `last 16/32`
+- The suffix after the ` - ` prefix separator is checked (case-insensitive)
+- Legacy identifiers like `QUARTER_FINALS`, `SEMI_FINALS`, `FINAL` are also matched for backward compatibility
+
+### API routes
+
+Both `/api/groups/:id/matches` and `/api/groups/:id/results` support:
+
+- `?matchDay=N` — filter regular-season rounds (existing behavior)
+- `?stage=STAGE_STRING` — filter playoff rounds by exact stage value (new)
+- Response includes `rounds: Round[]` for navigation alongside legacy `matchDays: number[]`
+
+### UI navigation
+
+`PredictionsTab` and `ResultsTab` show a unified round navigator with:
+- Prev/next arrows cycling through all rounds (matchDays + playoffs)
+- A dropdown listing all rounds (e.g., `MD 1`, `MD 2`, … `MD 17`, `Quarter-finals`, `Semi-finals`, `Final`)
+- Auto-select: defaults to the first round with upcoming matches, or the last round
+
+### Files involved
+
+| File | Role |
+|------|------|
+| `web/src/lib/rounds.ts` | `Round` type, `buildRounds()`, `getRoundLabel()`, `parseRoundKey()` |
+| `web/src/lib/scoring.ts` | `isPlayoffStage()` with keyword detection |
+| `web/src/lib/sync.ts` | `parseMatchDay()`, `parseRoundPrefix()` |
+| `web/src/app/api/groups/[id]/matches/route.ts` | `?stage=` filter, `rounds[]` response |
+| `web/src/app/api/groups/[id]/results/route.ts` | `?stage=` filter, `rounds[]` response |
+| `web/src/components/PredictionsTab.tsx` | Unified round navigation UI |
+| `web/src/components/ResultsTab.tsx` | Unified round navigation UI |
+| `web/src/lib/rounds.test.ts` | Tests for round utilities |

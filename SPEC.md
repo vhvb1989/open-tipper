@@ -120,9 +120,21 @@ The group admin chooses one of two accumulation modes:
 - **Highest only:** Only the single highest matching scoring factor is awarded.  
   Example — exact scoreline hit: **10 points**.
 
-### 5.2 Playoff Multiplier
+### 5.2 Playoff / Knockout Round Support
 
-Optional: the admin can enable **double points** for knockout/playoff-round matches.
+Tournaments with playoffs or knockout stages (e.g. Liga MX, World Cup, Champions League) have matches beyond the regular league season — Quarter-finals, Semi-finals, Final, etc.
+
+#### How it works
+
+1. **Data model**: Each match stores a `matchDay` (numeric round, e.g. 1–17) **and** a `stage` (the raw round string from API-Football, e.g. `"Clausura - Quarter-finals"`, `"Round of 16"`, `"Final"`). Playoff matches have `matchDay = null` because their round string has no trailing number.
+
+2. **Round navigation**: The UI supports a unified **Round** navigation that includes both numeric match days and named playoff stages. Users navigate with prev/next arrows and a dropdown that lists all rounds in order — match days first (ascending), then playoff stages sorted by kickoff time.
+
+3. **Playoff detection**: The `isPlayoffStage()` function uses keyword-based detection on the stage string to identify knockout rounds. It recognizes patterns like `"Quarter-finals"`, `"Semi-finals"`, `"Final"`, `"Round of 16"`, `"Knockout"`, `"Play-off"`, etc., including prefixed variants like `"Clausura - Quarter-finals"`.
+
+4. **Playoff multiplier**: Optional — the group admin can enable **double points** for knockout/playoff-round matches. When enabled, all scoring factor points are multiplied by 2 for matches identified as playoff stages.
+
+5. **API filtering**: The matches and results API routes support filtering by `?matchDay=N` for regular rounds or `?stage=STAGE_STRING` for playoff rounds. Both return a `rounds[]` array containing all navigable rounds.
 
 ### 5.3 Scoring Examples (Accumulate Mode, Default Points)
 
@@ -279,7 +291,9 @@ Contest
 Match
   ├── id
   ├── contestId → Contest
-  ├── matchDay (round number)
+  ├── matchDay (round number, nullable — null for playoff matches)
+  ├── stage (full round string from API, e.g. "Clausura - Quarter-finals")
+  ├── group (sub-tournament prefix, e.g. "Clausura", "League Stage")
   ├── homeTeam
   ├── awayTeam
   ├── kickoffTime
