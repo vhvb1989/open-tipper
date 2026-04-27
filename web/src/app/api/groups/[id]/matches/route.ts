@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
-import { buildRounds } from "@/lib/rounds";
+import { buildRounds, getActiveGroup } from "@/lib/rounds";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -47,8 +47,27 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Group not found" }, { status: 404 });
     }
 
-    // Build filter
+    // Determine active sub-tournament (e.g. Clausura vs Apertura).
+    // Fetch all matches with group info to find the latest sub-tournament.
+    const allContestMatches = await prisma.match.findMany({
+      where: { contestId: group.contestId },
+      select: { matchDay: true, stage: true, kickoffTime: true, group: true },
+      orderBy: { kickoffTime: "asc" },
+    });
+    const activeGroup = getActiveGroup(allContestMatches);
+
+    // Filter to active sub-tournament matches (keep null-group matches too)
+    const activeMatches = activeGroup
+      ? allContestMatches.filter((m) => m.group === activeGroup || m.group === null)
+      : allContestMatches;
+
+    const rounds = buildRounds(activeMatches);
+
+    // Build filter — always scoped to the active sub-tournament
     const where: Record<string, unknown> = { contestId: group.contestId };
+    if (activeGroup) {
+      where.OR = [{ group: activeGroup }, { group: null }];
+    }
     if (matchDay) {
       where.matchDay = parseInt(matchDay, 10);
     } else if (stage) {
@@ -68,14 +87,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         },
       },
     });
-
-    // Build unified rounds list from ALL contest matches
-    const allMatches = await prisma.match.findMany({
-      where: { contestId: group.contestId },
-      select: { matchDay: true, stage: true, kickoffTime: true },
-      orderBy: { kickoffTime: "asc" },
-    });
-    const rounds = buildRounds(allMatches);
 
     // Legacy: also return numeric matchDays for backward compat
     const availableMatchDays = rounds.filter((r) => r.type === "matchDay").map((r) => r.matchDay!);

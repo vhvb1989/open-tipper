@@ -403,8 +403,9 @@ describe("Results API — GET /api/groups/:id/results", () => {
     const res = await GET(req, routeParams);
 
     expect(res.status).toBe(200);
-    // First findMany call is for matchDays, second is the filtered matches query
-    const matchWhereCall = mockPrisma.match.findMany.mock.calls[1][0].where;
+    // Call order: (0) allContestMatches for active group, (1) allPlayedMatches for rounds,
+    // (2) main filtered matches query
+    const matchWhereCall = mockPrisma.match.findMany.mock.calls[2][0].where;
     expect(matchWhereCall.matchDay).toBe(2);
   });
 });

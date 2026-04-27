@@ -89,6 +89,41 @@ export function buildRounds(
 }
 
 /**
+ * Determine the active sub-tournament group prefix.
+ *
+ * Leagues like Liga MX run two tournaments per season (Apertura, Clausura)
+ * within the same API-Football "season". The `group` column stores the
+ * round prefix (e.g. "Clausura"). This function finds which prefix has
+ * the most recent kickoff date and returns it.
+ *
+ * Returns `null` if there is only one (or zero) group — no filtering needed.
+ */
+export function getActiveGroup(
+  matches: Array<{ group: string | null; kickoffTime: Date | string }>,
+): string | null {
+  const groupDates = new Map<string, Date>();
+  for (const m of matches) {
+    if (!m.group) continue;
+    const d = new Date(m.kickoffTime);
+    const existing = groupDates.get(m.group);
+    if (!existing || d > existing) groupDates.set(m.group, d);
+  }
+
+  if (groupDates.size <= 1) return null;
+
+  let latestGroup = "";
+  let latestDate = new Date(0);
+  for (const [group, date] of groupDates) {
+    if (date > latestDate) {
+      latestDate = date;
+      latestGroup = group;
+    }
+  }
+
+  return latestGroup;
+}
+
+/**
  * Parse a round key back into filter parameters.
  *
  * Returns `{ matchDay }` for match-day rounds or `{ stage }` for playoffs.

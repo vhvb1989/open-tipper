@@ -287,6 +287,28 @@ describe("Predictions API", () => {
       });
       mockPrisma.match.findMany
         .mockResolvedValueOnce([
+          // allContestMatches (for active group + rounds)
+          {
+            matchDay: 1,
+            stage: "Clausura - 1",
+            kickoffTime: new Date("2025-06-18T20:00:00Z"),
+            group: "Clausura",
+          },
+          {
+            matchDay: 2,
+            stage: "Clausura - 2",
+            kickoffTime: new Date("2025-06-20T20:00:00Z"),
+            group: "Clausura",
+          },
+          {
+            matchDay: 3,
+            stage: "Clausura - 3",
+            kickoffTime: new Date("2025-06-22T20:00:00Z"),
+            group: "Clausura",
+          },
+        ])
+        .mockResolvedValueOnce([
+          // main matches query (filtered by matchDay)
           {
             id: "m1",
             matchDay: 1,
@@ -297,7 +319,6 @@ describe("Predictions API", () => {
             awayTeam: { id: "t2", name: "Team B", shortName: "TMB", tla: "TMB", crest: null },
           },
         ])
-        .mockResolvedValueOnce([{ matchDay: 1 }, { matchDay: 2 }, { matchDay: 3 }])
         .mockResolvedValueOnce([]); // finishedMatches for W-L-D records
 
       const { GET } = await import("@/app/api/groups/[id]/matches/route");
@@ -320,9 +341,18 @@ describe("Predictions API", () => {
         memberships: [{ role: "MEMBER" }],
       });
 
-      // Matches returned for the current view belong to "Clausura"
       mockPrisma.match.findMany
         .mockResolvedValueOnce([
+          // allContestMatches (for active group + rounds)
+          {
+            matchDay: 1,
+            stage: "Clausura - 1",
+            kickoffTime: new Date("2025-06-20T20:00:00Z"),
+            group: "Clausura",
+          },
+        ])
+        .mockResolvedValueOnce([
+          // main matches query (filtered)
           {
             id: "m1",
             matchDay: 1,
@@ -333,9 +363,8 @@ describe("Predictions API", () => {
             awayTeam: { id: "t2", name: "Team B", shortName: "TMB", tla: "TMB", crest: null },
           },
         ])
-        .mockResolvedValueOnce([{ matchDay: 1 }]) // matchDays navigation
         .mockResolvedValueOnce([
-          // Only the Clausura match should be returned by the filtered query
+          // finishedMatches for W-L-D records
           { homeTeamId: "t1", awayTeamId: "t2", homeGoals: 2, awayGoals: 1 },
         ]);
 
@@ -346,7 +375,7 @@ describe("Predictions API", () => {
 
       expect(res.status).toBe(200);
 
-      // Verify the records query filters by group and matchDay
+      // Verify the records query filters by group and matchDay (3rd call)
       const recordsQueryCall = mockPrisma.match.findMany.mock.calls[2][0];
       expect(recordsQueryCall.where).toEqual({
         contestId: "c1",

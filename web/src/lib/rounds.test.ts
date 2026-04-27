@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getRoundLabel, buildRounds, parseRoundKey } from "./rounds";
+import { getRoundLabel, buildRounds, parseRoundKey, getActiveGroup } from "./rounds";
 
 // ---------------------------------------------------------------------------
 // getRoundLabel
@@ -144,5 +144,50 @@ describe("parseRoundKey", () => {
 
   it("falls back to stage for non-numeric strings", () => {
     expect(parseRoundKey("Quarter-finals")).toEqual({ stage: "Quarter-finals" });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getActiveGroup
+// ---------------------------------------------------------------------------
+
+describe("getActiveGroup", () => {
+  it("returns null when only one group exists", () => {
+    const matches = [
+      { group: "Clausura", kickoffTime: "2026-01-15T00:00:00Z" },
+      { group: "Clausura", kickoffTime: "2026-02-15T00:00:00Z" },
+    ];
+    expect(getActiveGroup(matches)).toBeNull();
+  });
+
+  it("returns null when no groups exist", () => {
+    const matches = [
+      { group: null, kickoffTime: "2026-01-15T00:00:00Z" },
+      { group: null, kickoffTime: "2026-02-15T00:00:00Z" },
+    ];
+    expect(getActiveGroup(matches)).toBeNull();
+  });
+
+  it("returns null for empty array", () => {
+    expect(getActiveGroup([])).toBeNull();
+  });
+
+  it("returns the group with the most recent kickoff", () => {
+    const matches = [
+      { group: "Apertura", kickoffTime: "2025-07-15T00:00:00Z" },
+      { group: "Apertura", kickoffTime: "2025-12-10T00:00:00Z" },
+      { group: "Clausura", kickoffTime: "2026-01-15T00:00:00Z" },
+      { group: "Clausura", kickoffTime: "2026-05-20T00:00:00Z" },
+    ];
+    expect(getActiveGroup(matches)).toBe("Clausura");
+  });
+
+  it("ignores null-group matches when determining active group", () => {
+    const matches = [
+      { group: "Apertura", kickoffTime: "2025-07-15T00:00:00Z" },
+      { group: "Clausura", kickoffTime: "2026-01-15T00:00:00Z" },
+      { group: null, kickoffTime: "2026-06-01T00:00:00Z" },
+    ];
+    expect(getActiveGroup(matches)).toBe("Clausura");
   });
 });
