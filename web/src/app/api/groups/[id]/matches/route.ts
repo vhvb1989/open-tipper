@@ -56,6 +56,24 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
     const activeGroup = getActiveGroup(allContestMatches);
 
+    // Debug: log group detection for troubleshooting sub-tournament filtering
+    const groupSummary = new Map<string, { count: number; maxDate: string }>();
+    for (const m of allContestMatches) {
+      const g = m.group ?? "(null)";
+      const existing = groupSummary.get(g);
+      const d = new Date(m.kickoffTime).toISOString();
+      if (!existing) {
+        groupSummary.set(g, { count: 1, maxDate: d });
+      } else {
+        existing.count++;
+        if (d > existing.maxDate) existing.maxDate = d;
+      }
+    }
+    console.log(
+      `[matches] Active group: ${activeGroup ?? "(none)"}. Groups:`,
+      Object.fromEntries(groupSummary),
+    );
+
     // Filter to active sub-tournament matches (keep null-group matches too)
     const activeMatches = activeGroup
       ? allContestMatches.filter((m) => m.group === activeGroup || m.group === null)
@@ -146,6 +164,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       matchDays: availableMatchDays,
       rounds,
       currentMatchDay: matchDay ? parseInt(matchDay, 10) : null,
+      _debug: { activeGroup, groups: Object.fromEntries(groupSummary) },
     });
   } catch (error) {
     console.error("Failed to fetch group matches:", error);
