@@ -172,9 +172,15 @@ export default function PredictionsTab({
           if (upcoming) {
             // Find the round that contains this upcoming match
             if (upcoming.matchDay != null) {
-              defaultRound = data.rounds.find((r: Round) => r.type === "matchDay" && r.matchDay === upcoming.matchDay) ?? null;
+              defaultRound =
+                data.rounds.find(
+                  (r: Round) => r.type === "matchDay" && r.matchDay === upcoming.matchDay,
+                ) ?? null;
             } else if (upcoming.stage) {
-              defaultRound = data.rounds.find((r: Round) => r.type === "playoff" && r.stage === upcoming.stage) ?? null;
+              defaultRound =
+                data.rounds.find(
+                  (r: Round) => r.type === "playoff" && r.stage === upcoming.stage,
+                ) ?? null;
             }
           }
           if (!defaultRound) {

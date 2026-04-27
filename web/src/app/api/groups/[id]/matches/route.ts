@@ -78,9 +78,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const rounds = buildRounds(allMatches);
 
     // Legacy: also return numeric matchDays for backward compat
-    const availableMatchDays = rounds
-      .filter((r) => r.type === "matchDay")
-      .map((r) => r.matchDay!);
+    const availableMatchDays = rounds.filter((r) => r.type === "matchDay").map((r) => r.matchDay!);
 
     // Compute W-L-D records from finished matches in the same sub-tournament.
     // The `group` column stores the round prefix (e.g. "Clausura", "League Stage")

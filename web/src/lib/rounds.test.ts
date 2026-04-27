@@ -54,8 +54,16 @@ describe("buildRounds", () => {
     const rounds = buildRounds(matches);
     expect(rounds).toHaveLength(4);
     expect(rounds[0]).toMatchObject({ type: "matchDay", matchDay: 17 });
-    expect(rounds[1]).toMatchObject({ type: "playoff", label: "Quarter-finals", stage: "Clausura - Quarter-finals" });
-    expect(rounds[2]).toMatchObject({ type: "playoff", label: "Semi-finals", stage: "Clausura - Semi-finals" });
+    expect(rounds[1]).toMatchObject({
+      type: "playoff",
+      label: "Quarter-finals",
+      stage: "Clausura - Quarter-finals",
+    });
+    expect(rounds[2]).toMatchObject({
+      type: "playoff",
+      label: "Semi-finals",
+      stage: "Clausura - Semi-finals",
+    });
     expect(rounds[3]).toMatchObject({ type: "playoff", label: "Final", stage: "Clausura - Final" });
   });
 

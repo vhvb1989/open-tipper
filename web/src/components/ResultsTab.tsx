@@ -330,9 +330,7 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
             >
               {rounds.map((r) => (
                 <option key={r.key} value={r.key}>
-                  {r.type === "matchDay"
-                    ? t("results.mdShort", { n: r.matchDay ?? 0 })
-                    : r.label}
+                  {r.type === "matchDay" ? t("results.mdShort", { n: r.matchDay ?? 0 }) : r.label}
                 </option>
               ))}
             </select>

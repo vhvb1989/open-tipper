@@ -74,9 +74,7 @@ export function buildRounds(
   }
 
   // Playoff rounds (sorted by earliest kickoff)
-  const sorted = [...playoffStages.entries()].sort(
-    ([, a], [, b]) => a.getTime() - b.getTime(),
-  );
+  const sorted = [...playoffStages.entries()].sort(([, a], [, b]) => a.getTime() - b.getTime());
   for (const [stage] of sorted) {
     rounds.push({
       key: `stage:${stage}`,

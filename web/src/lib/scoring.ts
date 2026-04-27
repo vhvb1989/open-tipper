@@ -228,11 +228,7 @@ export function isPlayoffStage(stage: string | null): boolean {
   if (suffix.includes("last 16") || suffix.includes("last 32")) return true;
 
   // Standalone "final" — not part of "quarter-final(s)" or "semi-final(s)"
-  if (
-    /\bfinals?\b/i.test(suffix) &&
-    !suffix.includes("quarter") &&
-    !suffix.includes("semi")
-  ) {
+  if (/\bfinals?\b/i.test(suffix) && !suffix.includes("quarter") && !suffix.includes("semi")) {
     return true;
   }
 
