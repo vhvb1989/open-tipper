@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useLive, useLiveMatch } from "./LiveProvider";
 import { LiveBadge } from "./LiveBadge";
 import { useTranslation } from "@/i18n/TranslationProvider";
+import type { Round } from "@/lib/rounds";
 
 /* ---------- Types ---------- */
 
@@ -172,29 +173,41 @@ function MatchScore({ match }: { match: MatchResult }) {
 
 export default function ResultsTab({ groupId }: { groupId: string }) {
   const [results, setResults] = useState<MatchResult[]>([]);
-  const [matchDays, setMatchDays] = useState<number[]>([]);
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [rounds, setRounds] = useState<Round[]>([]);
+  const [selectedRoundKey, setSelectedRoundKey] = useState<string | null>(null);
   const [expandedMatches, setExpandedMatches] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { scoresVersion } = useLive();
   const { t } = useTranslation();
 
+  /* ---- Build URL for a round ---- */
+  const buildResultsUrl = useCallback(
+    (round?: Round | null) => {
+      let url = `/api/groups/${groupId}/results`;
+      if (round?.type === "matchDay" && round.matchDay != null) {
+        url += `?matchDay=${round.matchDay}`;
+      } else if (round?.type === "playoff" && round.stage) {
+        url += `?stage=${encodeURIComponent(round.stage)}`;
+      }
+      return url;
+    },
+    [groupId],
+  );
+
   const fetchResults = useCallback(
-    async (matchDay?: number | null) => {
+    async (round?: Round | null) => {
       setLoading(true);
       try {
-        const url =
-          matchDay != null
-            ? `/api/groups/${groupId}/results?matchDay=${matchDay}`
-            : `/api/groups/${groupId}/results`;
+        const url = buildResultsUrl(round);
         const res = await fetch(url);
         if (!res.ok) throw new Error("Failed to fetch results");
         const data = await res.json();
         setResults(data.results);
-        setMatchDays(data.matchDays);
-        if (selectedDay === null && data.matchDays.length > 0) {
-          setSelectedDay(data.matchDays[0]); // latest match day
+        if (data.rounds) setRounds(data.rounds);
+        if (selectedRoundKey === null && data.rounds && data.rounds.length > 0) {
+          // Default to the latest played round
+          setSelectedRoundKey(data.rounds[data.rounds.length - 1].key);
         }
       } catch (err) {
         console.error("Failed to load results:", err);
@@ -203,7 +216,7 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
         setLoading(false);
       }
     },
-    [groupId, selectedDay],
+    [selectedRoundKey, buildResultsUrl],
   );
 
   useEffect(() => {
@@ -214,15 +227,16 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
   // Auto-refresh when predictions are scored (via SSE)
   useEffect(() => {
     if (scoresVersion > 0) {
-      fetchResults(selectedDay);
+      const round = rounds.find((r) => r.key === selectedRoundKey) ?? null;
+      fetchResults(round);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scoresVersion]);
 
-  const handleDayChange = (day: number) => {
-    setSelectedDay(day);
+  const handleRoundChange = (round: Round) => {
+    setSelectedRoundKey(round.key);
     setExpandedMatches(new Set());
-    fetchResults(day);
+    fetchResults(round);
   };
 
   const toggleMatch = (matchId: string) => {
@@ -237,7 +251,8 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
     });
   };
 
-  const dayIdx = matchDays.indexOf(selectedDay ?? -1);
+  const selectedRound = rounds.find((r) => r.key === selectedRoundKey) ?? null;
+  const roundIdx = selectedRound ? rounds.indexOf(selectedRound) : -1;
 
   /* ---- Render ---- */
 
@@ -271,7 +286,7 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
           <button
             onClick={() => {
               setError(null);
-              fetchResults(selectedDay);
+              fetchResults(selectedRound);
             }}
             className="ml-2 underline"
           >
@@ -280,12 +295,12 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
         </div>
       )}
 
-      {/* Match-day navigation */}
-      {matchDays.length > 1 && (
+      {/* Round navigation */}
+      {rounds.length > 1 && (
         <div className="mb-4 flex items-center justify-between">
           <button
-            onClick={() => dayIdx > 0 && handleDayChange(matchDays[dayIdx - 1])}
-            disabled={dayIdx <= 0}
+            onClick={() => roundIdx > 0 && handleRoundChange(rounds[roundIdx - 1])}
+            disabled={roundIdx <= 0}
             className="rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
             <svg
@@ -301,23 +316,30 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
           </button>
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-              {t("results.matchDay", { n: selectedDay ?? 0 })}
+              {selectedRound?.type === "matchDay"
+                ? t("results.matchDay", { n: selectedRound.matchDay ?? 0 })
+                : t("results.playoffRound", { label: selectedRound?.label ?? "" })}
             </span>
             <select
-              value={selectedDay ?? ""}
-              onChange={(e) => handleDayChange(Number(e.target.value))}
+              value={selectedRoundKey ?? ""}
+              onChange={(e) => {
+                const round = rounds.find((r) => r.key === e.target.value);
+                if (round) handleRoundChange(round);
+              }}
               className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
             >
-              {matchDays.map((d) => (
-                <option key={d} value={d}>
-                  {t("results.mdShort", { n: d })}
+              {rounds.map((r) => (
+                <option key={r.key} value={r.key}>
+                  {r.type === "matchDay"
+                    ? t("results.mdShort", { n: r.matchDay ?? 0 })
+                    : r.label}
                 </option>
               ))}
             </select>
           </div>
           <button
-            onClick={() => dayIdx < matchDays.length - 1 && handleDayChange(matchDays[dayIdx + 1])}
-            disabled={dayIdx >= matchDays.length - 1}
+            onClick={() => roundIdx < rounds.length - 1 && handleRoundChange(rounds[roundIdx + 1])}
+            disabled={roundIdx >= rounds.length - 1}
             className="rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
             {t("results.next")}{" "}

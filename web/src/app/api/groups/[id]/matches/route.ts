@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { buildRounds } from "@/lib/rounds";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
 /**
  * GET /api/groups/:id/matches
  *
- * Get matches for a group's contest. Supports filtering by matchDay.
+ * Get matches for a group's contest. Supports filtering by matchDay or stage.
  * Returns matches with team details, ordered by kickoff time.
  *
  * Query params:
  *   - matchDay: filter by match day / round number
+ *   - stage: filter by exact stage string (for playoff rounds)
  *   - status: filter by match status
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
@@ -24,6 +26,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const { searchParams } = new URL(request.url);
     const matchDay = searchParams.get("matchDay");
+    const stage = searchParams.get("stage");
 
     // Verify membership and get contestId
     const group = await prisma.group.findUnique({
@@ -46,7 +49,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Build filter
     const where: Record<string, unknown> = { contestId: group.contestId };
-    if (matchDay) where.matchDay = parseInt(matchDay, 10);
+    if (matchDay) {
+      where.matchDay = parseInt(matchDay, 10);
+    } else if (stage) {
+      where.stage = stage;
+      where.matchDay = null;
+    }
 
     const matches = await prisma.match.findMany({
       where,
@@ -61,17 +69,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       },
     });
 
-    // Get distinct match days for navigation
-    const matchDays = await prisma.match.findMany({
+    // Build unified rounds list from ALL contest matches
+    const allMatches = await prisma.match.findMany({
       where: { contestId: group.contestId },
-      select: { matchDay: true },
-      distinct: ["matchDay"],
-      orderBy: { matchDay: "asc" },
+      select: { matchDay: true, stage: true, kickoffTime: true },
+      orderBy: { kickoffTime: "asc" },
     });
+    const rounds = buildRounds(allMatches);
 
-    const availableMatchDays = matchDays
-      .map((m) => m.matchDay)
-      .filter((d): d is number => d !== null);
+    // Legacy: also return numeric matchDays for backward compat
+    const availableMatchDays = rounds
+      .filter((r) => r.type === "matchDay")
+      .map((r) => r.matchDay!);
 
     // Compute W-L-D records from finished matches in the same sub-tournament.
     // The `group` column stores the round prefix (e.g. "Clausura", "League Stage")
@@ -126,6 +135,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       matches: matchesWithRecords,
       matchDays: availableMatchDays,
+      rounds,
       currentMatchDay: matchDay ? parseInt(matchDay, 10) : null,
     });
   } catch (error) {

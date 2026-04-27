@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useTranslation } from "@/i18n/TranslationProvider";
 import PodiumSection from "./PodiumSection";
+import type { Round } from "@/lib/rounds";
 
 /* ---------- Types ---------- */
 
@@ -128,38 +129,63 @@ export default function PredictionsTab({
 }) {
   const [matches, setMatches] = useState<Match[]>([]);
   const [predictions, setPredictions] = useState<Record<string, PredictionData>>({});
-  const [matchDays, setMatchDays] = useState<number[]>([]);
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [rounds, setRounds] = useState<Round[]>([]);
+  const [selectedRoundKey, setSelectedRoundKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saveStatuses, setSaveStatuses] = useState<Record<string, SaveStatus>>({});
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const { t } = useTranslation();
 
+  /* ---- Build URL for a round ---- */
+  const buildMatchesUrl = useCallback(
+    (round?: Round | null) => {
+      let url = `/api/groups/${groupId}/matches`;
+      if (round?.type === "matchDay" && round.matchDay != null) {
+        url += `?matchDay=${round.matchDay}`;
+      } else if (round?.type === "playoff" && round.stage) {
+        url += `?stage=${encodeURIComponent(round.stage)}`;
+      }
+      return url;
+    },
+    [groupId],
+  );
+
   /* ---- Fetch matches ---- */
   const fetchMatches = useCallback(
-    async (matchDay?: number | null) => {
+    async (round?: Round | null) => {
       setLoading(true);
       try {
-        const url =
-          matchDay != null
-            ? `/api/groups/${groupId}/matches?matchDay=${matchDay}`
-            : `/api/groups/${groupId}/matches`;
+        const url = buildMatchesUrl(round);
         const res = await fetch(url);
         if (!res.ok) throw new Error("Failed to fetch matches");
         const data = await res.json();
         setMatches(data.matches);
-        setMatchDays(data.matchDays);
+        if (data.rounds) setRounds(data.rounds);
 
-        // Auto-select the first match day with upcoming matches, or last
-        if (matchDay == null && data.matchDays.length > 0) {
+        // Auto-select the first round with upcoming matches, or the last round
+        if (round == null && data.rounds && data.rounds.length > 0) {
           const now = new Date();
           const upcoming = data.matches.find((m: Match) => new Date(m.kickoffTime) > now);
-          const defaultDay = upcoming?.matchDay ?? data.matchDays[data.matchDays.length - 1];
-          if (defaultDay != null) {
-            setSelectedDay(defaultDay);
+          let defaultRound: Round | null = null;
+
+          if (upcoming) {
+            // Find the round that contains this upcoming match
+            if (upcoming.matchDay != null) {
+              defaultRound = data.rounds.find((r: Round) => r.type === "matchDay" && r.matchDay === upcoming.matchDay) ?? null;
+            } else if (upcoming.stage) {
+              defaultRound = data.rounds.find((r: Round) => r.type === "playoff" && r.stage === upcoming.stage) ?? null;
+            }
+          }
+          if (!defaultRound) {
+            defaultRound = data.rounds[data.rounds.length - 1];
+          }
+
+          if (defaultRound) {
+            setSelectedRoundKey(defaultRound.key);
             // Re-fetch filtered
-            const filtered = await fetch(`/api/groups/${groupId}/matches?matchDay=${defaultDay}`);
+            const filteredUrl = buildMatchesUrl(defaultRound);
+            const filtered = await fetch(filteredUrl);
             if (filtered.ok) {
               const filteredData = await filtered.json();
               setMatches(filteredData.matches);
@@ -173,7 +199,7 @@ export default function PredictionsTab({
         setLoading(false);
       }
     },
-    [groupId],
+    [buildMatchesUrl],
   );
 
   /* ---- Fetch user's predictions ---- */
@@ -195,12 +221,12 @@ export default function PredictionsTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* ---- Navigate match days ---- */
-  const handleDayChange = async (day: number) => {
-    setSelectedDay(day);
+  /* ---- Navigate rounds ---- */
+  const handleRoundChange = async (round: Round) => {
+    setSelectedRoundKey(round.key);
     setLoading(true);
     try {
-      const res = await fetch(`/api/groups/${groupId}/matches?matchDay=${day}`);
+      const res = await fetch(buildMatchesUrl(round));
       if (!res.ok) throw new Error("Failed to fetch matches");
       const data = await res.json();
       setMatches(data.matches);
@@ -269,7 +295,8 @@ export default function PredictionsTab({
   }, []);
 
   /* ---- Render ---- */
-  const dayIdx = matchDays.indexOf(selectedDay ?? -1);
+  const selectedRound = rounds.find((r) => r.key === selectedRoundKey) ?? null;
+  const roundIdx = selectedRound ? rounds.indexOf(selectedRound) : -1;
 
   if (loading && matches.length === 0) {
     return (
@@ -301,7 +328,7 @@ export default function PredictionsTab({
           <button
             onClick={() => {
               setError(null);
-              fetchMatches(selectedDay);
+              fetchMatches(selectedRound);
               fetchPredictions();
             }}
             className="ml-2 underline"
@@ -313,12 +340,12 @@ export default function PredictionsTab({
       {/* Podium predictions — shown at top when enabled */}
       {hasPodium && <PodiumSection groupId={groupId} />}
 
-      {/* Match-day navigation */}
-      {matchDays.length > 1 && (
+      {/* Round navigation */}
+      {rounds.length > 1 && (
         <div className="mb-6 flex items-center justify-between">
           <button
-            onClick={() => dayIdx > 0 && handleDayChange(matchDays[dayIdx - 1])}
-            disabled={dayIdx <= 0}
+            onClick={() => roundIdx > 0 && handleRoundChange(rounds[roundIdx - 1])}
+            disabled={roundIdx <= 0}
             className="rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
             <svg
@@ -334,24 +361,31 @@ export default function PredictionsTab({
           </button>
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-              {t("predictions.matchDay", { n: selectedDay ?? 0 })}
+              {selectedRound?.type === "matchDay"
+                ? t("predictions.matchDay", { n: selectedRound.matchDay ?? 0 })
+                : t("predictions.playoffRound", { label: selectedRound?.label ?? "" })}
             </span>
             {/* Quick-jump select */}
             <select
-              value={selectedDay ?? ""}
-              onChange={(e) => handleDayChange(Number(e.target.value))}
+              value={selectedRoundKey ?? ""}
+              onChange={(e) => {
+                const round = rounds.find((r) => r.key === e.target.value);
+                if (round) handleRoundChange(round);
+              }}
               className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
             >
-              {matchDays.map((d) => (
-                <option key={d} value={d}>
-                  {t("predictions.mdShort", { n: d })}
+              {rounds.map((r) => (
+                <option key={r.key} value={r.key}>
+                  {r.type === "matchDay"
+                    ? t("predictions.mdShort", { n: r.matchDay ?? 0 })
+                    : r.label}
                 </option>
               ))}
             </select>
           </div>
           <button
-            onClick={() => dayIdx < matchDays.length - 1 && handleDayChange(matchDays[dayIdx + 1])}
-            disabled={dayIdx >= matchDays.length - 1}
+            onClick={() => roundIdx < rounds.length - 1 && handleRoundChange(rounds[roundIdx + 1])}
+            disabled={roundIdx >= rounds.length - 1}
             className="rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
             {t("predictions.next")}{" "}

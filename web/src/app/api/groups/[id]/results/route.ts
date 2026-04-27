@@ -7,6 +7,7 @@ import {
   DEFAULT_SCORING_RULES,
   type ScoringRulesConfig,
 } from "@/lib/scoring";
+import { buildRounds } from "@/lib/rounds";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -15,7 +16,7 @@ type RouteParams = { params: Promise<{ id: string }> };
  *
  * Returns finished matches with all members' predictions and points.
  * Matches are grouped by match day, ordered newest first.
- * Supports optional matchDay query param for filtering.
+ * Supports optional matchDay or stage query param for filtering.
  *
  * Public groups: visible to anyone (auth optional).
  * Private groups: visible to members only.
@@ -28,6 +29,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { id: groupId } = await params;
     const { searchParams } = new URL(request.url);
     const matchDayParam = searchParams.get("matchDay");
+    const stageParam = searchParams.get("stage");
 
     // Get the group with its scoring rules
     const group = await prisma.group.findUnique({
@@ -55,25 +57,41 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // Query all available played match days (finished + live, independent of filter)
-    const allPlayedMatchDays = await prisma.match.findMany({
+    // Build unified rounds list from all played matches
+    const allPlayedMatches = await prisma.match.findMany({
       where: {
         contestId: group.contestId,
         status: { in: ["FINISHED", "AWARDED", "IN_PLAY", "PAUSED"] },
-        matchDay: { not: null },
       },
-      select: { matchDay: true },
-      distinct: ["matchDay"],
-      orderBy: { matchDay: "desc" },
+      select: { matchDay: true, stage: true, kickoffTime: true },
+      orderBy: { kickoffTime: "asc" },
     });
-    const matchDays = allPlayedMatchDays
-      .map((m) => m.matchDay)
-      .filter((d): d is number => d !== null)
+    const rounds = buildRounds(allPlayedMatches);
+
+    // Legacy: numeric matchDays (descending) for backward compat
+    const matchDays = rounds
+      .filter((r) => r.type === "matchDay")
+      .map((r) => r.matchDay!)
       .sort((a, b) => b - a);
 
-    // Determine which match day to show
-    // Default to the latest finished match day when no param is provided
-    const effectiveMatchDay = matchDayParam ? parseInt(matchDayParam, 10) : (matchDays[0] ?? null);
+    // Determine which round to show
+    let effectiveMatchDay: number | null = null;
+    let effectiveStage: string | null = null;
+
+    if (matchDayParam) {
+      effectiveMatchDay = parseInt(matchDayParam, 10);
+    } else if (stageParam) {
+      effectiveStage = stageParam;
+    } else if (rounds.length > 0) {
+      // Default to the latest played round (last in the list by kickoff order)
+      // But for results, we show newest first → pick the last round
+      const latestRound = rounds[rounds.length - 1];
+      if (latestRound.type === "matchDay") {
+        effectiveMatchDay = latestRound.matchDay;
+      } else {
+        effectiveStage = latestRound.stage;
+      }
+    }
 
     // Build match filter: finished + live matches in this contest
     const matchWhere: Record<string, unknown> = {
@@ -82,6 +100,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     };
     if (effectiveMatchDay !== null) {
       matchWhere.matchDay = effectiveMatchDay;
+    } else if (effectiveStage !== null) {
+      matchWhere.stage = effectiveStage;
+      matchWhere.matchDay = null;
     }
 
     // Get finished matches with team info
@@ -102,7 +123,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
 
     if (matches.length === 0) {
-      return NextResponse.json({ results: [], matchDays: [] });
+      return NextResponse.json({ results: [], matchDays: [], rounds });
     }
 
     // Get all predictions for these matches in this group
@@ -198,7 +219,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       predictions: predsByMatch.get(match.id) ?? [],
     }));
 
-    return NextResponse.json({ results, matchDays });
+    return NextResponse.json({ results, matchDays, rounds });
   } catch (error) {
     console.error("Failed to fetch results:", error);
     return NextResponse.json({ error: "Failed to fetch results" }, { status: 500 });

@@ -180,8 +180,11 @@ export function calculateScore(
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Known knockout/playoff stage identifiers from API-Football */
-const PLAYOFF_STAGES = new Set([
+/**
+ * Legacy knockout identifiers (UPPER_CASE format from football-data.org).
+ * Kept for backward compatibility with any data that may use this format.
+ */
+const LEGACY_PLAYOFF_STAGES = new Set([
   "LAST_16",
   "QUARTER_FINALS",
   "SEMI_FINALS",
@@ -199,8 +202,39 @@ const PLAYOFF_STAGES = new Set([
 
 /**
  * Determine if a match stage is a playoff/knockout stage.
+ *
+ * Works with both raw API-Football round strings (e.g. "Clausura - Quarter-finals",
+ * "Round of 16", "Final") and the legacy UPPER_CASE identifiers.
  */
 export function isPlayoffStage(stage: string | null): boolean {
   if (!stage) return false;
-  return PLAYOFF_STAGES.has(stage);
+
+  // Legacy exact match
+  if (LEGACY_PLAYOFF_STAGES.has(stage)) return true;
+
+  // Extract the round suffix (strip sub-tournament prefix like "Clausura - ")
+  const sepIdx = stage.indexOf(" - ");
+  const suffix = (sepIdx > 0 ? stage.substring(sepIdx + 3) : stage).toLowerCase();
+
+  // Keyword detection on the suffix
+  if (suffix.includes("quarter") && suffix.includes("final")) return true;
+  if (suffix.includes("semi") && suffix.includes("final")) return true;
+  if (suffix.includes("round of ")) return true;
+  if (suffix.includes("knockout")) return true;
+  if (suffix.includes("play-off") || suffix.includes("playoff")) return true;
+  if (suffix.includes("third place") || suffix.includes("3rd place")) return true;
+  if (suffix.includes("preliminary")) return true;
+  if (suffix.includes("qualification")) return true;
+  if (suffix.includes("last 16") || suffix.includes("last 32")) return true;
+
+  // Standalone "final" — not part of "quarter-final(s)" or "semi-final(s)"
+  if (
+    /\bfinals?\b/i.test(suffix) &&
+    !suffix.includes("quarter") &&
+    !suffix.includes("semi")
+  ) {
+    return true;
+  }
+
+  return false;
 }

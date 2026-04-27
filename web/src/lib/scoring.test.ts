@@ -432,6 +432,7 @@ describe("Custom Scoring Rules", () => {
 // ---------------------------------------------------------------------------
 
 describe("isPlayoffStage", () => {
+  // Legacy UPPER_CASE format (backward compat)
   it("detects QUARTER_FINALS as playoff", () => {
     expect(isPlayoffStage("QUARTER_FINALS")).toBe(true);
   });
@@ -458,6 +459,49 @@ describe("isPlayoffStage", () => {
 
   it("handles null", () => {
     expect(isPlayoffStage(null)).toBe(false);
+  });
+
+  // API-Football raw round strings
+  it("detects 'Quarter-finals' (API-Football format)", () => {
+    expect(isPlayoffStage("Quarter-finals")).toBe(true);
+  });
+
+  it("detects 'Semi-finals' (API-Football format)", () => {
+    expect(isPlayoffStage("Semi-finals")).toBe(true);
+  });
+
+  it("detects 'Final' (API-Football standalone)", () => {
+    expect(isPlayoffStage("Final")).toBe(true);
+  });
+
+  it("detects 'Round of 16' (API-Football format)", () => {
+    expect(isPlayoffStage("Round of 16")).toBe(true);
+  });
+
+  // Liga MX: prefixed playoff stages
+  it("detects 'Clausura - Quarter-finals' as playoff", () => {
+    expect(isPlayoffStage("Clausura - Quarter-finals")).toBe(true);
+  });
+
+  it("detects 'Clausura - Semi-finals' as playoff", () => {
+    expect(isPlayoffStage("Clausura - Semi-finals")).toBe(true);
+  });
+
+  it("detects 'Clausura - Final' as playoff", () => {
+    expect(isPlayoffStage("Clausura - Final")).toBe(true);
+  });
+
+  // Numeric matchday rounds (not playoff)
+  it("does not detect 'Clausura - 1' as playoff", () => {
+    expect(isPlayoffStage("Clausura - 1")).toBe(false);
+  });
+
+  it("does not detect 'Regular Season - 14' as playoff", () => {
+    expect(isPlayoffStage("Regular Season - 14")).toBe(false);
+  });
+
+  it("does not detect 'League Stage - 8' as playoff", () => {
+    expect(isPlayoffStage("League Stage - 8")).toBe(false);
   });
 });
 
