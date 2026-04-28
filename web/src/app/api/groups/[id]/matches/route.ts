@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
-import { buildRounds, getActiveGroup } from "@/lib/rounds";
+import { buildRounds, getActiveGroupInfo } from "@/lib/rounds";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -48,35 +48,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Determine active sub-tournament (e.g. Clausura vs Apertura).
-    // Fetch all matches with group info to find the latest sub-tournament.
     const allContestMatches = await prisma.match.findMany({
       where: { contestId: group.contestId },
       select: { matchDay: true, stage: true, kickoffTime: true, group: true },
       orderBy: { kickoffTime: "asc" },
     });
-    const activeGroup = getActiveGroup(allContestMatches);
+    const { activeGroup, includeNullGroup } = getActiveGroupInfo(allContestMatches);
 
-    // Debug: log group detection for troubleshooting sub-tournament filtering
-    const groupSummary = new Map<string, { count: number; maxDate: string }>();
-    for (const m of allContestMatches) {
-      const g = m.group ?? "(null)";
-      const existing = groupSummary.get(g);
-      const d = new Date(m.kickoffTime).toISOString();
-      if (!existing) {
-        groupSummary.set(g, { count: 1, maxDate: d });
-      } else {
-        existing.count++;
-        if (d > existing.maxDate) existing.maxDate = d;
-      }
-    }
-    console.log(
-      `[matches] Active group: ${activeGroup ?? "(none)"}. Groups:`,
-      Object.fromEntries(groupSummary),
-    );
-
-    // Filter to active sub-tournament matches (keep null-group matches too)
+    // Filter to active sub-tournament matches for building rounds
     const activeMatches = activeGroup
-      ? allContestMatches.filter((m) => m.group === activeGroup || m.group === null)
+      ? allContestMatches.filter(
+          (m) => m.group === activeGroup || (m.group === null && includeNullGroup),
+        )
       : allContestMatches;
 
     const rounds = buildRounds(activeMatches);
@@ -84,7 +67,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Build filter — always scoped to the active sub-tournament
     const where: Record<string, unknown> = { contestId: group.contestId };
     if (activeGroup) {
-      where.OR = [{ group: activeGroup }, { group: null }];
+      if (includeNullGroup) {
+        where.OR = [{ group: activeGroup }, { group: null }];
+      } else {
+        where.group = activeGroup;
+      }
     }
     if (matchDay) {
       where.matchDay = parseInt(matchDay, 10);
@@ -164,7 +151,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       matchDays: availableMatchDays,
       rounds,
       currentMatchDay: matchDay ? parseInt(matchDay, 10) : null,
-      _debug: { activeGroup, groups: Object.fromEntries(groupSummary) },
     });
   } catch (error) {
     console.error("Failed to fetch group matches:", error);

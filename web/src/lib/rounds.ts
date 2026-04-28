@@ -89,38 +89,86 @@ export function buildRounds(
 }
 
 /**
- * Determine the active sub-tournament group prefix.
+ * Result of active-group detection.
+ *
+ * `activeGroup` — the sub-tournament prefix to filter to, or `null` if no
+ * filtering is needed.
+ *
+ * `includeNullGroup` — whether matches with `group = null` should be kept.
+ * Stale null-group matches (from an older sub-tournament) are excluded;
+ * current ones (e.g. standalone knockout rounds) are kept.
+ */
+export interface ActiveGroupResult {
+  activeGroup: string | null;
+  includeNullGroup: boolean;
+}
+
+/**
+ * Determine the active sub-tournament group prefix and whether null-group
+ * matches should be included.
  *
  * Leagues like Liga MX run two tournaments per season (Apertura, Clausura)
  * within the same API-Football "season". The `group` column stores the
  * round prefix (e.g. "Clausura"). This function finds which prefix has
- * the most recent kickoff date and returns it.
+ * the most recent kickoff date and decides whether null-group matches
+ * (rounds without a prefix, like standalone "Quarter-finals") are stale
+ * leftovers or current knockout rounds.
  *
- * Returns `null` if there is only one (or zero) group — no filtering needed.
+ * Null-group matches are considered stale when their latest date is before
+ * the active group's earliest date — they belong to a previous
+ * sub-tournament that was never cleaned up.
  */
-export function getActiveGroup(
+export function getActiveGroupInfo(
   matches: Array<{ group: string | null; kickoffTime: Date | string }>,
-): string | null {
-  const groupDates = new Map<string, Date>();
+): ActiveGroupResult {
+  const groupDates = new Map<string, { min: Date; max: Date }>();
+  let nullGroupMax: Date | null = null;
+
   for (const m of matches) {
-    if (!m.group) continue;
     const d = new Date(m.kickoffTime);
+    if (!m.group) {
+      if (!nullGroupMax || d > nullGroupMax) nullGroupMax = d;
+      continue;
+    }
     const existing = groupDates.get(m.group);
-    if (!existing || d > existing) groupDates.set(m.group, d);
+    if (!existing) {
+      groupDates.set(m.group, { min: new Date(d.getTime()), max: new Date(d.getTime()) });
+    } else {
+      if (d < existing.min) existing.min = d;
+      if (d > existing.max) existing.max = d;
+    }
   }
 
-  if (groupDates.size <= 1) return null;
+  // No non-null groups → no filtering needed
+  if (groupDates.size === 0) return { activeGroup: null, includeNullGroup: true };
 
+  // Find the group with the latest max date
   let latestGroup = "";
   let latestDate = new Date(0);
-  for (const [group, date] of groupDates) {
-    if (date > latestDate) {
-      latestDate = date;
+  for (const [group, dates] of groupDates) {
+    if (dates.max > latestDate) {
+      latestDate = dates.max;
       latestGroup = group;
     }
   }
 
-  return latestGroup;
+  // No null-group matches → only filter if multiple non-null groups exist
+  if (!nullGroupMax) {
+    if (groupDates.size <= 1) return { activeGroup: null, includeNullGroup: true };
+    return { activeGroup: latestGroup, includeNullGroup: true };
+  }
+
+  // Null-group matches exist. Are they stale?
+  // They're stale if their latest date is before the active group's earliest date.
+  const activeGroupDates = groupDates.get(latestGroup)!;
+  const nullGroupIsStale = nullGroupMax < activeGroupDates.min;
+
+  if (groupDates.size > 1 || nullGroupIsStale) {
+    return { activeGroup: latestGroup, includeNullGroup: !nullGroupIsStale };
+  }
+
+  // Single non-null group with current null-group matches → no filtering needed
+  return { activeGroup: null, includeNullGroup: true };
 }
 
 /**

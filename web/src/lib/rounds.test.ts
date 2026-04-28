@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getRoundLabel, buildRounds, parseRoundKey, getActiveGroup } from "./rounds";
+import { getRoundLabel, buildRounds, parseRoundKey, getActiveGroupInfo } from "./rounds";
 
 // ---------------------------------------------------------------------------
 // getRoundLabel
@@ -148,46 +148,100 @@ describe("parseRoundKey", () => {
 });
 
 // ---------------------------------------------------------------------------
-// getActiveGroup
+// getActiveGroupInfo
 // ---------------------------------------------------------------------------
 
-describe("getActiveGroup", () => {
-  it("returns null when only one group exists", () => {
+describe("getActiveGroupInfo", () => {
+  it("returns null activeGroup when only one group exists (no null-group)", () => {
     const matches = [
       { group: "Clausura", kickoffTime: "2026-01-15T00:00:00Z" },
       { group: "Clausura", kickoffTime: "2026-02-15T00:00:00Z" },
     ];
-    expect(getActiveGroup(matches)).toBeNull();
+    const result = getActiveGroupInfo(matches);
+    expect(result.activeGroup).toBeNull();
+    expect(result.includeNullGroup).toBe(true);
   });
 
-  it("returns null when no groups exist", () => {
+  it("returns null activeGroup when no groups exist", () => {
     const matches = [
       { group: null, kickoffTime: "2026-01-15T00:00:00Z" },
       { group: null, kickoffTime: "2026-02-15T00:00:00Z" },
     ];
-    expect(getActiveGroup(matches)).toBeNull();
+    const result = getActiveGroupInfo(matches);
+    expect(result.activeGroup).toBeNull();
+    expect(result.includeNullGroup).toBe(true);
   });
 
-  it("returns null for empty array", () => {
-    expect(getActiveGroup([])).toBeNull();
+  it("returns null activeGroup for empty array", () => {
+    const result = getActiveGroupInfo([]);
+    expect(result.activeGroup).toBeNull();
+    expect(result.includeNullGroup).toBe(true);
   });
 
-  it("returns the group with the most recent kickoff", () => {
+  it("returns the group with the most recent kickoff when multiple groups", () => {
     const matches = [
       { group: "Apertura", kickoffTime: "2025-07-15T00:00:00Z" },
       { group: "Apertura", kickoffTime: "2025-12-10T00:00:00Z" },
       { group: "Clausura", kickoffTime: "2026-01-15T00:00:00Z" },
       { group: "Clausura", kickoffTime: "2026-05-20T00:00:00Z" },
     ];
-    expect(getActiveGroup(matches)).toBe("Clausura");
+    const result = getActiveGroupInfo(matches);
+    expect(result.activeGroup).toBe("Clausura");
+    expect(result.includeNullGroup).toBe(true);
   });
 
-  it("ignores null-group matches when determining active group", () => {
+  it("excludes stale null-group matches (dates before active group)", () => {
+    const matches = [
+      // Stale null-group matches from old sub-tournament
+      { group: null, kickoffTime: "2025-11-20T00:00:00Z" },
+      { group: null, kickoffTime: "2025-12-15T00:00:00Z" },
+      // Current sub-tournament
+      { group: "Clausura", kickoffTime: "2026-01-10T00:00:00Z" },
+      { group: "Clausura", kickoffTime: "2026-04-27T00:00:00Z" },
+    ];
+    const result = getActiveGroupInfo(matches);
+    expect(result.activeGroup).toBe("Clausura");
+    expect(result.includeNullGroup).toBe(false);
+  });
+
+  it("includes current null-group matches (dates overlap active group)", () => {
+    const matches = [
+      // League Stage with prefix
+      { group: "League Stage", kickoffTime: "2025-09-15T00:00:00Z" },
+      { group: "League Stage", kickoffTime: "2026-01-20T00:00:00Z" },
+      // Knockout rounds without prefix (current, dates after league stage)
+      { group: null, kickoffTime: "2026-02-15T00:00:00Z" },
+      { group: null, kickoffTime: "2026-03-10T00:00:00Z" },
+    ];
+    const result = getActiveGroupInfo(matches);
+    // Single non-null group with current null-group → no filtering needed
+    expect(result.activeGroup).toBeNull();
+    expect(result.includeNullGroup).toBe(true);
+  });
+
+  it("handles multiple groups with stale null-group matches", () => {
+    const matches = [
+      { group: null, kickoffTime: "2025-06-01T00:00:00Z" },
+      { group: "Apertura", kickoffTime: "2025-07-15T00:00:00Z" },
+      { group: "Apertura", kickoffTime: "2025-12-10T00:00:00Z" },
+      { group: "Clausura", kickoffTime: "2026-01-15T00:00:00Z" },
+      { group: "Clausura", kickoffTime: "2026-05-20T00:00:00Z" },
+    ];
+    const result = getActiveGroupInfo(matches);
+    expect(result.activeGroup).toBe("Clausura");
+    expect(result.includeNullGroup).toBe(false);
+  });
+
+  it("handles multiple groups with current null-group matches", () => {
     const matches = [
       { group: "Apertura", kickoffTime: "2025-07-15T00:00:00Z" },
       { group: "Clausura", kickoffTime: "2026-01-15T00:00:00Z" },
-      { group: null, kickoffTime: "2026-06-01T00:00:00Z" },
+      { group: "Clausura", kickoffTime: "2026-04-20T00:00:00Z" },
+      // Null-group after Clausura start → current
+      { group: null, kickoffTime: "2026-05-01T00:00:00Z" },
     ];
-    expect(getActiveGroup(matches)).toBe("Clausura");
+    const result = getActiveGroupInfo(matches);
+    expect(result.activeGroup).toBe("Clausura");
+    expect(result.includeNullGroup).toBe(true);
   });
 });
