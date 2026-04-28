@@ -53,13 +53,20 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       select: { matchDay: true, stage: true, kickoffTime: true, group: true },
       orderBy: { kickoffTime: "asc" },
     });
-    const { activeGroup, includeNullGroup } = getActiveGroupInfo(allContestMatches);
+    const { activeGroup, nullGroupCutoff } = getActiveGroupInfo(allContestMatches);
 
-    // Filter to active sub-tournament matches for building rounds
+    // Filter to active sub-tournament matches for building rounds.
+    // Null-group matches (playoff rounds without a prefix) are included only
+    // if their kickoff is on or after the active group's MD1 date.
     const activeMatches = activeGroup
-      ? allContestMatches.filter(
-          (m) => m.group === activeGroup || (m.group === null && includeNullGroup),
-        )
+      ? allContestMatches.filter((m) => {
+          if (m.group === activeGroup) return true;
+          if (m.group === null && nullGroupCutoff) {
+            return new Date(m.kickoffTime) >= nullGroupCutoff;
+          }
+          if (m.group === null && !nullGroupCutoff) return true;
+          return false;
+        })
       : allContestMatches;
 
     const rounds = buildRounds(activeMatches);
@@ -67,10 +74,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Build filter — always scoped to the active sub-tournament
     const where: Record<string, unknown> = { contestId: group.contestId };
     if (activeGroup) {
-      if (includeNullGroup) {
-        where.OR = [{ group: activeGroup }, { group: null }];
+      if (nullGroupCutoff) {
+        // Include active group's matches + null-group matches after cutoff
+        where.OR = [{ group: activeGroup }, { group: null, kickoffTime: { gte: nullGroupCutoff } }];
       } else {
-        where.group = activeGroup;
+        where.OR = [{ group: activeGroup }, { group: null }];
       }
     }
     if (matchDay) {
@@ -151,6 +159,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       matchDays: availableMatchDays,
       rounds,
       currentMatchDay: matchDay ? parseInt(matchDay, 10) : null,
+      _debug: { activeGroup, nullGroupCutoff, totalMatches: allContestMatches.length },
     });
   } catch (error) {
     console.error("Failed to fetch group matches:", error);

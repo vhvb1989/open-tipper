@@ -94,40 +94,40 @@ export function buildRounds(
  * `activeGroup` — the sub-tournament prefix to filter to, or `null` if no
  * filtering is needed.
  *
- * `includeNullGroup` — whether matches with `group = null` should be kept.
- * Stale null-group matches (from an older sub-tournament) are excluded;
- * current ones (e.g. standalone knockout rounds) are kept.
+ * `nullGroupCutoff` — when set, only null-group matches with kickoff on or
+ * after this date should be included. Null-group matches before this date
+ * are stale leftovers from a previous sub-tournament. When `null`, all
+ * null-group matches are included (or excluded via `activeGroup`).
  */
 export interface ActiveGroupResult {
   activeGroup: string | null;
-  includeNullGroup: boolean;
+  nullGroupCutoff: Date | null;
 }
 
 /**
- * Determine the active sub-tournament group prefix and whether null-group
- * matches should be included.
+ * Determine the active sub-tournament group prefix and a date cutoff for
+ * null-group matches.
  *
  * Leagues like Liga MX run two tournaments per season (Apertura, Clausura)
  * within the same API-Football "season". The `group` column stores the
- * round prefix (e.g. "Clausura"). This function finds which prefix has
- * the most recent kickoff date and decides whether null-group matches
- * (rounds without a prefix, like standalone "Quarter-finals") are stale
- * leftovers or current knockout rounds.
+ * round prefix (e.g. "Clausura"). Playoff rounds often lack a prefix
+ * (e.g. "Quarter-finals" → group = null), making it impossible to tell
+ * which sub-tournament they belong to by name alone.
  *
- * Null-group matches are considered stale when their latest date is before
- * the active group's earliest date — they belong to a previous
- * sub-tournament that was never cleaned up.
+ * The heuristic: use the active group's earliest match date (MD 1) as a
+ * cutoff. Null-group matches on or after that date belong to the current
+ * sub-tournament; those before it are stale leftovers.
  */
 export function getActiveGroupInfo(
   matches: Array<{ group: string | null; kickoffTime: Date | string }>,
 ): ActiveGroupResult {
   const groupDates = new Map<string, { min: Date; max: Date }>();
-  let nullGroupMax: Date | null = null;
+  let hasNullGroup = false;
 
   for (const m of matches) {
     const d = new Date(m.kickoffTime);
     if (!m.group) {
-      if (!nullGroupMax || d > nullGroupMax) nullGroupMax = d;
+      hasNullGroup = true;
       continue;
     }
     const existing = groupDates.get(m.group);
@@ -140,7 +140,7 @@ export function getActiveGroupInfo(
   }
 
   // No non-null groups → no filtering needed
-  if (groupDates.size === 0) return { activeGroup: null, includeNullGroup: true };
+  if (groupDates.size === 0) return { activeGroup: null, nullGroupCutoff: null };
 
   // Find the group with the latest max date
   let latestGroup = "";
@@ -152,23 +152,22 @@ export function getActiveGroupInfo(
     }
   }
 
-  // No null-group matches → only filter if multiple non-null groups exist
-  if (!nullGroupMax) {
-    if (groupDates.size <= 1) return { activeGroup: null, includeNullGroup: true };
-    return { activeGroup: latestGroup, includeNullGroup: true };
+  // No null-group matches → only filter between non-null groups
+  if (!hasNullGroup) {
+    if (groupDates.size <= 1) return { activeGroup: null, nullGroupCutoff: null };
+    return { activeGroup: latestGroup, nullGroupCutoff: null };
   }
 
-  // Null-group matches exist. Are they stale?
-  // They're stale if their latest date is before the active group's earliest date.
+  // Null-group matches exist — use the active group's earliest date as cutoff.
+  // Null-group matches before that date are from the previous sub-tournament.
   const activeGroupDates = groupDates.get(latestGroup)!;
-  const nullGroupIsStale = nullGroupMax < activeGroupDates.min;
 
-  if (groupDates.size > 1 || nullGroupIsStale) {
-    return { activeGroup: latestGroup, includeNullGroup: !nullGroupIsStale };
+  if (groupDates.size > 1) {
+    return { activeGroup: latestGroup, nullGroupCutoff: activeGroupDates.min };
   }
 
-  // Single non-null group with current null-group matches → no filtering needed
-  return { activeGroup: null, includeNullGroup: true };
+  // Single non-null group + null-group matches → apply cutoff
+  return { activeGroup: latestGroup, nullGroupCutoff: activeGroupDates.min };
 }
 
 /**

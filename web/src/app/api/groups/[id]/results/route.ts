@@ -62,7 +62,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       where: { contestId: group.contestId },
       select: { group: true, kickoffTime: true },
     });
-    const { activeGroup, includeNullGroup } = getActiveGroupInfo(allContestMatches);
+    const { activeGroup, nullGroupCutoff } = getActiveGroupInfo(allContestMatches);
 
     // Build unified rounds list from played matches in the active sub-tournament
     const playedWhere: Record<string, unknown> = {
@@ -70,10 +70,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       status: { in: ["FINISHED", "AWARDED", "IN_PLAY", "PAUSED"] },
     };
     if (activeGroup) {
-      if (includeNullGroup) {
-        playedWhere.OR = [{ group: activeGroup }, { group: null }];
+      if (nullGroupCutoff) {
+        playedWhere.OR = [
+          { group: activeGroup },
+          { group: null, kickoffTime: { gte: nullGroupCutoff } },
+        ];
       } else {
-        playedWhere.group = activeGroup;
+        playedWhere.OR = [{ group: activeGroup }, { group: null }];
       }
     }
     const allPlayedMatches = await prisma.match.findMany({
@@ -114,10 +117,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       status: { in: ["FINISHED", "AWARDED", "IN_PLAY", "PAUSED"] },
     };
     if (activeGroup) {
-      if (includeNullGroup) {
-        matchWhere.OR = [{ group: activeGroup }, { group: null }];
+      if (nullGroupCutoff) {
+        matchWhere.OR = [
+          { group: activeGroup },
+          { group: null, kickoffTime: { gte: nullGroupCutoff } },
+        ];
       } else {
-        matchWhere.group = activeGroup;
+        matchWhere.OR = [{ group: activeGroup }, { group: null }];
       }
     }
     if (effectiveMatchDay !== null) {

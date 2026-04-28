@@ -159,7 +159,7 @@ describe("getActiveGroupInfo", () => {
     ];
     const result = getActiveGroupInfo(matches);
     expect(result.activeGroup).toBeNull();
-    expect(result.includeNullGroup).toBe(true);
+    expect(result.nullGroupCutoff).toBeNull();
   });
 
   it("returns null activeGroup when no groups exist", () => {
@@ -169,13 +169,13 @@ describe("getActiveGroupInfo", () => {
     ];
     const result = getActiveGroupInfo(matches);
     expect(result.activeGroup).toBeNull();
-    expect(result.includeNullGroup).toBe(true);
+    expect(result.nullGroupCutoff).toBeNull();
   });
 
   it("returns null activeGroup for empty array", () => {
     const result = getActiveGroupInfo([]);
     expect(result.activeGroup).toBeNull();
-    expect(result.includeNullGroup).toBe(true);
+    expect(result.nullGroupCutoff).toBeNull();
   });
 
   it("returns the group with the most recent kickoff when multiple groups", () => {
@@ -187,41 +187,45 @@ describe("getActiveGroupInfo", () => {
     ];
     const result = getActiveGroupInfo(matches);
     expect(result.activeGroup).toBe("Clausura");
-    expect(result.includeNullGroup).toBe(true);
+    expect(result.nullGroupCutoff).toBeNull();
   });
 
-  it("excludes stale null-group matches (dates before active group)", () => {
+  it("sets cutoff to active group's MD1 when null-group matches exist (single group)", () => {
     const matches = [
       // Stale null-group matches from old sub-tournament
       { group: null, kickoffTime: "2025-11-20T00:00:00Z" },
       { group: null, kickoffTime: "2025-12-15T00:00:00Z" },
-      // Current sub-tournament
+      // Current null-group playoff (after MD1)
+      { group: null, kickoffTime: "2026-05-01T00:00:00Z" },
+      // Current sub-tournament regular season
       { group: "Clausura", kickoffTime: "2026-01-10T00:00:00Z" },
       { group: "Clausura", kickoffTime: "2026-04-27T00:00:00Z" },
     ];
     const result = getActiveGroupInfo(matches);
     expect(result.activeGroup).toBe("Clausura");
-    expect(result.includeNullGroup).toBe(false);
+    // Cutoff = Clausura's earliest date (MD1)
+    expect(result.nullGroupCutoff).toEqual(new Date("2026-01-10T00:00:00Z"));
   });
 
-  it("includes current null-group matches (dates overlap active group)", () => {
+  it("cutoff filters stale null-group but keeps current ones", () => {
     const matches = [
-      // League Stage with prefix
-      { group: "League Stage", kickoffTime: "2025-09-15T00:00:00Z" },
-      { group: "League Stage", kickoffTime: "2026-01-20T00:00:00Z" },
-      // Knockout rounds without prefix (current, dates after league stage)
-      { group: null, kickoffTime: "2026-02-15T00:00:00Z" },
-      { group: null, kickoffTime: "2026-03-10T00:00:00Z" },
+      { group: null, kickoffTime: "2025-12-15T00:00:00Z" }, // stale (before MD1)
+      { group: null, kickoffTime: "2026-05-01T00:00:00Z" }, // current (after MD1)
+      { group: "Clausura", kickoffTime: "2026-01-10T00:00:00Z" },
+      { group: "Clausura", kickoffTime: "2026-04-27T00:00:00Z" },
     ];
     const result = getActiveGroupInfo(matches);
-    // Single non-null group with current null-group → no filtering needed
-    expect(result.activeGroup).toBeNull();
-    expect(result.includeNullGroup).toBe(true);
+    const cutoff = result.nullGroupCutoff!;
+    // Stale match is before cutoff
+    expect(new Date("2025-12-15T00:00:00Z") >= cutoff).toBe(false);
+    // Current match is after cutoff
+    expect(new Date("2026-05-01T00:00:00Z") >= cutoff).toBe(true);
   });
 
-  it("handles multiple groups with stale null-group matches", () => {
+  it("sets cutoff when multiple groups + null-group matches", () => {
     const matches = [
       { group: null, kickoffTime: "2025-06-01T00:00:00Z" },
+      { group: null, kickoffTime: "2026-05-10T00:00:00Z" },
       { group: "Apertura", kickoffTime: "2025-07-15T00:00:00Z" },
       { group: "Apertura", kickoffTime: "2025-12-10T00:00:00Z" },
       { group: "Clausura", kickoffTime: "2026-01-15T00:00:00Z" },
@@ -229,19 +233,33 @@ describe("getActiveGroupInfo", () => {
     ];
     const result = getActiveGroupInfo(matches);
     expect(result.activeGroup).toBe("Clausura");
-    expect(result.includeNullGroup).toBe(false);
+    expect(result.nullGroupCutoff).toEqual(new Date("2026-01-15T00:00:00Z"));
   });
 
-  it("handles multiple groups with current null-group matches", () => {
+  it("includes null-group for tournaments without sub-tournament prefixes", () => {
+    // World Cup style: "Group A", "Round of 16" etc. — all null group
     const matches = [
-      { group: "Apertura", kickoffTime: "2025-07-15T00:00:00Z" },
-      { group: "Clausura", kickoffTime: "2026-01-15T00:00:00Z" },
-      { group: "Clausura", kickoffTime: "2026-04-20T00:00:00Z" },
-      // Null-group after Clausura start → current
-      { group: null, kickoffTime: "2026-05-01T00:00:00Z" },
+      { group: null, kickoffTime: "2026-06-01T00:00:00Z" },
+      { group: null, kickoffTime: "2026-07-15T00:00:00Z" },
     ];
     const result = getActiveGroupInfo(matches);
-    expect(result.activeGroup).toBe("Clausura");
-    expect(result.includeNullGroup).toBe(true);
+    expect(result.activeGroup).toBeNull();
+    expect(result.nullGroupCutoff).toBeNull();
+  });
+
+  it("includes null-group for Champions League style (League Stage + knockout)", () => {
+    const matches = [
+      { group: "League Stage", kickoffTime: "2025-09-15T00:00:00Z" },
+      { group: "League Stage", kickoffTime: "2026-01-20T00:00:00Z" },
+      // Knockout rounds without prefix — dates after League Stage start
+      { group: null, kickoffTime: "2026-02-15T00:00:00Z" },
+      { group: null, kickoffTime: "2026-03-10T00:00:00Z" },
+    ];
+    const result = getActiveGroupInfo(matches);
+    // Single group + null-group → activeGroup set, cutoff at League Stage MD1
+    expect(result.activeGroup).toBe("League Stage");
+    expect(result.nullGroupCutoff).toEqual(new Date("2025-09-15T00:00:00Z"));
+    // Both null-group matches are after cutoff → included
+    expect(new Date("2026-02-15T00:00:00Z") >= result.nullGroupCutoff!).toBe(true);
   });
 });
