@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
-import { buildRounds, getActiveGroupInfo } from "@/lib/rounds";
+import { buildRounds } from "@/lib/rounds";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -72,13 +72,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         },
       },
     });
-
-    // Determine active sub-tournament (e.g. Clausura vs Apertura)
-    const allContestMatches = await prisma.match.findMany({
-      where: { contestId: group.contestId },
-      select: { group: true, kickoffTime: true },
-    });
-    const { activeGroup, nullGroupCutoff } = getActiveGroupInfo(allContestMatches);
 
     // Build unified rounds list from scored matches
     const scoredMatchData = predictions.map((p) => ({

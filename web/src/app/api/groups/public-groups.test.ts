@@ -219,6 +219,7 @@ describe("Public Group Access", () => {
         { user: { id: "u1", name: "Alice", image: null }, role: "ADMIN" },
       ]);
       mockPrisma.prediction.findMany.mockResolvedValue([]);
+      mockPrisma.match.findMany.mockResolvedValue([]);
 
       const { GET } = await import("@/app/api/groups/[id]/standings/route");
       const req = new NextRequest("http://localhost:3000/api/groups/public-group/standings");

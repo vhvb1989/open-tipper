@@ -73,6 +73,7 @@ describe("Standings API — GET /api/groups/:id/standings", () => {
       { user: { id: "user-2", name: "Bob", image: null }, role: "MEMBER" },
     ]);
     mockPrisma.prediction.findMany.mockResolvedValue([]);
+    mockPrisma.match.findMany.mockResolvedValue([]);
 
     const { GET } = await import("@/app/api/groups/[id]/standings/route");
     const req = new NextRequest("http://localhost:3000/api/groups/group-1/standings");
@@ -96,13 +97,30 @@ describe("Standings API — GET /api/groups/:id/standings", () => {
     ]);
     mockPrisma.prediction.findMany.mockResolvedValue([
       // Alice: 10 + 5 = 15 total, MD1 + MD2
-      { userId: "user-1", pointsAwarded: 10, match: { matchDay: 1 } },
-      { userId: "user-1", pointsAwarded: 5, match: { matchDay: 2 } },
+      {
+        userId: "user-1",
+        pointsAwarded: 10,
+        match: { matchDay: 1, stage: null, kickoffTime: new Date("2025-06-01T18:00:00Z") },
+      },
+      {
+        userId: "user-1",
+        pointsAwarded: 5,
+        match: { matchDay: 2, stage: null, kickoffTime: new Date("2025-06-08T18:00:00Z") },
+      },
       // Bob: 20 total, MD1
-      { userId: "user-2", pointsAwarded: 20, match: { matchDay: 1 } },
+      {
+        userId: "user-2",
+        pointsAwarded: 20,
+        match: { matchDay: 1, stage: null, kickoffTime: new Date("2025-06-01T18:00:00Z") },
+      },
       // Charlie: 3 total, MD2
-      { userId: "user-3", pointsAwarded: 3, match: { matchDay: 2 } },
+      {
+        userId: "user-3",
+        pointsAwarded: 3,
+        match: { matchDay: 2, stage: null, kickoffTime: new Date("2025-06-08T18:00:00Z") },
+      },
     ]);
+    mockPrisma.match.findMany.mockResolvedValue([]);
 
     const { GET } = await import("@/app/api/groups/[id]/standings/route");
     const req = new NextRequest("http://localhost:3000/api/groups/group-1/standings");
@@ -132,10 +150,23 @@ describe("Standings API — GET /api/groups/:id/standings", () => {
     ]);
     mockPrisma.prediction.findMany.mockResolvedValue([
       // Both have 10 points total
-      { userId: "user-1", pointsAwarded: 5, match: { matchDay: 1 } },
-      { userId: "user-1", pointsAwarded: 5, match: { matchDay: 2 } },
-      { userId: "user-2", pointsAwarded: 10, match: { matchDay: 1 } },
+      {
+        userId: "user-1",
+        pointsAwarded: 5,
+        match: { matchDay: 1, stage: null, kickoffTime: new Date("2025-06-01T18:00:00Z") },
+      },
+      {
+        userId: "user-1",
+        pointsAwarded: 5,
+        match: { matchDay: 2, stage: null, kickoffTime: new Date("2025-06-08T18:00:00Z") },
+      },
+      {
+        userId: "user-2",
+        pointsAwarded: 10,
+        match: { matchDay: 1, stage: null, kickoffTime: new Date("2025-06-01T18:00:00Z") },
+      },
     ]);
+    mockPrisma.match.findMany.mockResolvedValue([]);
 
     const { GET } = await import("@/app/api/groups/[id]/standings/route");
     const req = new NextRequest("http://localhost:3000/api/groups/group-1/standings");
@@ -157,10 +188,23 @@ describe("Standings API — GET /api/groups/:id/standings", () => {
       { user: { id: "user-1", name: "Alice", image: null }, role: "ADMIN" },
     ]);
     mockPrisma.prediction.findMany.mockResolvedValue([
-      { userId: "user-1", pointsAwarded: 10, match: { matchDay: 1 } },
-      { userId: "user-1", pointsAwarded: 7, match: { matchDay: 2 } },
-      { userId: "user-1", pointsAwarded: 3, match: { matchDay: 3 } },
+      {
+        userId: "user-1",
+        pointsAwarded: 10,
+        match: { matchDay: 1, stage: null, kickoffTime: new Date("2025-06-01T18:00:00Z") },
+      },
+      {
+        userId: "user-1",
+        pointsAwarded: 7,
+        match: { matchDay: 2, stage: null, kickoffTime: new Date("2025-06-08T18:00:00Z") },
+      },
+      {
+        userId: "user-1",
+        pointsAwarded: 3,
+        match: { matchDay: 3, stage: null, kickoffTime: new Date("2025-06-15T18:00:00Z") },
+      },
     ]);
+    mockPrisma.match.findMany.mockResolvedValue([]);
 
     const { GET } = await import("@/app/api/groups/[id]/standings/route");
     const req = new NextRequest("http://localhost:3000/api/groups/group-1/standings");
@@ -181,9 +225,18 @@ describe("Standings API — GET /api/groups/:id/standings", () => {
       { user: { id: "user-1", name: "Alice", image: null }, role: "ADMIN" },
     ]);
     mockPrisma.prediction.findMany.mockResolvedValue([
-      { userId: "user-1", pointsAwarded: 10, match: { matchDay: 1 } },
-      { userId: "user-1", pointsAwarded: 7, match: { matchDay: 2 } },
+      {
+        userId: "user-1",
+        pointsAwarded: 10,
+        match: { matchDay: 1, stage: null, kickoffTime: new Date("2025-06-01T18:00:00Z") },
+      },
+      {
+        userId: "user-1",
+        pointsAwarded: 7,
+        match: { matchDay: 2, stage: null, kickoffTime: new Date("2025-06-08T18:00:00Z") },
+      },
     ]);
+    mockPrisma.match.findMany.mockResolvedValue([]);
 
     const { GET } = await import("@/app/api/groups/[id]/standings/route");
     const req = new NextRequest("http://localhost:3000/api/groups/group-1/standings?matchDay=1");
@@ -203,10 +256,23 @@ describe("Standings API — GET /api/groups/:id/standings", () => {
       { user: { id: "user-1", name: "Alice", image: null }, role: "ADMIN" },
     ]);
     mockPrisma.prediction.findMany.mockResolvedValue([
-      { userId: "user-1", pointsAwarded: 5, match: { matchDay: 3 } },
-      { userId: "user-1", pointsAwarded: 5, match: { matchDay: 1 } },
-      { userId: "user-1", pointsAwarded: 5, match: { matchDay: 5 } },
+      {
+        userId: "user-1",
+        pointsAwarded: 5,
+        match: { matchDay: 3, stage: null, kickoffTime: new Date("2025-06-15T18:00:00Z") },
+      },
+      {
+        userId: "user-1",
+        pointsAwarded: 5,
+        match: { matchDay: 1, stage: null, kickoffTime: new Date("2025-06-01T18:00:00Z") },
+      },
+      {
+        userId: "user-1",
+        pointsAwarded: 5,
+        match: { matchDay: 5, stage: null, kickoffTime: new Date("2025-06-29T18:00:00Z") },
+      },
     ]);
+    mockPrisma.match.findMany.mockResolvedValue([]);
 
     const { GET } = await import("@/app/api/groups/[id]/standings/route");
     const req = new NextRequest("http://localhost:3000/api/groups/group-1/standings");
