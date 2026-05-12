@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { useLive } from "./LiveProvider";
 import { useTranslation } from "@/i18n/TranslationProvider";
+import type { Round } from "@/lib/rounds";
 
 /* ---------- Types ---------- */
 
@@ -55,8 +56,8 @@ export default function StandingsTab({
   currentUserId: string;
 }) {
   const [standings, setStandings] = useState<StandingEntry[]>([]);
-  const [matchDays, setMatchDays] = useState<number[]>([]);
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [rounds, setRounds] = useState<Round[]>([]);
+  const [selectedRoundKey, setSelectedRoundKey] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortField>("totalPoints");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,20 +65,22 @@ export default function StandingsTab({
   const { t } = useTranslation();
 
   const fetchStandings = useCallback(
-    async (matchDay?: number | null) => {
+    async (round?: Round | null) => {
       setLoading(true);
       try {
-        const url =
-          matchDay != null
-            ? `/api/groups/${groupId}/standings?matchDay=${matchDay}`
-            : `/api/groups/${groupId}/standings`;
+        let url = `/api/groups/${groupId}/standings`;
+        if (round?.type === "matchDay" && round.matchDay != null) {
+          url += `?matchDay=${round.matchDay}`;
+        } else if (round?.type === "playoff" && round.stage) {
+          url += `?stage=${encodeURIComponent(round.stage)}`;
+        }
         const res = await fetch(url);
         if (!res.ok) throw new Error("Failed to fetch standings");
         const data = await res.json();
         setStandings(data.standings);
-        setMatchDays(data.matchDays);
-        if (selectedDay === null && data.selectedMatchDay != null) {
-          setSelectedDay(data.selectedMatchDay);
+        if (data.rounds) setRounds(data.rounds);
+        if (selectedRoundKey === null && data.selectedRoundKey != null) {
+          setSelectedRoundKey(data.selectedRoundKey);
         }
       } catch (err) {
         console.error("Failed to load standings:", err);
@@ -86,7 +89,7 @@ export default function StandingsTab({
         setLoading(false);
       }
     },
-    [groupId, selectedDay],
+    [groupId, selectedRoundKey],
   );
 
   useEffect(() => {
@@ -97,14 +100,15 @@ export default function StandingsTab({
   // Auto-refresh when predictions are scored (via SSE)
   useEffect(() => {
     if (scoresVersion > 0) {
-      fetchStandings(selectedDay);
+      const round = rounds.find((r) => r.key === selectedRoundKey) ?? null;
+      fetchStandings(round);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scoresVersion]);
 
-  const handleDayChange = (day: number) => {
-    setSelectedDay(day);
-    fetchStandings(day);
+  const handleRoundChange = (round: Round) => {
+    setSelectedRoundKey(round.key);
+    fetchStandings(round);
   };
 
   const toggleSort = (field: SortField) => {
@@ -163,7 +167,8 @@ export default function StandingsTab({
           <button
             onClick={() => {
               setError(null);
-              fetchStandings(selectedDay);
+              const round = rounds.find((r) => r.key === selectedRoundKey) ?? null;
+              fetchStandings(round);
             }}
             className="ml-2 underline"
           >
@@ -172,20 +177,25 @@ export default function StandingsTab({
         </div>
       )}
 
-      {/* Match-day filter */}
-      {matchDays.length > 0 && (
+      {/* Round filter */}
+      {rounds.length > 0 && (
         <div className="mb-4 flex items-center gap-3">
           <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
             {t("standings.lastRound")}
           </label>
           <select
-            value={selectedDay ?? ""}
-            onChange={(e) => handleDayChange(Number(e.target.value))}
+            value={selectedRoundKey ?? ""}
+            onChange={(e) => {
+              const round = rounds.find((r) => r.key === e.target.value);
+              if (round) handleRoundChange(round);
+            }}
             className="rounded border border-zinc-300 bg-white px-2 py-1 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
           >
-            {matchDays.map((d) => (
-              <option key={d} value={d}>
-                {t("standings.matchDay", { n: d })}
+            {rounds.map((r) => (
+              <option key={r.key} value={r.key}>
+                {r.type === "matchDay"
+                  ? t("standings.matchDay", { n: r.matchDay ?? 0 })
+                  : r.label}
               </option>
             ))}
           </select>

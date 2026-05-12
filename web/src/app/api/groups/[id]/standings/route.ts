@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { buildRounds, getActiveGroupInfo } from "@/lib/rounds";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -9,7 +10,10 @@ type RouteParams = { params: Promise<{ id: string }> };
  *
  * Returns a ranked leaderboard for the group. Aggregates pointsAwarded
  * from all scored predictions per member. Includes total points, number of
- * predictions scored, and per-match-day breakdown for "last round" display.
+ * predictions scored, and per-round breakdown for "last round" display.
+ *
+ * Supports both numeric match days and playoff stages via the unified
+ * Round system. Accepts `matchDay` or `stage` query params for filtering.
  *
  * Public groups: visible to anyone (auth optional).
  * Private groups: visible to members only.
@@ -21,7 +25,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const { id: groupId } = await params;
     const { searchParams } = new URL(request.url);
-    const matchDay = searchParams.get("matchDay");
+    const matchDayParam = searchParams.get("matchDay");
+    const stageParam = searchParams.get("stage");
 
     // Get the group with contest info and visibility
     const group = await prisma.group.findUnique({
@@ -53,7 +58,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       },
     });
 
-    // Get all scored predictions (with match info for match-day breakdown)
+    // Get all scored predictions (with match info for round breakdown)
     const predictions = await prisma.prediction.findMany({
       where: {
         groupId,
@@ -63,21 +68,50 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         userId: true,
         pointsAwarded: true,
         match: {
-          select: { matchDay: true },
+          select: { matchDay: true, stage: true, kickoffTime: true },
         },
       },
     });
 
-    // Determine the latest match day that has been scored
-    const scoredMatchDays = new Set<number>();
-    for (const p of predictions) {
-      if (p.match.matchDay != null) {
-        scoredMatchDays.add(p.match.matchDay);
+    // Determine active sub-tournament (e.g. Clausura vs Apertura)
+    const allContestMatches = await prisma.match.findMany({
+      where: { contestId: group.contestId },
+      select: { group: true, kickoffTime: true },
+    });
+    const { activeGroup, nullGroupCutoff } = getActiveGroupInfo(allContestMatches);
+
+    // Build unified rounds list from scored matches
+    const scoredMatchData = predictions.map((p) => ({
+      matchDay: p.match.matchDay,
+      stage: p.match.stage,
+      kickoffTime: p.match.kickoffTime,
+    }));
+    const rounds = buildRounds(scoredMatchData);
+
+    // Legacy: numeric matchDays for backward compat
+    const sortedMatchDays = rounds
+      .filter((r) => r.type === "matchDay")
+      .map((r) => r.matchDay!)
+      .sort((a, b) => a - b);
+    const latestMatchDay = sortedMatchDays[sortedMatchDays.length - 1] ?? null;
+
+    // Determine which round is selected
+    let selectedMatchDay: number | null = null;
+    let selectedStage: string | null = null;
+
+    if (matchDayParam) {
+      selectedMatchDay = parseInt(matchDayParam, 10);
+    } else if (stageParam) {
+      selectedStage = stageParam;
+    } else if (rounds.length > 0) {
+      // Default to the latest round (last by kickoff order)
+      const latestRound = rounds[rounds.length - 1];
+      if (latestRound.type === "matchDay") {
+        selectedMatchDay = latestRound.matchDay;
+      } else {
+        selectedStage = latestRound.stage;
       }
     }
-    const sortedMatchDays = [...scoredMatchDays].sort((a, b) => a - b);
-    const latestMatchDay = sortedMatchDays[sortedMatchDays.length - 1] ?? null;
-    const selectedMatchDay = matchDay ? parseInt(matchDay, 10) : latestMatchDay;
 
     // Aggregate points per user
     const totals = new Map<string, { total: number; scored: number; lastRound: number }>();
@@ -93,7 +127,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       const pts = p.pointsAwarded ?? 0;
       entry.total += pts;
       entry.scored += 1;
+      // Match against selected round (matchDay or stage)
       if (selectedMatchDay != null && p.match.matchDay === selectedMatchDay) {
+        entry.lastRound += pts;
+      } else if (selectedStage != null && p.match.stage === selectedStage) {
         entry.lastRound += pts;
       }
     }
@@ -198,11 +235,21 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         ...entry,
       }));
 
+    // Determine the selected round key for the client
+    let selectedRoundKey: string | null = null;
+    if (selectedMatchDay != null) {
+      selectedRoundKey = `md:${selectedMatchDay}`;
+    } else if (selectedStage != null) {
+      selectedRoundKey = `stage:${selectedStage}`;
+    }
+
     return NextResponse.json({
       standings,
+      rounds,
       matchDays: sortedMatchDays,
       lastMatchDay: latestMatchDay,
       selectedMatchDay,
+      selectedRoundKey,
     });
   } catch (error) {
     console.error("Failed to fetch standings:", error);
