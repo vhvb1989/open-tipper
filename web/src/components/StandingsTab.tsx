@@ -193,9 +193,7 @@ export default function StandingsTab({
           >
             {rounds.map((r) => (
               <option key={r.key} value={r.key}>
-                {r.type === "matchDay"
-                  ? t("standings.matchDay", { n: r.matchDay ?? 0 })
-                  : r.label}
+                {r.type === "matchDay" ? t("standings.matchDay", { n: r.matchDay ?? 0 }) : r.label}
               </option>
             ))}
           </select>
