@@ -354,8 +354,21 @@ export default function PredictionsTab({
 
   /* ---- Handle input change ---- */
   const handleScoreChange = (matchId: string, side: "home" | "away", value: string) => {
-    const num = value === "" ? 0 : parseInt(value, 10);
-    if (isNaN(num) || num < 0) return;
+    // Allow empty while editing — will default to 0 on blur
+    if (value === "") {
+      const current = predictions[matchId] || { homeGoals: 0, awayGoals: 0, pointsAwarded: null };
+      setPredictions((prev) => ({
+        ...prev,
+        [matchId]: {
+          ...current,
+          [side === "home" ? "homeGoals" : "awayGoals"]: "" as unknown as number,
+        },
+      }));
+      return;
+    }
+
+    const num = parseInt(value, 10);
+    if (isNaN(num) || num < 0 || num > 99) return;
 
     const current = predictions[matchId] || { homeGoals: 0, awayGoals: 0, pointsAwarded: null };
     const updated = {
@@ -364,6 +377,25 @@ export default function PredictionsTab({
     };
     setPredictions((prev) => ({ ...prev, [matchId]: updated }));
     savePrediction(matchId, updated.homeGoals, updated.awayGoals);
+  };
+
+  /* ---- Handle blur: commit empty fields as 0 and save ---- */
+  const handleScoreBlur = (matchId: string, side: "home" | "away") => {
+    const current = predictions[matchId];
+    if (!current) return;
+
+    const fieldKey = side === "home" ? "homeGoals" : "awayGoals";
+    const val = current[fieldKey];
+    if (val === ("" as unknown as number) || val === undefined || val === null) {
+      const updated = { ...current, [fieldKey]: 0 };
+      setPredictions((prev) => ({ ...prev, [matchId]: updated }));
+      savePrediction(matchId, updated.homeGoals, updated.awayGoals);
+    }
+  };
+
+  /* ---- Select all text on focus for easy replacement ---- */
+  const handleScoreFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.select();
   };
 
   /* ---- Cleanup debounce timers ---- */
@@ -688,11 +720,13 @@ export default function PredictionsTab({
                       {/* Score inputs */}
                       <div className="flex items-center gap-1">
                         <input
-                          type="number"
-                          min={0}
-                          max={99}
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           value={pred?.homeGoals ?? ""}
                           onChange={(e) => handleScoreChange(match.id, "home", e.target.value)}
+                          onFocus={handleScoreFocus}
+                          onBlur={() => handleScoreBlur(match.id, "home")}
                           disabled={locked}
                           placeholder="-"
                           className={`h-10 w-12 rounded-lg border text-center text-lg font-bold
@@ -700,7 +734,7 @@ export default function PredictionsTab({
                         locked
                           ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500"
                           : "border-zinc-300 bg-white text-zinc-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-                      } [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
+                      }`}
                           aria-label={t("predictions.homeScore", {
                             home: match.homeTeam.name,
                             away: match.awayTeam.name,
@@ -708,11 +742,13 @@ export default function PredictionsTab({
                         />
                         <span className="mx-1 text-sm font-medium text-zinc-400">–</span>
                         <input
-                          type="number"
-                          min={0}
-                          max={99}
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           value={pred?.awayGoals ?? ""}
                           onChange={(e) => handleScoreChange(match.id, "away", e.target.value)}
+                          onFocus={handleScoreFocus}
+                          onBlur={() => handleScoreBlur(match.id, "away")}
                           disabled={locked}
                           placeholder="-"
                           className={`h-10 w-12 rounded-lg border text-center text-lg font-bold
@@ -720,7 +756,7 @@ export default function PredictionsTab({
                         locked
                           ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500"
                           : "border-zinc-300 bg-white text-zinc-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-                      } [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
+                      }`}
                           aria-label={t("predictions.awayScore", {
                             home: match.homeTeam.name,
                             away: match.awayTeam.name,
