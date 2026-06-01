@@ -10,7 +10,7 @@
 import { PrismaClient, ContestStatus, MatchStatus } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { FootballApiClient, AfFixture, AfTeamRef, SUPPORTED_COMPETITIONS } from "./football-api";
-import { scoreFinishedMatches } from "./scoring-service";
+import { scoreFinishedMatches, backfillDefaultPredictions } from "./scoring-service";
 import { awardMedalsForContest } from "./medals";
 import { scorePodiumPredictions } from "./podium-scoring";
 
@@ -155,6 +155,7 @@ export interface SyncResult {
   contestId: string;
   teamsUpserted: number;
   matchesUpserted: number;
+  predictionsBackfilled: number;
   predictionsScored: number;
   warning?: string;
 }
@@ -299,7 +300,21 @@ export async function syncCompetition(
       matchCount++;
     }
 
-    // 8. Score any finished matches that have unscored predictions
+    // 8. Backfill 0-0 default predictions for members who missed kick-off
+    let predictionsBackfilled = 0;
+    try {
+      const backfillResult = await backfillDefaultPredictions(contest.id, prisma);
+      predictionsBackfilled = backfillResult.predictionsCreated;
+      if (predictionsBackfilled > 0) {
+        console.log(
+          `  ✓ Backfilled ${predictionsBackfilled} default predictions across ${backfillResult.matchesProcessed} matches`,
+        );
+      }
+    } catch (error) {
+      console.error("  ✗ Prediction backfill failed:", error);
+    }
+
+    // 9. Score any finished matches that have unscored predictions
     let predictionsScored = 0;
     try {
       const scoringResults = await scoreFinishedMatches(contest.id, prisma);
@@ -311,7 +326,7 @@ export async function syncCompetition(
       console.error("  ✗ Scoring failed:", error);
     }
 
-    // 9. Award match-day medals for completed match days
+    // 10. Award match-day medals for completed match days
     try {
       const medalResults = await awardMedalsForContest(contest.id, prisma);
       if (medalResults.length > 0) {
@@ -322,7 +337,7 @@ export async function syncCompetition(
       console.error("  ✗ Medal awarding failed:", error);
     }
 
-    // 10. Score podium predictions (only runs when ALL matches are finished)
+    // 11. Score podium predictions (only runs when ALL matches are finished)
     let podiumScored = 0;
     try {
       const podiumResult = await scorePodiumPredictions(contest.id, prisma);
@@ -340,6 +355,7 @@ export async function syncCompetition(
       contestId: contest.id,
       teamsUpserted: teamMap.size,
       matchesUpserted: matchCount,
+      predictionsBackfilled,
       predictionsScored,
       ...(warning ? { warning } : {}),
     };

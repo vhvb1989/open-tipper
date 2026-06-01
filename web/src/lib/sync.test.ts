@@ -129,6 +129,13 @@ function makeMockDb() {
       upsert: vi.fn().mockResolvedValue({ id: "match-1" }),
       findMany: vi.fn().mockResolvedValue([]),
     },
+    prediction: {
+      findMany: vi.fn().mockResolvedValue([]),
+      createMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
+    group: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
     $disconnect: vi.fn().mockResolvedValue(undefined),
   } as unknown as PrismaClient;
 }
@@ -229,6 +236,7 @@ describe("syncCompetition", () => {
       contestId: "contest-1",
       teamsUpserted: 3,
       matchesUpserted: 2,
+      predictionsBackfilled: 0,
       predictionsScored: 0,
     });
   });

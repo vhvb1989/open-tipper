@@ -83,6 +83,7 @@ export async function GET(request: NextRequest) {
           contestName: contest.name,
           teamsUpserted: result.teamsUpserted,
           matchesUpserted: result.matchesUpserted,
+          predictionsBackfilled: result.predictionsBackfilled,
           predictionsScored: result.predictionsScored,
           warning: result.warning ?? null,
         });
