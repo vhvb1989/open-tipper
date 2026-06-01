@@ -5,6 +5,30 @@ export type Locale = "en" | "es";
 export const LOCALES: Locale[] = ["en", "es"];
 export const DEFAULT_LOCALE: Locale = "en";
 
+/**
+ * Parse the Accept-Language header and return the best matching locale.
+ * Example header: "es-MX,es;q=0.9,en-US;q=0.8,en;q=0.7"
+ */
+export function matchAcceptLanguage(acceptLanguage: string): Locale | null {
+  const entries = acceptLanguage.split(",").map((entry) => {
+    const [langTag, qParam] = entry.trim().split(";");
+    const q = qParam ? parseFloat(qParam.replace("q=", "")) : 1;
+    return { lang: langTag.trim().toLowerCase(), q };
+  });
+
+  // Sort by quality descending
+  entries.sort((a, b) => b.q - a.q);
+
+  for (const { lang } of entries) {
+    // Exact match (e.g. "es")
+    if (LOCALES.includes(lang as Locale)) return lang as Locale;
+    // Prefix match (e.g. "es-mx" → "es")
+    const prefix = lang.split("-")[0];
+    if (LOCALES.includes(prefix as Locale)) return prefix as Locale;
+  }
+  return null;
+}
+
 type Dictionary = typeof en;
 const dictionaries: Record<Locale, Dictionary> = { en, es };
 
