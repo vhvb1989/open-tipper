@@ -29,6 +29,7 @@ interface SyncResult {
   contestId: string;
   teamsUpserted: number;
   matchesUpserted: number;
+  predictionsBackfilled: number;
   predictionsScored: number;
   warning?: string;
 }
@@ -155,6 +156,8 @@ export default function AdminCompetitionsPage() {
             teams: String(syncResult.result.teamsUpserted),
             matches: String(syncResult.result.matchesUpserted),
           })}
+          {syncResult.result.predictionsBackfilled > 0 &&
+            `, ${syncResult.result.predictionsBackfilled} default predictions created`}
           {syncResult.result.predictionsScored > 0 &&
             `, ${syncResult.result.predictionsScored} predictions scored`}
           {syncResult.result.warning && (

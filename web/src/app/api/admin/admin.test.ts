@@ -174,6 +174,7 @@ describe("Admin API", () => {
         contestId: "c1",
         teamsUpserted: 20,
         matchesUpserted: 100,
+        predictionsBackfilled: 0,
         predictionsScored: 0,
       });
 

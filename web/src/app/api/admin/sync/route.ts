@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
         contestId: result.contestId,
         teamsUpserted: result.teamsUpserted,
         matchesUpserted: result.matchesUpserted,
+        predictionsBackfilled: result.predictionsBackfilled,
         predictionsScored: result.predictionsScored,
         warning: result.warning ?? null,
       },

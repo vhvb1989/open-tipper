@@ -20,10 +20,14 @@ const mockPrisma = {
   prediction: {
     findMany: vi.fn(),
     update: vi.fn(),
+    createMany: vi.fn(),
+  },
+  group: {
+    findMany: vi.fn(),
   },
 };
 
-import { scoreMatch, scoreFinishedMatches } from "./scoring-service";
+import { scoreMatch, scoreFinishedMatches, backfillDefaultPredictions } from "./scoring-service";
 import type { PrismaClient } from "@/generated/prisma/client";
 
 const db = mockPrisma as unknown as PrismaClient;
@@ -204,5 +208,83 @@ describe("scoreFinishedMatches", () => {
     mockPrisma.match.findMany.mockResolvedValue([]);
     const results = await scoreFinishedMatches("c1", db);
     expect(results).toEqual([]);
+  });
+});
+
+describe("backfillDefaultPredictions", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns zero when no matches have kicked off", async () => {
+    mockPrisma.match.findMany.mockResolvedValue([]);
+
+    const result = await backfillDefaultPredictions("c1", db);
+
+    expect(result).toEqual({ matchesProcessed: 0, predictionsCreated: 0 });
+    expect(mockPrisma.group.findMany).not.toHaveBeenCalled();
+  });
+
+  it("returns zero when no groups exist for the contest", async () => {
+    mockPrisma.match.findMany.mockResolvedValue([{ id: "m1" }]);
+    mockPrisma.group.findMany.mockResolvedValue([]);
+
+    const result = await backfillDefaultPredictions("c1", db);
+
+    expect(result).toEqual({ matchesProcessed: 0, predictionsCreated: 0 });
+  });
+
+  it("creates 0-0 predictions for members missing predictions", async () => {
+    mockPrisma.match.findMany.mockResolvedValue([{ id: "m1" }, { id: "m2" }]);
+    mockPrisma.group.findMany.mockResolvedValue([
+      {
+        id: "g1",
+        memberships: [{ userId: "u1" }, { userId: "u2" }],
+      },
+    ]);
+    // u1 has prediction for m1 only, u2 has none
+    mockPrisma.prediction.findMany.mockResolvedValue([{ userId: "u1", matchId: "m1" }]);
+    mockPrisma.prediction.createMany.mockResolvedValue({ count: 3 });
+
+    const result = await backfillDefaultPredictions("c1", db);
+
+    expect(result.predictionsCreated).toBe(3);
+    expect(mockPrisma.prediction.createMany).toHaveBeenCalledWith({
+      data: expect.arrayContaining([
+        expect.objectContaining({ userId: "u1", matchId: "m2", homeGoals: 0, awayGoals: 0 }),
+        expect.objectContaining({ userId: "u2", matchId: "m1", homeGoals: 0, awayGoals: 0 }),
+        expect.objectContaining({ userId: "u2", matchId: "m2", homeGoals: 0, awayGoals: 0 }),
+      ]),
+      skipDuplicates: true,
+    });
+  });
+
+  it("skips groups with no members", async () => {
+    mockPrisma.match.findMany.mockResolvedValue([{ id: "m1" }]);
+    mockPrisma.group.findMany.mockResolvedValue([{ id: "g1", memberships: [] }]);
+
+    const result = await backfillDefaultPredictions("c1", db);
+
+    expect(result).toEqual({ matchesProcessed: 1, predictionsCreated: 0 });
+    expect(mockPrisma.prediction.createMany).not.toHaveBeenCalled();
+  });
+
+  it("handles multiple groups independently", async () => {
+    mockPrisma.match.findMany.mockResolvedValue([{ id: "m1" }]);
+    mockPrisma.group.findMany.mockResolvedValue([
+      { id: "g1", memberships: [{ userId: "u1" }] },
+      { id: "g2", memberships: [{ userId: "u2" }] },
+    ]);
+    mockPrisma.prediction.findMany
+      .mockResolvedValueOnce([]) // g1: no predictions
+      .mockResolvedValueOnce([]); // g2: no predictions
+    mockPrisma.prediction.createMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 1 });
+
+    const result = await backfillDefaultPredictions("c1", db);
+
+    expect(result.predictionsCreated).toBe(2);
+    expect(mockPrisma.prediction.createMany).toHaveBeenCalledTimes(2);
   });
 });

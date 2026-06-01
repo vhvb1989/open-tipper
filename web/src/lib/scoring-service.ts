@@ -20,6 +20,11 @@ export interface ScoreMatchResult {
   predictionsScored: number;
 }
 
+export interface BackfillResult {
+  matchesProcessed: number;
+  predictionsCreated: number;
+}
+
 // ---------------------------------------------------------------------------
 // Main scoring function
 // ---------------------------------------------------------------------------
@@ -161,4 +166,113 @@ export async function scoreFinishedMatches(
   }
 
   return results;
+}
+
+// ---------------------------------------------------------------------------
+// Default prediction backfill
+// ---------------------------------------------------------------------------
+
+/**
+ * Auto-create 0-0 predictions for group members who forgot to submit
+ * a prediction before kick-off.
+ *
+ * Runs as part of the sync pipeline, before scoring. For each match in
+ * the contest that has already kicked off (status is no longer SCHEDULED/TIMED),
+ * finds group members who have no prediction and creates a 0-0 default.
+ *
+ * This ensures:
+ * - Every member appears in every match's results
+ * - Forgotten matches still earn points if 0-0 happens to be correct
+ * - Standings are fair — no one can dodge bad predictions by skipping
+ *
+ * @param contestId - The contest to backfill predictions for
+ * @param db - Prisma client instance
+ */
+export async function backfillDefaultPredictions(
+  contestId: string,
+  db: PrismaClient,
+): Promise<BackfillResult> {
+  // Find all matches that have kicked off (not SCHEDULED/TIMED)
+  const kickedOffMatches = await db.match.findMany({
+    where: {
+      contestId,
+      status: { notIn: ["SCHEDULED", "TIMED"] },
+    },
+    select: { id: true },
+  });
+
+  if (kickedOffMatches.length === 0) {
+    return { matchesProcessed: 0, predictionsCreated: 0 };
+  }
+
+  // Find all groups for this contest with their members
+  const groups = await db.group.findMany({
+    where: { contestId },
+    select: {
+      id: true,
+      memberships: {
+        select: { userId: true },
+      },
+    },
+  });
+
+  if (groups.length === 0) {
+    return { matchesProcessed: 0, predictionsCreated: 0 };
+  }
+
+  let totalCreated = 0;
+  const matchIds = kickedOffMatches.map((m) => m.id);
+
+  for (const group of groups) {
+    const memberUserIds = group.memberships.map((m) => m.userId);
+    if (memberUserIds.length === 0) continue;
+
+    // Get all existing predictions for this group's kicked-off matches
+    const existingPredictions = await db.prediction.findMany({
+      where: {
+        groupId: group.id,
+        matchId: { in: matchIds },
+      },
+      select: { userId: true, matchId: true },
+    });
+
+    // Build a set of "userId:matchId" for quick lookup
+    const existingKeys = new Set(existingPredictions.map((p) => `${p.userId}:${p.matchId}`));
+
+    // Find missing predictions and batch-create them
+    const missing: {
+      userId: string;
+      groupId: string;
+      matchId: string;
+      homeGoals: number;
+      awayGoals: number;
+    }[] = [];
+
+    for (const matchId of matchIds) {
+      for (const userId of memberUserIds) {
+        if (!existingKeys.has(`${userId}:${matchId}`)) {
+          missing.push({
+            userId,
+            groupId: group.id,
+            matchId,
+            homeGoals: 0,
+            awayGoals: 0,
+          });
+        }
+      }
+    }
+
+    if (missing.length > 0) {
+      const result = await db.prediction.createMany({
+        data: missing,
+        skipDuplicates: true,
+      });
+      totalCreated += result.count;
+    }
+  }
+
+  return {
+    matchesProcessed: kickedOffMatches.length,
+    predictionsCreated: totalCreated,
+  };
 }

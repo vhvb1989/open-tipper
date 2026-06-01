@@ -55,6 +55,7 @@ describe("GET /api/cron/sync-live", () => {
       contestId: "c1",
       teamsUpserted: 4,
       matchesUpserted: 2,
+      predictionsBackfilled: 0,
       predictionsScored: 5,
     });
 
