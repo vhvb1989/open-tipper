@@ -1,16 +1,33 @@
 "use client";
 
+import { Suspense } from "react";
 import { signIn, useSession } from "next-auth/react";
-import { redirect } from "next/navigation";
+import { redirect, useSearchParams } from "next/navigation";
 import { useTranslation } from "@/i18n/TranslationProvider";
 
 export default function SignInPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600" />
+        </div>
+      }
+    >
+      <SignInContent />
+    </Suspense>
+  );
+}
+
+function SignInContent() {
   const { status } = useSession();
   const { t } = useTranslation();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
 
-  // If already signed in, redirect to home
+  // If already signed in, redirect to the intended destination
   if (status === "authenticated") {
-    redirect("/");
+    redirect(callbackUrl);
   }
 
   return (
@@ -32,6 +49,7 @@ export default function SignInPage() {
             <ProviderButton
               provider="google"
               label={t("signIn.google")}
+              callbackUrl={callbackUrl}
               icon={
                 <svg className="h-5 w-5" viewBox="0 0 24 24">
                   <path
@@ -57,6 +75,7 @@ export default function SignInPage() {
             <ProviderButton
               provider="github"
               label={t("signIn.github")}
+              callbackUrl={callbackUrl}
               icon={
                 <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
                   <path
@@ -71,6 +90,7 @@ export default function SignInPage() {
             <ProviderButton
               provider="microsoft-entra-id"
               label={t("signIn.microsoft")}
+              callbackUrl={callbackUrl}
               icon={
                 <svg className="h-5 w-5" viewBox="0 0 21 21">
                   <rect x="1" y="1" width="9" height="9" fill="#F25022" />
@@ -91,15 +111,17 @@ function ProviderButton({
   provider,
   label,
   icon,
+  callbackUrl,
 }: {
   provider: string;
   label: string;
   icon: React.ReactNode;
+  callbackUrl: string;
 }) {
   return (
     <button
       type="button"
-      onClick={() => signIn(provider, { callbackUrl: "/" })}
+      onClick={() => signIn(provider, { callbackUrl })}
       className="flex w-full items-center justify-center gap-3 rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
     >
       {icon}
