@@ -42,6 +42,12 @@ interface PredictionData {
 }
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
+type SyncStatus = "idle" | "syncing" | "synced" | "error";
+
+interface SiblingGroup {
+  id: string;
+  name: string;
+}
 
 /* ---------- Helpers ---------- */
 
@@ -134,8 +140,12 @@ export default function PredictionsTab({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saveStatuses, setSaveStatuses] = useState<Record<string, SaveStatus>>({});
+  const [siblingGroups, setSiblingGroups] = useState<SiblingGroup[]>([]);
+  const [syncAllStatus, setSyncAllStatus] = useState<SyncStatus>("idle");
+  const [matchSyncStatuses, setMatchSyncStatuses] = useState<Record<string, SyncStatus>>({});
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const { t } = useTranslation();
+  const hasMultipleGroups = siblingGroups.length > 0;
 
   /* ---- Build URL for a round ---- */
   const buildMatchesUrl = useCallback(
@@ -221,9 +231,73 @@ export default function PredictionsTab({
     }
   }, [groupId]);
 
+  /* ---- Fetch sibling groups (same contest) ---- */
+  const fetchSiblingGroups = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/groups/${groupId}/sibling-groups`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setSiblingGroups(data.groups ?? []);
+    } catch {
+      // Non-critical — just means sync buttons won't show
+    }
+  }, [groupId]);
+
+  /* ---- Sync prediction to all groups ---- */
+  const syncPredictionToAllGroups = useCallback(
+    async (matchId: string) => {
+      setMatchSyncStatuses((s) => ({ ...s, [matchId]: "syncing" }));
+      try {
+        const res = await fetch(`/api/groups/${groupId}/predictions/sync`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ matchId }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || "Failed to sync");
+        }
+        setMatchSyncStatuses((s) => ({ ...s, [matchId]: "synced" }));
+        setTimeout(() => {
+          setMatchSyncStatuses((s) => ({ ...s, [matchId]: "idle" }));
+        }, 2000);
+      } catch (err) {
+        console.error("Sync failed:", err);
+        setMatchSyncStatuses((s) => ({ ...s, [matchId]: "error" }));
+        setTimeout(() => {
+          setMatchSyncStatuses((s) => ({ ...s, [matchId]: "idle" }));
+        }, 3000);
+      }
+    },
+    [groupId],
+  );
+
+  /* ---- Sync all predictions to all groups ---- */
+  const syncAllPredictions = useCallback(async () => {
+    setSyncAllStatus("syncing");
+    try {
+      const res = await fetch(`/api/groups/${groupId}/predictions/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to sync");
+      }
+      setSyncAllStatus("synced");
+      setTimeout(() => setSyncAllStatus("idle"), 3000);
+    } catch (err) {
+      console.error("Sync all failed:", err);
+      setSyncAllStatus("error");
+      setTimeout(() => setSyncAllStatus("idle"), 3000);
+    }
+  }, [groupId]);
+
   useEffect(() => {
     fetchMatches();
     fetchPredictions();
+    fetchSiblingGroups();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -346,6 +420,56 @@ export default function PredictionsTab({
       {/* Podium predictions — shown at top when enabled */}
       {hasPodium && <PodiumSection groupId={groupId} />}
 
+      {/* Multi-group sync banner */}
+      {hasMultipleGroups && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+          <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+            <svg
+              className="h-4 w-4 shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"
+              />
+            </svg>
+            <span>
+              {t("predictions.multiGroupInfo", {
+                count: String(siblingGroups.length),
+                groups: siblingGroups.map((g) => g.name).join(", "),
+              })}
+            </span>
+          </div>
+          <button
+            onClick={syncAllPredictions}
+            disabled={syncAllStatus === "syncing"}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+              syncAllStatus === "synced"
+                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                : syncAllStatus === "error"
+                  ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                  : "bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 dark:bg-blue-500 dark:hover:bg-blue-600"
+            }`}
+          >
+            {syncAllStatus === "syncing" && (
+              <div className="h-3 w-3 animate-spin rounded-full border border-white/30 border-t-white" />
+            )}
+            {syncAllStatus === "synced" && "✓"}
+            {syncAllStatus === "syncing"
+              ? t("predictions.syncing")
+              : syncAllStatus === "synced"
+                ? t("predictions.syncedAll")
+                : syncAllStatus === "error"
+                  ? t("predictions.syncFailed")
+                  : t("predictions.syncAll")}
+          </button>
+        </div>
+      )}
+
       {/* Round navigation */}
       {rounds.length > 1 && (
         <div className="mb-6 flex items-center justify-between">
@@ -444,6 +568,55 @@ export default function PredictionsTab({
                         )}
                         {status === "error" && (
                           <span className="text-red-500">{t("predictions.failedToSave")}</span>
+                        )}
+                        {/* Per-match sync button */}
+                        {hasMultipleGroups && !locked && pred && (
+                          <button
+                            onClick={() => syncPredictionToAllGroups(match.id)}
+                            disabled={matchSyncStatuses[match.id] === "syncing"}
+                            title={t("predictions.syncMatch")}
+                            className={`rounded p-0.5 transition-colors ${
+                              matchSyncStatuses[match.id] === "synced"
+                                ? "text-emerald-500"
+                                : matchSyncStatuses[match.id] === "error"
+                                  ? "text-red-500"
+                                  : matchSyncStatuses[match.id] === "syncing"
+                                    ? "text-blue-400"
+                                    : "text-zinc-400 hover:text-blue-500 dark:text-zinc-500 dark:hover:text-blue-400"
+                            }`}
+                          >
+                            {matchSyncStatuses[match.id] === "syncing" ? (
+                              <div className="h-3.5 w-3.5 animate-spin rounded-full border border-blue-300 border-t-blue-600" />
+                            ) : matchSyncStatuses[match.id] === "synced" ? (
+                              <svg
+                                className="h-3.5 w-3.5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                strokeWidth={2}
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="m4.5 12.75 6 6 9-13.5"
+                                />
+                              </svg>
+                            ) : (
+                              <svg
+                                className="h-3.5 w-3.5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                strokeWidth={1.5}
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
+                                />
+                              </svg>
+                            )}
+                          </button>
                         )}
                         {/* Status badge */}
                         {statusLabel(match.status, t) && (

@@ -187,7 +187,13 @@
     "homeScore": "Goles locales para {home} vs {away}",
     "awayScore": "Goles visitantes para {home} vs {away}",
     "scorePlaceholder": "-",
-    "result": "Resultado: {home} – {away}"
+    "result": "Resultado: {home} – {away}",
+    "multiGroupInfo": "Estás en {count} otro(s) grupo(s) de este torneo: {groups}",
+    "syncAll": "Aplicar todas las predicciones a mis otros grupos",
+    "syncing": "Sincronizando…",
+    "syncedAll": "¡Predicciones sincronizadas!",
+    "syncFailed": "Error al sincronizar — ¿reintentar?",
+    "syncMatch": "Aplicar esta predicción a todos mis grupos"
   },
   "results": {
     "vs": "vs",
