@@ -187,7 +187,13 @@
     "homeScore": "Home score for {home} vs {away}",
     "awayScore": "Away score for {home} vs {away}",
     "scorePlaceholder": "-",
-    "result": "Result: {home} – {away}"
+    "result": "Result: {home} – {away}",
+    "multiGroupInfo": "You're in {count} other group(s) for this tournament: {groups}",
+    "syncAll": "Apply all tips to my other groups",
+    "syncing": "Syncing…",
+    "syncedAll": "All tips synced!",
+    "syncFailed": "Sync failed — retry?",
+    "syncMatch": "Apply this tip to all my groups"
   },
   "results": {
     "vs": "vs",
