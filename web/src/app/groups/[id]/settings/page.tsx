@@ -14,13 +14,23 @@ interface ScoringRules {
   playoffMultiplier: boolean;
 }
 
+interface PodiumSettingsData {
+  enabled: boolean;
+  firstPlacePoints: number;
+  secondPlacePoints: number;
+  thirdPlacePoints: number;
+  thirdPlaceEnabled: boolean;
+}
+
 interface GroupDetails {
   id: string;
   name: string;
   description: string | null;
   visibility: "PUBLIC" | "PRIVATE";
   inviteCode?: string;
+  contest: { code: string };
   scoringRules: ScoringRules | null;
+  podiumSettings: PodiumSettingsData | null;
   role: string | null;
 }
 
@@ -48,6 +58,12 @@ export default function GroupSettingsPage({ params }: { params: Promise<{ id: st
     accumulationMode: "ACCUMULATE",
     playoffMultiplier: false,
   });
+  const [podiumEnabled, setPodiumEnabled] = useState(false);
+  const [podiumPoints, setPodiumPoints] = useState({
+    firstPlacePoints: 100,
+    secondPlacePoints: 50,
+    thirdPlacePoints: 100,
+  });
 
   useEffect(() => {
     params.then(({ id }) => setGroupId(id));
@@ -65,6 +81,14 @@ export default function GroupSettingsPage({ params }: { params: Promise<{ id: st
         setVisibility(g.visibility);
         if (g.scoringRules) {
           setScoring(g.scoringRules);
+        }
+        if (g.podiumSettings) {
+          setPodiumEnabled(g.podiumSettings.enabled);
+          setPodiumPoints({
+            firstPlacePoints: g.podiumSettings.firstPlacePoints,
+            secondPlacePoints: g.podiumSettings.secondPlacePoints,
+            thirdPlacePoints: g.podiumSettings.thirdPlacePoints,
+          });
         }
         setLoading(false);
       })
@@ -89,6 +113,11 @@ export default function GroupSettingsPage({ params }: { params: Promise<{ id: st
           description: description || null,
           visibility,
           scoringRules: scoring,
+          podiumSettings: {
+            enabled: podiumEnabled,
+            ...podiumPoints,
+            thirdPlaceEnabled: group?.contest?.code === "WC",
+          },
         }),
       });
 
@@ -283,6 +312,102 @@ export default function GroupSettingsPage({ params }: { params: Promise<{ id: st
             Double points for knockout/playoff matches
           </span>
         </label>
+      </div>
+
+      {/* Podium Predictions */}
+      <div className="space-y-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+        <div>
+          <label className="flex cursor-pointer items-center gap-2">
+            <input
+              type="checkbox"
+              checked={podiumEnabled}
+              onChange={(e) => setPodiumEnabled(e.target.checked)}
+              className="rounded text-zinc-900 focus:ring-zinc-500"
+            />
+            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Enable podium predictions
+            </span>
+          </label>
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            Let members predict tournament winners. Points awarded after the final match.
+          </p>
+        </div>
+
+        {podiumEnabled && (
+          <div className="space-y-3 border-t border-zinc-200 pt-4 dark:border-zinc-700">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label
+                  htmlFor="podium-1st"
+                  className="block text-xs text-zinc-500 dark:text-zinc-400"
+                >
+                  1st place points
+                </label>
+                <input
+                  id="podium-1st"
+                  type="number"
+                  min={0}
+                  max={1000}
+                  value={podiumPoints.firstPlacePoints}
+                  onChange={(e) =>
+                    setPodiumPoints((s) => ({
+                      ...s,
+                      firstPlacePoints: parseInt(e.target.value) || 0,
+                    }))
+                  }
+                  className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="podium-2nd"
+                  className="block text-xs text-zinc-500 dark:text-zinc-400"
+                >
+                  2nd place points
+                </label>
+                <input
+                  id="podium-2nd"
+                  type="number"
+                  min={0}
+                  max={1000}
+                  value={podiumPoints.secondPlacePoints}
+                  onChange={(e) =>
+                    setPodiumPoints((s) => ({
+                      ...s,
+                      secondPlacePoints: parseInt(e.target.value) || 0,
+                    }))
+                  }
+                  className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                />
+              </div>
+            </div>
+
+            {group?.contest?.code === "WC" && (
+              <div>
+                <label
+                  htmlFor="podium-3rd"
+                  className="block text-xs text-zinc-500 dark:text-zinc-400"
+                >
+                  3rd place points
+                </label>
+                <input
+                  id="podium-3rd"
+                  type="number"
+                  min={0}
+                  max={1000}
+                  value={podiumPoints.thirdPlacePoints}
+                  onChange={(e) =>
+                    setPodiumPoints((s) => ({
+                      ...s,
+                      thirdPlacePoints: parseInt(e.target.value) || 0,
+                    }))
+                  }
+                  className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                />
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Feedback */}
