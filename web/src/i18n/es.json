@@ -370,7 +370,16 @@
     "badge3PTitle": "Profeta del 3er Lugar",
     "badgeTooltip": "{badge}: +{points}",
     "failedToLoad": "Error al cargar datos del podio. Inténtalo de nuevo.",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "adminOverride": "Bloqueo del Podio",
+    "overrideAuto": "Auto",
+    "overrideOpen": "Abierto",
+    "overrideClosed": "Cerrado",
+    "overrideAutoHint": "Se bloquea automáticamente al inicio del primer partido.",
+    "overrideOpenHint": "El podio está abierto — los miembros pueden enviar predicciones.",
+    "overrideClosedHint": "El podio está cerrado — las predicciones están bloqueadas.",
+    "overrideUpdating": "Actualizando…",
+    "overrideFailed": "Error al actualizar"
   },
   "createGroup.podiumHeading": "Predicciones del Podio",
   "createGroup.podiumDesc": "Permite a los miembros predecir los ganadores del torneo antes del inicio. Puntos otorgados después del partido final.",

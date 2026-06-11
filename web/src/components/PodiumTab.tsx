@@ -56,6 +56,8 @@ interface PodiumData {
   allPredictions: MemberPrediction[] | null;
   podiumBadges: PodiumBadge[] | null;
   isComplete: boolean;
+  isAdmin: boolean;
+  podiumOpenOverride: boolean | null;
 }
 
 /* ---------- Badge Component ---------- */
@@ -187,6 +189,105 @@ function TeamSelector({
   );
 }
 
+/* ---------- Admin Override Toggle ---------- */
+
+function PodiumOverrideToggle({
+  currentOverride,
+  groupId,
+  onUpdated,
+}: {
+  currentOverride: boolean | null;
+  groupId: string;
+  onUpdated: () => void;
+}) {
+  const { t } = useTranslation();
+  const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState(false);
+
+  const options: { value: boolean | null; labelKey: string }[] = [
+    { value: null, labelKey: "podium.overrideAuto" },
+    { value: true, labelKey: "podium.overrideOpen" },
+    { value: false, labelKey: "podium.overrideClosed" },
+  ];
+
+  const hintKey =
+    currentOverride === true
+      ? "podium.overrideOpenHint"
+      : currentOverride === false
+        ? "podium.overrideClosedHint"
+        : "podium.overrideAutoHint";
+
+  const handleChange = async (value: boolean | null) => {
+    setUpdating(true);
+    setError(false);
+    try {
+      const res = await fetch(`/api/groups/${groupId}/podium`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ podiumOpenOverride: value }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      onUpdated();
+    } catch {
+      setError(true);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  return (
+    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800/50">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <svg
+            className="h-4 w-4 text-zinc-500 dark:text-zinc-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"
+            />
+          </svg>
+          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            {t("podium.adminOverride")}
+          </span>
+        </div>
+        <div className="flex items-center gap-1 rounded-lg border border-zinc-200 bg-white p-0.5 dark:border-zinc-600 dark:bg-zinc-800">
+          {options.map((opt) => {
+            const isActive =
+              currentOverride === opt.value ||
+              (currentOverride === null && opt.value === null) ||
+              (currentOverride === undefined && opt.value === null);
+            return (
+              <button
+                key={String(opt.value)}
+                onClick={() => handleChange(opt.value)}
+                disabled={updating || isActive}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                  isActive
+                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                    : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
+                } disabled:cursor-not-allowed disabled:opacity-60`}
+              >
+                {t(opt.labelKey)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">{t(hintKey)}</p>
+      {updating && <p className="mt-1 text-xs text-zinc-400">{t("podium.overrideUpdating")}</p>}
+      {error && (
+        <p className="mt-1 text-xs text-red-600 dark:text-red-400">{t("podium.overrideFailed")}</p>
+      )}
+    </div>
+  );
+}
+
 /* ---------- Main Component ---------- */
 
 export default function PodiumTab({
@@ -302,7 +403,7 @@ export default function PodiumTab({
 
   if (!data) return null;
 
-  const { podiumSettings, isLocked, teams, allPredictions, podiumBadges } = data;
+  const { podiumSettings, isLocked, teams, allPredictions, podiumBadges, isAdmin } = data;
   const isScored =
     !!data.userPrediction?.scoredAt || (allPredictions?.some((p) => p.scoredAt) ?? false);
   const excludeFirst = [secondTeamId, thirdTeamId].filter(Boolean) as string[];
@@ -318,6 +419,15 @@ export default function PodiumTab({
         </h2>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t("podium.description")}</p>
       </div>
+
+      {/* Admin override toggle */}
+      {isAdmin && (
+        <PodiumOverrideToggle
+          currentOverride={data.podiumOpenOverride}
+          groupId={groupId}
+          onUpdated={fetchData}
+        />
+      )}
 
       {/* Lock / Save status */}
       {isLocked ? (
