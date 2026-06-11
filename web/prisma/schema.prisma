@@ -302,16 +302,17 @@ enum PodiumPosition {
 }
 
 model PodiumSettings {
-  id                String  @id @default(cuid())
-  groupId           String  @unique @map("group_id")
-  group             Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  enabled           Boolean @default(false)
-  firstPlacePoints  Int     @default(100) @map("first_place_points")
-  secondPlacePoints Int     @default(50) @map("second_place_points")
-  thirdPlacePoints  Int     @default(100) @map("third_place_points")
-  thirdPlaceEnabled Boolean @default(false) @map("third_place_enabled")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  id                  String   @id @default(cuid())
+  groupId             String   @unique @map("group_id")
+  group               Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  enabled             Boolean  @default(false)
+  firstPlacePoints    Int      @default(100) @map("first_place_points")
+  secondPlacePoints   Int      @default(50) @map("second_place_points")
+  thirdPlacePoints    Int      @default(100) @map("third_place_points")
+  thirdPlaceEnabled   Boolean  @default(false) @map("third_place_enabled")
+  podiumOpenOverride  Boolean? @map("podium_open_override") /// null = auto-lock, true = admin forced open, false = admin forced closed
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
 
   @@map("podium_settings")
 }

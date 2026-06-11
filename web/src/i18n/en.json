@@ -370,7 +370,16 @@
     "badge3PTitle": "3rd Place Prophet",
     "badgeTooltip": "{badge}: +{points}",
     "failedToLoad": "Failed to load podium data. Please try again.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "adminOverride": "Podium Lock",
+    "overrideAuto": "Auto",
+    "overrideOpen": "Open",
+    "overrideClosed": "Closed",
+    "overrideAutoHint": "Locks automatically at first match kickoff.",
+    "overrideOpenHint": "Podium is open — members can submit predictions.",
+    "overrideClosedHint": "Podium is closed — predictions are locked.",
+    "overrideUpdating": "Updating…",
+    "overrideFailed": "Failed to update"
   },
   "createGroup.podiumHeading": "Podium Predictions",
   "createGroup.podiumDesc": "Let members predict tournament winners before kickoff. Points awarded after the final match.",

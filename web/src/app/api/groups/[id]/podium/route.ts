@@ -5,6 +5,31 @@ import { auth } from "@/lib/auth";
 type RouteParams = { params: Promise<{ id: string }> };
 
 /**
+ * Compute the effective lock state for podium predictions.
+ *
+ * - `podiumOpenOverride === true`  → admin forced open  → unlocked
+ * - `podiumOpenOverride === false` → admin forced closed → locked
+ * - `podiumOpenOverride === null`  → auto: locked once the first match starts
+ */
+async function computeIsLocked(
+  contestId: string,
+  podiumOpenOverride: boolean | null,
+): Promise<boolean> {
+  if (podiumOpenOverride === true) return false;
+  if (podiumOpenOverride === false) return true;
+
+  // Auto-lock: check if any match has started
+  const firstStartedMatch = await prisma.match.findFirst({
+    where: {
+      contestId,
+      OR: [{ status: { notIn: ["SCHEDULED", "TIMED"] } }, { kickoffTime: { lte: new Date() } }],
+    },
+    select: { id: true },
+  });
+  return !!firstStartedMatch;
+}
+
+/**
  * GET /api/groups/:id/podium
  *
  * Returns podium settings, current user's prediction, lock status,
@@ -42,19 +67,15 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     }
 
     const isMember = group.memberships.length > 0;
+    const isAdmin = group.memberships[0]?.role === "ADMIN";
     if (group.visibility === "PRIVATE" && !isMember) {
       return NextResponse.json({ error: "Group not found" }, { status: 404 });
     }
 
-    // Determine if predictions are locked (first match has started)
-    const firstStartedMatch = await prisma.match.findFirst({
-      where: {
-        contestId: group.contest.id,
-        OR: [{ status: { notIn: ["SCHEDULED", "TIMED"] } }, { kickoffTime: { lte: new Date() } }],
-      },
-      select: { id: true },
-    });
-    const isLocked = !!firstStartedMatch;
+    const isLocked = await computeIsLocked(
+      group.contest.id,
+      group.podiumSettings.podiumOpenOverride,
+    );
 
     // Get current user's prediction
     const userPrediction = isMember
@@ -113,6 +134,8 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       allPredictions,
       podiumBadges,
       isComplete,
+      isAdmin,
+      podiumOpenOverride: group.podiumSettings.podiumOpenOverride,
     });
   } catch (error) {
     console.error("Failed to fetch podium data:", error);
@@ -156,16 +179,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Podium predictions not enabled" }, { status: 400 });
     }
 
-    // Check if locked (first match has started)
-    const firstStartedMatch = await prisma.match.findFirst({
-      where: {
-        contestId: group.contest.id,
-        OR: [{ status: { notIn: ["SCHEDULED", "TIMED"] } }, { kickoffTime: { lte: new Date() } }],
-      },
-      select: { id: true },
-    });
+    // Check if locked (respects admin override)
+    const isLocked = await computeIsLocked(
+      group.contest.id,
+      group.podiumSettings.podiumOpenOverride,
+    );
 
-    if (firstStartedMatch) {
+    if (isLocked) {
       return NextResponse.json(
         { error: "Predictions are locked — the tournament has already started" },
         { status: 400 },
@@ -238,5 +258,64 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     console.error("Failed to save podium prediction:", error);
     return NextResponse.json({ error: "Failed to save prediction" }, { status: 500 });
+  }
+}
+
+/**
+ * PATCH /api/groups/:id/podium
+ *
+ * Admin-only: set the podium open override.
+ * Body: { podiumOpenOverride: true | false | null }
+ */
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    // Check that user is admin
+    const membership = await prisma.membership.findUnique({
+      where: { userId_groupId: { userId: session.user.id, groupId: id } },
+    });
+    if (!membership || membership.role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const group = await prisma.group.findUnique({
+      where: { id },
+      include: { podiumSettings: true },
+    });
+
+    if (!group || !group.podiumSettings?.enabled) {
+      return NextResponse.json({ error: "Podium predictions not enabled" }, { status: 400 });
+    }
+
+    const body = await request.json();
+    const { podiumOpenOverride } = body;
+
+    // Validate: must be true, false, or null
+    if (
+      podiumOpenOverride !== true &&
+      podiumOpenOverride !== false &&
+      podiumOpenOverride !== null
+    ) {
+      return NextResponse.json(
+        { error: "podiumOpenOverride must be true, false, or null" },
+        { status: 400 },
+      );
+    }
+
+    const updated = await prisma.podiumSettings.update({
+      where: { groupId: id },
+      data: { podiumOpenOverride },
+    });
+
+    return NextResponse.json({ podiumSettings: updated });
+  } catch (error) {
+    console.error("Failed to update podium override:", error);
+    return NextResponse.json({ error: "Failed to update podium settings" }, { status: 500 });
   }
 }
