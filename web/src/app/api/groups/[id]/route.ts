@@ -154,6 +154,40 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       });
     }
 
+    // Update podium settings if provided
+    if (body.podiumSettings !== undefined) {
+      const ps = body.podiumSettings;
+      if (ps.enabled) {
+        await prisma.podiumSettings.upsert({
+          where: { groupId: id },
+          update: {
+            enabled: true,
+            ...(ps.firstPlacePoints !== undefined && { firstPlacePoints: ps.firstPlacePoints }),
+            ...(ps.secondPlacePoints !== undefined && { secondPlacePoints: ps.secondPlacePoints }),
+            ...(ps.thirdPlacePoints !== undefined && { thirdPlacePoints: ps.thirdPlacePoints }),
+            ...(ps.thirdPlaceEnabled !== undefined && { thirdPlaceEnabled: ps.thirdPlaceEnabled }),
+          },
+          create: {
+            groupId: id,
+            enabled: true,
+            firstPlacePoints: ps.firstPlacePoints ?? 100,
+            secondPlacePoints: ps.secondPlacePoints ?? 50,
+            thirdPlacePoints: ps.thirdPlacePoints ?? 100,
+            thirdPlaceEnabled: ps.thirdPlaceEnabled ?? false,
+          },
+        });
+      } else {
+        // Disable podium — update if exists
+        const existing = await prisma.podiumSettings.findUnique({ where: { groupId: id } });
+        if (existing) {
+          await prisma.podiumSettings.update({
+            where: { groupId: id },
+            data: { enabled: false },
+          });
+        }
+      }
+    }
+
     return NextResponse.json({ group });
   } catch (error) {
     console.error("Failed to update group:", error);
