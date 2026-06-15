@@ -139,6 +139,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           ...(scoringRules.playoffMultiplier !== undefined && {
             playoffMultiplier: scoringRules.playoffMultiplier,
           }),
+          ...(scoringRules.uniqueBonusEnabled !== undefined && {
+            uniqueBonusEnabled: scoringRules.uniqueBonusEnabled,
+          }),
+          ...(scoringRules.uniqueBonusMultiplier !== undefined && {
+            uniqueBonusMultiplier: scoringRules.uniqueBonusMultiplier,
+          }),
         },
         create: {
           groupId: id,
@@ -150,6 +156,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           reverseGoalDifference: scoringRules.reverseGoalDifference ?? 1,
           accumulationMode: scoringRules.accumulationMode ?? "ACCUMULATE",
           playoffMultiplier: scoringRules.playoffMultiplier ?? false,
+          uniqueBonusEnabled: scoringRules.uniqueBonusEnabled ?? false,
+          uniqueBonusMultiplier: scoringRules.uniqueBonusMultiplier ?? 2.0,
         },
       });
     }

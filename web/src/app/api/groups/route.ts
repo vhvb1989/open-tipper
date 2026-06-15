@@ -124,6 +124,8 @@ export async function POST(request: NextRequest) {
             accumulationMode:
               scoringRules?.accumulationMode === "HIGHEST_ONLY" ? "HIGHEST_ONLY" : "ACCUMULATE",
             playoffMultiplier: scoringRules?.playoffMultiplier ?? false,
+            uniqueBonusEnabled: scoringRules?.uniqueBonusEnabled ?? false,
+            uniqueBonusMultiplier: scoringRules?.uniqueBonusMultiplier ?? 2.0,
           },
         },
         ...(podiumEnabled

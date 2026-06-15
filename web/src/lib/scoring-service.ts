@@ -5,11 +5,17 @@
  * 1. Finds all predictions for that match across all groups
  * 2. Loads each group's scoring rules
  * 3. Calculates points using the scoring engine
- * 4. Stores the pointsAwarded on each prediction
+ * 4. Calculates uniqueness bonus when enabled
+ * 5. Stores the pointsAwarded and bonusPoints on each prediction
  */
 
 import { PrismaClient } from "@/generated/prisma/client";
-import { calculateScore, isPlayoffStage, type ScoringRulesConfig } from "./scoring";
+import {
+  calculateScore,
+  isPlayoffStage,
+  type ScoringRulesConfig,
+  type ScoringBreakdown,
+} from "./scoring";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -80,10 +86,18 @@ export async function scoreMatch(matchId: string, db: PrismaClient): Promise<Sco
     return { matchId, predictionsScored: 0 };
   }
 
-  // 3. Calculate and update points for each prediction
-  let scored = 0;
+  // 3. Group predictions by groupId for uniqueness bonus calculation
+  const byGroup = new Map<string, typeof predictions>();
   for (const prediction of predictions) {
-    const rules = prediction.group.scoringRules;
+    const list = byGroup.get(prediction.groupId) ?? [];
+    list.push(prediction);
+    byGroup.set(prediction.groupId, list);
+  }
+
+  // 4. Calculate and update points for each group's predictions
+  let scored = 0;
+  for (const [, groupPredictions] of byGroup) {
+    const rules = groupPredictions[0].group.scoringRules;
     const rulesConfig: ScoringRulesConfig = rules
       ? {
           exactScore: rules.exactScore,
@@ -96,7 +110,6 @@ export async function scoreMatch(matchId: string, db: PrismaClient): Promise<Sco
           playoffMultiplier: rules.playoffMultiplier,
         }
       : {
-          // Fallback to defaults if no scoring rules configured
           exactScore: 10,
           goalDifference: 6,
           outcome: 4,
@@ -107,19 +120,66 @@ export async function scoreMatch(matchId: string, db: PrismaClient): Promise<Sco
           playoffMultiplier: false,
         };
 
-    const scoring = calculateScore(
-      { homeGoals: prediction.homeGoals, awayGoals: prediction.awayGoals },
-      result,
-      rulesConfig,
-      isPlayoff,
-    );
+    const bonusEnabled = rules?.uniqueBonusEnabled ?? false;
+    const bonusMultiplier = rules?.uniqueBonusMultiplier ?? 2.0;
 
-    await db.prediction.update({
-      where: { id: prediction.id },
-      data: { pointsAwarded: scoring.total },
-    });
+    // Calculate breakdowns for all predictions in this group
+    const breakdowns: Array<{
+      predictionId: string;
+      isBackfilled: boolean;
+      breakdown: ScoringBreakdown;
+    }> = [];
 
-    scored++;
+    for (const prediction of groupPredictions) {
+      const scoring = calculateScore(
+        { homeGoals: prediction.homeGoals, awayGoals: prediction.awayGoals },
+        result,
+        rulesConfig,
+        isPlayoff,
+      );
+      breakdowns.push({
+        predictionId: prediction.id,
+        isBackfilled: prediction.isBackfilled,
+        breakdown: scoring,
+      });
+    }
+
+    // Count how many non-backfilled predictions earned each factor
+    const factorKeys = [
+      "exactScore",
+      "goalDifference",
+      "outcome",
+      "oneTeamGoals",
+      "totalGoals",
+      "reverseGoalDifference",
+    ] as const;
+
+    const factorCounts: Record<string, number> = {};
+    for (const key of factorKeys) {
+      factorCounts[key] = breakdowns.filter((b) => !b.isBackfilled && b.breakdown[key] > 0).length;
+    }
+
+    // Update each prediction with points and bonus
+    for (const { predictionId, isBackfilled, breakdown } of breakdowns) {
+      let bonusPoints = 0;
+
+      // Only award bonus to non-backfilled predictions when feature is enabled
+      if (bonusEnabled && !isBackfilled) {
+        for (const key of factorKeys) {
+          if (breakdown[key] > 0 && factorCounts[key] === 1) {
+            // This player is the only one who earned this factor
+            bonusPoints += Math.round(breakdown[key] * (bonusMultiplier - 1));
+          }
+        }
+      }
+
+      await db.prediction.update({
+        where: { id: predictionId },
+        data: { pointsAwarded: breakdown.total, bonusPoints },
+      });
+
+      scored++;
+    }
   }
 
   return { matchId, predictionsScored: scored };
@@ -246,6 +306,7 @@ export async function backfillDefaultPredictions(
       matchId: string;
       homeGoals: number;
       awayGoals: number;
+      isBackfilled: boolean;
     }[] = [];
 
     for (const matchId of matchIds) {
@@ -257,6 +318,7 @@ export async function backfillDefaultPredictions(
             matchId,
             homeGoals: 0,
             awayGoals: 0,
+            isBackfilled: true,
           });
         }
       }

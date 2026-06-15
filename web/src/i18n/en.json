@@ -128,6 +128,9 @@
     "accumulate": "Accumulate (sum all matching factors)",
     "highestOnly": "Highest only (best single factor)",
     "playoffDouble": "Double points for knockout/playoff matches",
+    "uniqueBonus": "Unique result bonus",
+    "uniqueBonusDesc": "Multiply points when only one player earns a scoring factor",
+    "uniqueBonusMultiplier": "Bonus multiplier",
     "resetDefaults": "Reset to defaults",
     "creating": "Creating…",
     "create": "Create group",
@@ -233,7 +236,11 @@
     "reverseGoalDiffShort": "RG",
     "reverseGoalDiffDesc": "You predicted the right goal difference magnitude but the opposite winner.",
     "factorTooltip": "{factor}: +{points}",
-    "exactScoreBang": "Exact score!"
+    "exactScoreBang": "Exact score!",
+    "uniqueBonusBanner": "Unique result bonus active — x{multiplier} bonus for each scoring factor that only you earned!",
+    "bonusHeader": "Bonus",
+    "bonusTooltip": "Unique bonus: +{points}",
+    "uniqueBadge": "★"
   },
   "standings": {
     "noStandings": "No standings yet",
@@ -246,6 +253,7 @@
     "player": "Player",
     "pointsHeader": "Points",
     "lastRoundHeader": "Last Round",
+    "bonusHeader": "Bonus",
     "tips": "Tips",
     "unknown": "Unknown",
     "you": "(you)",

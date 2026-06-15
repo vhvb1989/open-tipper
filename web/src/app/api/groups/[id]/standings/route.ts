@@ -67,6 +67,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       select: {
         userId: true,
         pointsAwarded: true,
+        bonusPoints: true,
         match: {
           select: { matchDay: true, stage: true, kickoffTime: true },
         },
@@ -107,24 +108,29 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Aggregate points per user
-    const totals = new Map<string, { total: number; scored: number; lastRound: number }>();
+    const totals = new Map<
+      string,
+      { total: number; scored: number; lastRound: number; bonus: number }
+    >();
 
     // Initialize all members with 0
     for (const m of members) {
-      totals.set(m.user.id, { total: 0, scored: 0, lastRound: 0 });
+      totals.set(m.user.id, { total: 0, scored: 0, lastRound: 0, bonus: 0 });
     }
 
     for (const p of predictions) {
       const entry = totals.get(p.userId);
       if (!entry) continue;
       const pts = p.pointsAwarded ?? 0;
-      entry.total += pts;
+      const bonus = p.bonusPoints ?? 0;
+      entry.total += pts + bonus;
+      entry.bonus += bonus;
       entry.scored += 1;
       // Match against selected round (matchDay or stage)
       if (selectedMatchDay != null && p.match.matchDay === selectedMatchDay) {
-        entry.lastRound += pts;
+        entry.lastRound += pts + bonus;
       } else if (selectedStage != null && p.match.stage === selectedStage) {
-        entry.lastRound += pts;
+        entry.lastRound += pts + bonus;
       }
     }
 
@@ -203,13 +209,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Build ranked standings
     const standings = members
       .map((m) => {
-        const stats = totals.get(m.user.id) ?? { total: 0, scored: 0, lastRound: 0 };
+        const stats = totals.get(m.user.id) ?? { total: 0, scored: 0, lastRound: 0, bonus: 0 };
         return {
           userId: m.user.id,
           userName: m.user.name,
           userImage: m.user.image,
           role: m.role,
           totalPoints: stats.total,
+          totalBonusPoints: stats.bonus,
           predictionsScored: stats.scored,
           lastRoundPoints: stats.lastRound,
           medals: medalsByUser.get(m.user.id) ?? [],
