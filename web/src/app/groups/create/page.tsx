@@ -22,6 +22,8 @@ interface ScoringRulesForm {
   reverseGoalDifference: number;
   accumulationMode: "ACCUMULATE" | "HIGHEST_ONLY";
   playoffMultiplier: boolean;
+  uniqueBonusEnabled: boolean;
+  uniqueBonusMultiplier: number;
 }
 
 const DEFAULT_SCORING: ScoringRulesForm = {
@@ -33,6 +35,8 @@ const DEFAULT_SCORING: ScoringRulesForm = {
   reverseGoalDifference: 1,
   accumulationMode: "ACCUMULATE",
   playoffMultiplier: false,
+  uniqueBonusEnabled: false,
+  uniqueBonusMultiplier: 2.0,
 };
 
 interface PodiumSettingsForm {
@@ -327,6 +331,46 @@ export default function CreateGroupPage() {
                   {t("createGroup.playoffDouble")}
                 </span>
               </label>
+
+              <div>
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={scoring.uniqueBonusEnabled}
+                    onChange={(e) =>
+                      setScoring((s) => ({ ...s, uniqueBonusEnabled: e.target.checked }))
+                    }
+                    className="rounded text-zinc-900 focus:ring-zinc-500"
+                  />
+                  <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                    {t("createGroup.uniqueBonus")}
+                  </span>
+                </label>
+                <p className="ml-6 mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                  {t("createGroup.uniqueBonusDesc")}
+                </p>
+                {scoring.uniqueBonusEnabled && (
+                  <div className="ml-6 mt-2">
+                    <label className="text-xs text-zinc-500 dark:text-zinc-400">
+                      {t("createGroup.uniqueBonusMultiplier")}
+                    </label>
+                    <input
+                      type="number"
+                      min={1.5}
+                      max={5}
+                      step={0.5}
+                      value={scoring.uniqueBonusMultiplier}
+                      onChange={(e) =>
+                        setScoring((s) => ({
+                          ...s,
+                          uniqueBonusMultiplier: parseFloat(e.target.value) || 2.0,
+                        }))
+                      }
+                      className="ml-2 w-16 rounded border border-zinc-300 bg-white px-2 py-1 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
+                    />
+                  </div>
+                )}
+              </div>
 
               <button
                 type="button"

@@ -25,6 +25,7 @@ interface PredictionEntry {
   homeGoals: number;
   awayGoals: number;
   pointsAwarded: number | null;
+  bonusPoints: number;
   breakdown: {
     exactScore: number;
     goalDifference: number;
@@ -192,6 +193,10 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
   const [expandedMatches, setExpandedMatches] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [uniqueBonus, setUniqueBonus] = useState<{
+    enabled: boolean;
+    multiplier: number;
+  } | null>(null);
   const { scoresVersion } = useLive();
   const { t } = useTranslation();
 
@@ -219,6 +224,7 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
         const data = await res.json();
         setResults(data.results);
         if (data.rounds) setRounds(data.rounds);
+        if (data.uniqueBonus) setUniqueBonus(data.uniqueBonus);
         if (selectedRoundKey === null && data.rounds && data.rounds.length > 0) {
           // Default to the latest played round
           setSelectedRoundKey(data.rounds[data.rounds.length - 1].key);
@@ -306,6 +312,16 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
           >
             {t("results.retry")}
           </button>
+        </div>
+      )}
+
+      {/* Unique bonus banner */}
+      {uniqueBonus?.enabled && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+          ★{" "}
+          {t("results.uniqueBonusBanner", {
+            multiplier: String(uniqueBonus.multiplier),
+          })}
         </div>
       )}
 
@@ -499,6 +515,16 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
                                     ? t("results.points", { n: pred.pointsAwarded })
                                     : t("results.noPoints")}
                                 </span>
+                                {pred.bonusPoints > 0 && (
+                                  <span
+                                    className="text-xs font-semibold text-amber-600 dark:text-amber-400"
+                                    title={t("results.bonusTooltip", {
+                                      points: String(pred.bonusPoints),
+                                    })}
+                                  >
+                                    +{pred.bonusPoints}★
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>

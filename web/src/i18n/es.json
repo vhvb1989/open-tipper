@@ -128,6 +128,9 @@
     "accumulate": "Acumular (sumar todos los factores)",
     "highestOnly": "Solo el más alto (mejor factor individual)",
     "playoffDouble": "Puntos dobles en partidos de eliminación/playoff",
+    "uniqueBonus": "Bonus por resultado único",
+    "uniqueBonusDesc": "Multiplicar puntos cuando solo un jugador obtiene un factor de puntuación",
+    "uniqueBonusMultiplier": "Multiplicador de bonus",
     "resetDefaults": "Restaurar valores",
     "creating": "Creando…",
     "create": "Crear grupo",
@@ -233,7 +236,11 @@
     "reverseGoalDiffShort": "DI",
     "reverseGoalDiffDesc": "Predijiste la magnitud correcta de diferencia de goles pero con el ganador opuesto.",
     "factorTooltip": "{factor}: +{points}",
-    "exactScoreBang": "¡Marcador exacto!"
+    "exactScoreBang": "¡Marcador exacto!",
+    "uniqueBonusBanner": "Bonus por resultado único activo — x{multiplier} bonus por cada factor de puntuación que solo tú obtuviste!",
+    "bonusHeader": "Bonus",
+    "bonusTooltip": "Bonus único: +{points}",
+    "uniqueBadge": "★"
   },
   "standings": {
     "noStandings": "Sin clasificación aún",
@@ -246,6 +253,7 @@
     "player": "Jugador",
     "pointsHeader": "Puntos",
     "lastRoundHeader": "Última Jornada",
+    "bonusHeader": "Bonus",
     "tips": "Predicciones",
     "unknown": "Desconocido",
     "you": "(tú)",

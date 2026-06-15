@@ -166,6 +166,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         homeGoals: true,
         awayGoals: true,
         pointsAwarded: true,
+        bonusPoints: true,
         user: { select: { id: true, name: true, image: true } },
       },
       orderBy: [{ pointsAwarded: { sort: "desc", nulls: "last" } }],
@@ -198,6 +199,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         homeGoals: number;
         awayGoals: number;
         pointsAwarded: number | null;
+        bonusPoints: number;
         breakdown: {
           exactScore: number;
           goalDifference: number;
@@ -237,6 +239,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         homeGoals: p.homeGoals,
         awayGoals: p.awayGoals,
         pointsAwarded: p.pointsAwarded,
+        bonusPoints: p.bonusPoints ?? 0,
         breakdown,
       });
     }
@@ -247,7 +250,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       predictions: predsByMatch.get(match.id) ?? [],
     }));
 
-    return NextResponse.json({ results, matchDays, rounds });
+    // Include uniqueBonus settings so the UI knows whether to show the banner
+    const uniqueBonus = {
+      enabled: group.scoringRules?.uniqueBonusEnabled ?? false,
+      multiplier: group.scoringRules?.uniqueBonusMultiplier ?? 2.0,
+    };
+
+    return NextResponse.json({ results, matchDays, rounds, uniqueBonus });
   } catch (error) {
     console.error("Failed to fetch results:", error);
     return NextResponse.json({ error: "Failed to fetch results" }, { status: 500 });

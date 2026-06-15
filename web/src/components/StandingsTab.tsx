@@ -38,6 +38,7 @@ interface StandingEntry {
   userImage: string | null;
   role: string;
   totalPoints: number;
+  totalBonusPoints: number;
   predictionsScored: number;
   lastRoundPoints: number;
   medals: MedalEntry[];
@@ -159,6 +160,9 @@ export default function StandingsTab({
 
   const sortIndicator = (field: SortField) => (sortBy === field ? " ▼" : "");
 
+  // Show bonus column if any player has bonus points
+  const hasBonusPoints = standings.some((s) => (s.totalBonusPoints ?? 0) > 0);
+
   return (
     <div>
       {/* Error banner */}
@@ -226,6 +230,13 @@ export default function StandingsTab({
                   {sortIndicator("lastRoundPoints")}
                 </button>
               </th>
+              {hasBonusPoints && (
+                <th className="w-20 px-4 py-3 text-right">
+                  <span className="text-amber-600 dark:text-amber-400">
+                    {t("standings.bonusHeader")}
+                  </span>
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -414,6 +425,19 @@ export default function StandingsTab({
                       {entry.lastRoundPoints > 0 ? `+${entry.lastRoundPoints}` : "0"}
                     </span>
                   </td>
+
+                  {/* Bonus */}
+                  {hasBonusPoints && (
+                    <td className="px-4 py-3 text-right">
+                      {(entry.totalBonusPoints ?? 0) > 0 ? (
+                        <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+                          +{entry.totalBonusPoints}★
+                        </span>
+                      ) : (
+                        <span className="text-sm text-zinc-400 dark:text-zinc-500">–</span>
+                      )}
+                    </td>
+                  )}
                 </tr>
               );
             })}

@@ -225,6 +225,8 @@ model ScoringRules {
   reverseGoalDifference  Int              @default(1) @map("reverse_goal_difference")
   accumulationMode       AccumulationMode @default(ACCUMULATE) @map("accumulation_mode")
   playoffMultiplier      Boolean          @default(false) @map("playoff_multiplier")
+  uniqueBonusEnabled     Boolean          @default(false) @map("unique_bonus_enabled")
+  uniqueBonusMultiplier  Float            @default(2.0) @map("unique_bonus_multiplier")
   createdAt              DateTime         @default(now()) @map("created_at")
   updatedAt              DateTime         @updatedAt @map("updated_at")
 
@@ -261,6 +263,8 @@ model Prediction {
   homeGoals     Int      @map("home_goals")
   awayGoals     Int      @map("away_goals")
   pointsAwarded Int?     @map("points_awarded") /// Set by scoring engine (Cycle 5)
+  bonusPoints   Int      @default(0) @map("bonus_points") /// Uniqueness bonus points
+  isBackfilled  Boolean  @default(false) @map("is_backfilled") /// True if auto-created for late joiners
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 

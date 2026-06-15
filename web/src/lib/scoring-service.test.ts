@@ -88,8 +88,10 @@ describe("scoreMatch", () => {
     mockPrisma.prediction.findMany.mockResolvedValue([
       {
         id: "p1",
+        groupId: "g1",
         homeGoals: 2,
         awayGoals: 1,
+        isBackfilled: false,
         group: {
           scoringRules: {
             exactScore: 10,
@@ -100,13 +102,17 @@ describe("scoreMatch", () => {
             reverseGoalDifference: 1,
             accumulationMode: "ACCUMULATE",
             playoffMultiplier: false,
+            uniqueBonusEnabled: false,
+            uniqueBonusMultiplier: 2.0,
           },
         },
       },
       {
         id: "p2",
+        groupId: "g1",
         homeGoals: 1,
         awayGoals: 0,
+        isBackfilled: false,
         group: {
           scoringRules: null, // uses defaults
         },
@@ -120,7 +126,7 @@ describe("scoreMatch", () => {
     expect(mockPrisma.prediction.update).toHaveBeenCalledTimes(2);
     expect(mockPrisma.prediction.update).toHaveBeenCalledWith({
       where: { id: "p1" },
-      data: { pointsAwarded: 25 },
+      data: { pointsAwarded: 25, bonusPoints: 0 },
     });
     expect(calculateScore).toHaveBeenCalledTimes(2);
   });
@@ -138,8 +144,10 @@ describe("scoreMatch", () => {
     mockPrisma.prediction.findMany.mockResolvedValue([
       {
         id: "p1",
+        groupId: "g1",
         homeGoals: 1,
         awayGoals: 0,
+        isBackfilled: false,
         group: { scoringRules: null },
       },
     ]);
@@ -190,10 +198,24 @@ describe("scoreFinishedMatches", () => {
       });
     mockPrisma.prediction.findMany
       .mockResolvedValueOnce([
-        { id: "p1", homeGoals: 2, awayGoals: 1, group: { scoringRules: null } },
+        {
+          id: "p1",
+          groupId: "g1",
+          homeGoals: 2,
+          awayGoals: 1,
+          isBackfilled: false,
+          group: { scoringRules: null },
+        },
       ])
       .mockResolvedValueOnce([
-        { id: "p2", homeGoals: 1, awayGoals: 1, group: { scoringRules: null } },
+        {
+          id: "p2",
+          groupId: "g1",
+          homeGoals: 1,
+          awayGoals: 1,
+          isBackfilled: false,
+          group: { scoringRules: null },
+        },
       ]);
     mockPrisma.prediction.update.mockResolvedValue({});
 
@@ -251,9 +273,27 @@ describe("backfillDefaultPredictions", () => {
     expect(result.predictionsCreated).toBe(3);
     expect(mockPrisma.prediction.createMany).toHaveBeenCalledWith({
       data: expect.arrayContaining([
-        expect.objectContaining({ userId: "u1", matchId: "m2", homeGoals: 0, awayGoals: 0 }),
-        expect.objectContaining({ userId: "u2", matchId: "m1", homeGoals: 0, awayGoals: 0 }),
-        expect.objectContaining({ userId: "u2", matchId: "m2", homeGoals: 0, awayGoals: 0 }),
+        expect.objectContaining({
+          userId: "u1",
+          matchId: "m2",
+          homeGoals: 0,
+          awayGoals: 0,
+          isBackfilled: true,
+        }),
+        expect.objectContaining({
+          userId: "u2",
+          matchId: "m1",
+          homeGoals: 0,
+          awayGoals: 0,
+          isBackfilled: true,
+        }),
+        expect.objectContaining({
+          userId: "u2",
+          matchId: "m2",
+          homeGoals: 0,
+          awayGoals: 0,
+          isBackfilled: true,
+        }),
       ]),
       skipDuplicates: true,
     });
@@ -286,5 +326,182 @@ describe("backfillDefaultPredictions", () => {
 
     expect(result.predictionsCreated).toBe(2);
     expect(mockPrisma.prediction.createMany).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("uniqueness bonus", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(isPlayoffStage).mockReturnValue(false);
+  });
+
+  const bonusRules = {
+    exactScore: 10,
+    goalDifference: 6,
+    outcome: 4,
+    oneTeamGoals: 3,
+    totalGoals: 2,
+    reverseGoalDifference: 1,
+    accumulationMode: "ACCUMULATE" as const,
+    playoffMultiplier: false,
+    uniqueBonusEnabled: true,
+    uniqueBonusMultiplier: 2.0,
+  };
+
+  it("awards bonus when a factor is unique to one player", async () => {
+    mockPrisma.match.findUnique.mockResolvedValue({
+      id: "m1",
+      homeGoals: 2,
+      awayGoals: 1,
+      status: "FINISHED",
+      stage: null,
+    });
+
+    // Player 1 gets exactScore + GD + outcome, Player 2 gets only outcome
+    vi.mocked(calculateScore)
+      .mockReturnValueOnce({
+        exactScore: 10,
+        goalDifference: 6,
+        outcome: 4,
+        oneTeamGoals: 0,
+        totalGoals: 0,
+        reverseGoalDifference: 0,
+        total: 20,
+      })
+      .mockReturnValueOnce({
+        exactScore: 0,
+        goalDifference: 0,
+        outcome: 4,
+        oneTeamGoals: 0,
+        totalGoals: 0,
+        reverseGoalDifference: 0,
+        total: 4,
+      });
+
+    mockPrisma.prediction.findMany.mockResolvedValue([
+      {
+        id: "p1",
+        groupId: "g1",
+        homeGoals: 2,
+        awayGoals: 1,
+        isBackfilled: false,
+        group: { scoringRules: bonusRules },
+      },
+      {
+        id: "p2",
+        groupId: "g1",
+        homeGoals: 1,
+        awayGoals: 0,
+        isBackfilled: false,
+        group: { scoringRules: bonusRules },
+      },
+    ]);
+    mockPrisma.prediction.update.mockResolvedValue({});
+
+    await scoreMatch("m1", db);
+
+    // p1: exactScore(10) unique → +10, goalDifference(6) unique → +6, outcome shared → 0 bonus
+    expect(mockPrisma.prediction.update).toHaveBeenCalledWith({
+      where: { id: "p1" },
+      data: { pointsAwarded: 20, bonusPoints: 16 },
+    });
+    // p2: outcome shared → 0 bonus
+    expect(mockPrisma.prediction.update).toHaveBeenCalledWith({
+      where: { id: "p2" },
+      data: { pointsAwarded: 4, bonusPoints: 0 },
+    });
+  });
+
+  it("does not award bonus to backfilled predictions", async () => {
+    mockPrisma.match.findUnique.mockResolvedValue({
+      id: "m1",
+      homeGoals: 0,
+      awayGoals: 0,
+      status: "FINISHED",
+      stage: null,
+    });
+
+    // Both get exactScore, but p2 is backfilled
+    vi.mocked(calculateScore).mockReturnValue({
+      exactScore: 10,
+      goalDifference: 6,
+      outcome: 4,
+      oneTeamGoals: 3,
+      totalGoals: 2,
+      reverseGoalDifference: 0,
+      total: 25,
+    });
+
+    mockPrisma.prediction.findMany.mockResolvedValue([
+      {
+        id: "p1",
+        groupId: "g1",
+        homeGoals: 0,
+        awayGoals: 0,
+        isBackfilled: false,
+        group: { scoringRules: bonusRules },
+      },
+      {
+        id: "p2",
+        groupId: "g1",
+        homeGoals: 0,
+        awayGoals: 0,
+        isBackfilled: true,
+        group: { scoringRules: bonusRules },
+      },
+    ]);
+    mockPrisma.prediction.update.mockResolvedValue({});
+
+    await scoreMatch("m1", db);
+
+    // p1: not unique because p2 also scored (even though backfilled, both have same factors)
+    // But backfilled predictions are excluded from uniqueness count
+    // So p1 is the only non-backfilled one → all factors are unique
+    // But wait — the count only counts non-backfilled, so p1 is count=1 for each factor
+    // p2 is backfilled → bonusPoints = 0
+    expect(mockPrisma.prediction.update).toHaveBeenCalledWith({
+      where: { id: "p2" },
+      data: { pointsAwarded: 25, bonusPoints: 0 },
+    });
+  });
+
+  it("does not award bonus when feature is disabled", async () => {
+    mockPrisma.match.findUnique.mockResolvedValue({
+      id: "m1",
+      homeGoals: 2,
+      awayGoals: 1,
+      status: "FINISHED",
+      stage: null,
+    });
+
+    vi.mocked(calculateScore).mockReturnValue({
+      exactScore: 10,
+      goalDifference: 6,
+      outcome: 4,
+      oneTeamGoals: 0,
+      totalGoals: 0,
+      reverseGoalDifference: 0,
+      total: 20,
+    });
+
+    const disabledRules = { ...bonusRules, uniqueBonusEnabled: false };
+    mockPrisma.prediction.findMany.mockResolvedValue([
+      {
+        id: "p1",
+        groupId: "g1",
+        homeGoals: 2,
+        awayGoals: 1,
+        isBackfilled: false,
+        group: { scoringRules: disabledRules },
+      },
+    ]);
+    mockPrisma.prediction.update.mockResolvedValue({});
+
+    await scoreMatch("m1", db);
+
+    expect(mockPrisma.prediction.update).toHaveBeenCalledWith({
+      where: { id: "p1" },
+      data: { pointsAwarded: 20, bonusPoints: 0 },
+    });
   });
 });
