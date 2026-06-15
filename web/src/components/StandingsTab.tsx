@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { useLive } from "./LiveProvider";
+import BadgePopover from "./BadgePopover";
 import { useTranslation } from "@/i18n/TranslationProvider";
 import type { Round } from "@/lib/rounds";
 
@@ -328,16 +329,22 @@ export default function StandingsTab({
                           (entry.podiumBadges && entry.podiumBadges.length > 0)) && (
                           <div className="mt-0.5 flex flex-wrap gap-1">
                             {entry.medals.map((medal) => (
-                              <span
+                              <BadgePopover
                                 key={medal.matchDay}
-                                title={t("standings.medalTooltip", {
+                                title={t("standings.medalTitle", {
+                                  n: medal.matchDay,
+                                })}
+                                description={t("standings.medalDesc", {
                                   n: medal.matchDay,
                                   pts: medal.points,
                                 })}
-                                className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                              >
-                                🏅{medal.matchDay}
-                              </span>
+                                points={`+${medal.points} pts`}
+                                badge={
+                                  <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                                    🏅{medal.matchDay}
+                                  </span>
+                                }
+                              />
                             ))}
                             {entry.podiumBadges?.map((badge) => {
                               const config =
@@ -345,6 +352,8 @@ export default function StandingsTab({
                                   ? {
                                       emoji: "🥇",
                                       label: "1P",
+                                      titleKey: "podium.badge1PTitle",
+                                      descKey: "podium.badge1PDesc",
                                       color:
                                         "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
                                     }
@@ -352,24 +361,34 @@ export default function StandingsTab({
                                     ? {
                                         emoji: "🥈",
                                         label: "2P",
+                                        titleKey: "podium.badge2PTitle",
+                                        descKey: "podium.badge2PDesc",
                                         color:
                                           "bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300",
                                       }
                                     : {
                                         emoji: "🥉",
                                         label: "3P",
+                                        titleKey: "podium.badge3PTitle",
+                                        descKey: "podium.badge3PDesc",
                                         color:
                                           "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
                                       };
                               return (
-                                <span
+                                <BadgePopover
                                   key={badge.position}
-                                  title={`${config.label}: +${badge.points} pts`}
-                                  className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${config.color}`}
-                                >
-                                  {config.emoji}
-                                  {config.label}
-                                </span>
+                                  title={t(config.titleKey)}
+                                  description={t(config.descKey)}
+                                  points={`+${badge.points} pts`}
+                                  badge={
+                                    <span
+                                      className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${config.color}`}
+                                    >
+                                      {config.emoji}
+                                      {config.label}
+                                    </span>
+                                  }
+                                />
                               );
                             })}
                           </div>

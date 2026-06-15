@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { useLive, useLiveMatch } from "./LiveProvider";
 import { LiveBadge } from "./LiveBadge";
+import BadgePopover from "./BadgePopover";
 import { useTranslation } from "@/i18n/TranslationProvider";
 import type { Round } from "@/lib/rounds";
 
@@ -74,42 +75,49 @@ const FACTOR_BADGES: Array<{
   key: keyof NonNullable<PredictionEntry["breakdown"]>;
   labelKey: string;
   titleKey: string;
+  descKey: string;
   color: string;
 }> = [
   {
     key: "exactScore",
     labelKey: "results.exactScoreShort",
     titleKey: "results.exactScore",
+    descKey: "results.exactScoreDesc",
     color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
   },
   {
     key: "goalDifference",
     labelKey: "results.goalDifferenceShort",
     titleKey: "results.goalDifference",
+    descKey: "results.goalDifferenceDesc",
     color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
   },
   {
     key: "outcome",
     labelKey: "results.outcomeShort",
     titleKey: "results.outcome",
+    descKey: "results.outcomeDesc",
     color: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
   },
   {
     key: "oneTeamGoals",
     labelKey: "results.oneTeamGoalsShort",
     titleKey: "results.oneTeamGoals",
+    descKey: "results.oneTeamGoalsDesc",
     color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
   },
   {
     key: "totalGoals",
     labelKey: "results.totalGoalsShort",
     titleKey: "results.totalGoals",
+    descKey: "results.totalGoalsDesc",
     color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400",
   },
   {
     key: "reverseGoalDifference",
     labelKey: "results.reverseGoalDiffShort",
     titleKey: "results.reverseGoalDiff",
+    descKey: "results.reverseGoalDiffDesc",
     color: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400",
   },
 ];
@@ -122,16 +130,22 @@ function BreakdownBadges({ breakdown }: { breakdown: NonNullable<PredictionEntry
   return (
     <div className="flex items-center gap-0.5">
       {activeBadges.map((badge) => (
-        <span
+        <BadgePopover
           key={badge.key}
-          title={t("results.factorTooltip", {
+          title={t(badge.titleKey)}
+          description={t(badge.descKey)}
+          points={t("results.factorTooltip", {
             factor: t(badge.titleKey),
             points: String(breakdown[badge.key]),
           })}
-          className={`inline-flex items-center rounded px-1 py-0.5 text-[10px] font-bold leading-none ${badge.color}`}
-        >
-          {t(badge.labelKey)}
-        </span>
+          badge={
+            <span
+              className={`inline-flex items-center rounded px-1 py-0.5 text-[10px] font-bold leading-none ${badge.color}`}
+            >
+              {t(badge.labelKey)}
+            </span>
+          }
+        />
       ))}
     </div>
   );

@@ -1,4 +1,7 @@
 {
+  "common": {
+    "close": "Close"
+  },
   "meta": {
     "title": "Open Tipper",
     "description": "Score prediction with your mates — predict football match scores and compete on leaderboards."
@@ -213,16 +216,22 @@
     "noPoints": "–",
     "exactScore": "Exact Score",
     "exactScoreShort": "ES",
+    "exactScoreDesc": "You predicted the exact final score of the match.",
     "goalDifference": "Goal Difference",
     "goalDifferenceShort": "GD",
+    "goalDifferenceDesc": "You predicted the correct goal difference between the teams.",
     "outcome": "Outcome (W/D/L)",
     "outcomeShort": "OC",
+    "outcomeDesc": "You predicted the correct match result: home win, draw, or away win.",
     "oneTeamGoals": "One Team's Goals",
     "oneTeamGoalsShort": "OT",
+    "oneTeamGoalsDesc": "You correctly predicted at least one team's exact number of goals.",
     "totalGoals": "Total Goals",
     "totalGoalsShort": "TG",
+    "totalGoalsDesc": "You correctly predicted the total number of goals in the match.",
     "reverseGoalDiff": "Reverse Goal Diff",
     "reverseGoalDiffShort": "RG",
+    "reverseGoalDiffDesc": "You predicted the right goal difference magnitude but the opposite winner.",
     "factorTooltip": "{factor}: +{points}",
     "exactScoreBang": "Exact score!"
   },
@@ -240,7 +249,9 @@
     "tips": "Tips",
     "unknown": "Unknown",
     "you": "(you)",
-    "medalTooltip": "Match Day {n} winner — {pts} pts"
+    "medalTooltip": "Match Day {n} winner — {pts} pts",
+    "medalTitle": "Match Day {n} Champion",
+    "medalDesc": "Top scorer for Match Day {n}, earning {pts} points."
   },
   "invite": {
     "label": "Invite link",
@@ -366,8 +377,11 @@
     "badge2P": "2P",
     "badge3P": "3P",
     "badge1PTitle": "1st Place Prophet",
+    "badge1PDesc": "Correctly predicted the tournament winner.",
     "badge2PTitle": "2nd Place Prophet",
+    "badge2PDesc": "Correctly predicted the tournament runner-up.",
     "badge3PTitle": "3rd Place Prophet",
+    "badge3PDesc": "Correctly predicted the tournament third-place finisher.",
     "badgeTooltip": "{badge}: +{points}",
     "failedToLoad": "Failed to load podium data. Please try again.",
     "retry": "Retry",
