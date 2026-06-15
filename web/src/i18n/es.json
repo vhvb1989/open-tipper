@@ -240,7 +240,11 @@
     "uniqueBonusBanner": "Bonus por resultado único activo — x{multiplier} bonus por cada factor de puntuación que solo tú obtuviste!",
     "bonusHeader": "Bonus",
     "bonusTooltip": "Bonus único: +{points}",
-    "uniqueBadge": "★"
+    "uniqueBadge": "★",
+    "defaultPrediction": "Predicción por defecto",
+    "defaultPredictionShort": "DF",
+    "defaultPredictionDesc": "Esta predicción fue generada automáticamente (0–0) porque el jugador no envió una antes del inicio. Las predicciones por defecto no se consideran para el bonus por resultado único.",
+    "defaultScoreSeparator": "marcador por defecto"
   },
   "standings": {
     "noStandings": "Sin clasificación aún",

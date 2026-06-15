@@ -26,6 +26,7 @@ interface PredictionEntry {
   awayGoals: number;
   pointsAwarded: number | null;
   bonusPoints: number;
+  isBackfilled: boolean;
   breakdown: {
     exactScore: number;
     goalDifference: number;
@@ -148,6 +149,104 @@ function BreakdownBadges({ breakdown }: { breakdown: NonNullable<PredictionEntry
           }
         />
       ))}
+    </div>
+  );
+}
+
+function PredictionRow({ pred, match }: { pred: PredictionEntry; match: MatchResult }) {
+  const { t } = useTranslation();
+  const exact = isExactHit(pred, match);
+
+  return (
+    <div
+      className={`flex items-center justify-between px-4 py-2.5 ${pointsBgClass(pred.pointsAwarded)}`}
+    >
+      {/* User info */}
+      <div className="flex items-center gap-2">
+        {pred.userImage ? (
+          <Image
+            src={pred.userImage}
+            alt=""
+            width={24}
+            height={24}
+            className="h-6 w-6 rounded-full"
+            unoptimized
+          />
+        ) : (
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-200 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+            {(pred.userName ?? "?")[0]?.toUpperCase()}
+          </div>
+        )}
+        <span className="text-sm text-zinc-700 dark:text-zinc-300">
+          {pred.userName ?? t("results.unknown")}
+        </span>
+      </div>
+
+      {/* Prediction + breakdown + points */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+          {pred.homeGoals} – {pred.awayGoals}
+        </span>
+        {pred.breakdown && <BreakdownBadges breakdown={pred.breakdown} />}
+        <div className="flex items-center gap-1">
+          {exact && (
+            <span className="text-xs" title={t("results.exactScoreBang")}>
+              🎯
+            </span>
+          )}
+          <span
+            className={`min-w-[36px] text-right text-sm font-bold ${pointsColorClass(pred.pointsAwarded)}`}
+          >
+            {pred.pointsAwarded != null
+              ? t("results.points", { n: pred.pointsAwarded })
+              : t("results.noPoints")}
+          </span>
+          {pred.bonusPoints > 0 && (
+            <span
+              className="text-xs font-semibold text-amber-600 dark:text-amber-400"
+              title={t("results.bonusTooltip", {
+                points: String(pred.bonusPoints),
+              })}
+            >
+              +{pred.bonusPoints}★
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PredictionList({
+  predictions,
+  match,
+}: {
+  predictions: PredictionEntry[];
+  match: MatchResult;
+}) {
+  const { t } = useTranslation();
+  const real = predictions.filter((p) => !p.isBackfilled);
+  const backfilled = predictions.filter((p) => p.isBackfilled);
+
+  return (
+    <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+      {real.map((pred) => (
+        <PredictionRow key={pred.userId} pred={pred} match={match} />
+      ))}
+      {backfilled.length > 0 && (
+        <>
+          <div className="flex items-center gap-2 px-4 py-1.5">
+            <div className="h-px flex-1 bg-zinc-300 dark:bg-zinc-600" />
+            <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+              {t("results.defaultScoreSeparator")}
+            </span>
+            <div className="h-px flex-1 bg-zinc-300 dark:bg-zinc-600" />
+          </div>
+          {backfilled.map((pred) => (
+            <PredictionRow key={pred.userId} pred={pred} match={match} />
+          ))}
+        </>
+      )}
     </div>
   );
 }
@@ -467,70 +566,7 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
                       {t("results.noPredictions")}
                     </div>
                   ) : (
-                    <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                      {match.predictions.map((pred) => {
-                        const exact = isExactHit(pred, match);
-                        return (
-                          <div
-                            key={pred.userId}
-                            className={`flex items-center justify-between px-4 py-2.5 ${pointsBgClass(pred.pointsAwarded)}`}
-                          >
-                            {/* User info */}
-                            <div className="flex items-center gap-2">
-                              {pred.userImage ? (
-                                <Image
-                                  src={pred.userImage}
-                                  alt=""
-                                  width={24}
-                                  height={24}
-                                  className="h-6 w-6 rounded-full"
-                                  unoptimized
-                                />
-                              ) : (
-                                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-200 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
-                                  {(pred.userName ?? "?")[0]?.toUpperCase()}
-                                </div>
-                              )}
-                              <span className="text-sm text-zinc-700 dark:text-zinc-300">
-                                {pred.userName ?? t("results.unknown")}
-                              </span>
-                            </div>
-
-                            {/* Prediction + breakdown + points */}
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                                {pred.homeGoals} – {pred.awayGoals}
-                              </span>
-                              {pred.breakdown && <BreakdownBadges breakdown={pred.breakdown} />}
-                              <div className="flex items-center gap-1">
-                                {exact && (
-                                  <span className="text-xs" title={t("results.exactScoreBang")}>
-                                    🎯
-                                  </span>
-                                )}
-                                <span
-                                  className={`min-w-[36px] text-right text-sm font-bold ${pointsColorClass(pred.pointsAwarded)}`}
-                                >
-                                  {pred.pointsAwarded != null
-                                    ? t("results.points", { n: pred.pointsAwarded })
-                                    : t("results.noPoints")}
-                                </span>
-                                {pred.bonusPoints > 0 && (
-                                  <span
-                                    className="text-xs font-semibold text-amber-600 dark:text-amber-400"
-                                    title={t("results.bonusTooltip", {
-                                      points: String(pred.bonusPoints),
-                                    })}
-                                  >
-                                    +{pred.bonusPoints}★
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    <PredictionList predictions={match.predictions} match={match} />
                   )}
                 </div>
               )}

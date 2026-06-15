@@ -167,6 +167,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         awayGoals: true,
         pointsAwarded: true,
         bonusPoints: true,
+        isBackfilled: true,
         user: { select: { id: true, name: true, image: true } },
       },
       orderBy: [{ pointsAwarded: { sort: "desc", nulls: "last" } }],
@@ -200,6 +201,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         awayGoals: number;
         pointsAwarded: number | null;
         bonusPoints: number;
+        isBackfilled: boolean;
         breakdown: {
           exactScore: number;
           goalDifference: number;
@@ -240,6 +242,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         awayGoals: p.awayGoals,
         pointsAwarded: p.pointsAwarded,
         bonusPoints: p.bonusPoints ?? 0,
+        isBackfilled: p.isBackfilled,
         breakdown,
       });
     }
