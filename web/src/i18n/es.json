@@ -1,4 +1,7 @@
 {
+  "common": {
+    "close": "Cerrar"
+  },
   "meta": {
     "title": "Open Tipper",
     "description": "Predicciones de resultados con tus amigos — predice marcadores de fútbol y compite en clasificaciones."
@@ -213,16 +216,22 @@
     "noPoints": "–",
     "exactScore": "Marcador Exacto",
     "exactScoreShort": "ME",
+    "exactScoreDesc": "Predijiste el marcador exacto del partido.",
     "goalDifference": "Diferencia de Goles",
     "goalDifferenceShort": "DG",
+    "goalDifferenceDesc": "Predijiste la diferencia de goles correcta entre los equipos.",
     "outcome": "Resultado (V/E/D)",
     "outcomeShort": "RE",
+    "outcomeDesc": "Predijiste el resultado correcto: victoria local, empate o victoria visitante.",
     "oneTeamGoals": "Goles de un Equipo",
     "oneTeamGoalsShort": "GE",
+    "oneTeamGoalsDesc": "Predijiste correctamente los goles exactos de al menos un equipo.",
     "totalGoals": "Total de Goles",
     "totalGoalsShort": "TG",
+    "totalGoalsDesc": "Predijiste correctamente el total de goles del partido.",
     "reverseGoalDiff": "Dif. Goles Inversa",
     "reverseGoalDiffShort": "DI",
+    "reverseGoalDiffDesc": "Predijiste la magnitud correcta de diferencia de goles pero con el ganador opuesto.",
     "factorTooltip": "{factor}: +{points}",
     "exactScoreBang": "¡Marcador exacto!"
   },
@@ -240,7 +249,9 @@
     "tips": "Predicciones",
     "unknown": "Desconocido",
     "you": "(tú)",
-    "medalTooltip": "Ganador Jornada {n} — {pts} pts"
+    "medalTooltip": "Ganador Jornada {n} — {pts} pts",
+    "medalTitle": "Campeón de la Jornada {n}",
+    "medalDesc": "Máximo anotador de la Jornada {n}, con {pts} puntos."
   },
   "invite": {
     "label": "Enlace de invitación",
@@ -366,8 +377,11 @@
     "badge2P": "2P",
     "badge3P": "3P",
     "badge1PTitle": "Profeta del 1er Lugar",
+    "badge1PDesc": "Predijo correctamente al ganador del torneo.",
     "badge2PTitle": "Profeta del 2do Lugar",
+    "badge2PDesc": "Predijo correctamente al subcampeón del torneo.",
     "badge3PTitle": "Profeta del 3er Lugar",
+    "badge3PDesc": "Predijo correctamente al tercer lugar del torneo.",
     "badgeTooltip": "{badge}: +{points}",
     "failedToLoad": "Error al cargar datos del podio. Inténtalo de nuevo.",
     "retry": "Reintentar",
