@@ -48,6 +48,35 @@ interface StandingEntry {
 
 type SortField = "totalPoints" | "lastRoundPoints";
 
+/* Podium badge display config */
+function podiumBadgeConfig(position: "FIRST" | "SECOND" | "THIRD") {
+  if (position === "FIRST") {
+    return {
+      emoji: "🥇",
+      label: "1P",
+      titleKey: "podium.badge1PTitle",
+      descKey: "podium.badge1PDesc",
+      color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+    };
+  }
+  if (position === "SECOND") {
+    return {
+      emoji: "🥈",
+      label: "2P",
+      titleKey: "podium.badge2PTitle",
+      descKey: "podium.badge2PDesc",
+      color: "bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300",
+    };
+  }
+  return {
+    emoji: "🥉",
+    label: "3P",
+    titleKey: "podium.badge3PTitle",
+    descKey: "podium.badge3PDesc",
+    color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+  };
+}
+
 /* ---------- Component ---------- */
 
 export default function StandingsTab({
@@ -205,8 +234,191 @@ export default function StandingsTab({
         </div>
       )}
 
-      {/* Standings table */}
-      <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-700">
+      {/* Mobile card layout */}
+      <div className="space-y-2 md:hidden">
+        {/* Sort buttons */}
+        <div className="flex gap-2 text-xs">
+          <button
+            onClick={() => toggleSort("totalPoints")}
+            className={`rounded-full px-3 py-1 font-medium transition-colors ${
+              sortBy === "totalPoints"
+                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+            }`}
+          >
+            {t("standings.pointsHeader")}
+            {sortIndicator("totalPoints")}
+          </button>
+          <button
+            onClick={() => toggleSort("lastRoundPoints")}
+            className={`rounded-full px-3 py-1 font-medium transition-colors ${
+              sortBy === "lastRoundPoints"
+                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+            }`}
+          >
+            {t("standings.lastRoundHeader")}
+            {sortIndicator("lastRoundPoints")}
+          </button>
+        </div>
+
+        {rankedStandings.map((entry) => {
+          const isCurrentUser = entry.userId === currentUserId;
+          return (
+            <div
+              key={entry.userId}
+              className={`flex items-center gap-3 rounded-xl border px-3 py-3 ${
+                isCurrentUser
+                  ? "border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/10"
+                  : "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800/30"
+              }`}
+            >
+              {/* Rank */}
+              <span
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                  entry.rank === 1
+                    ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                    : entry.rank === 2
+                      ? "bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300"
+                      : entry.rank === 3
+                        ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
+                        : "text-zinc-500 dark:text-zinc-400"
+                }`}
+              >
+                {entry.rank}
+              </span>
+
+              {/* Avatar */}
+              {entry.userImage ? (
+                <Image
+                  src={entry.userImage}
+                  alt=""
+                  width={36}
+                  height={36}
+                  className="h-9 w-9 shrink-0 rounded-full"
+                  unoptimized
+                />
+              ) : (
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-sm font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+                  {(entry.userName ?? "?")[0]?.toUpperCase()}
+                </div>
+              )}
+
+              {/* Name + podium picks + badges */}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1">
+                  <span
+                    className={`truncate text-sm font-medium ${
+                      isCurrentUser
+                        ? "text-blue-700 dark:text-blue-400"
+                        : "text-zinc-900 dark:text-zinc-100"
+                    }`}
+                  >
+                    {entry.userName ?? t("standings.unknown")}
+                  </span>
+                  {isCurrentUser && (
+                    <span className="shrink-0 text-xs text-zinc-400 dark:text-zinc-500">
+                      {t("standings.you")}
+                    </span>
+                  )}
+                </div>
+                {/* Podium team picks */}
+                {entry.podiumPicks && (
+                  <div className="mt-1 flex items-center gap-1">
+                    {[
+                      entry.podiumPicks.firstPlaceTeam,
+                      entry.podiumPicks.secondPlaceTeam,
+                      entry.podiumPicks.thirdPlaceTeam,
+                    ]
+                      .filter(Boolean)
+                      .map((team) => (
+                        <div key={team!.id} title={team!.name}>
+                          {team!.crest ? (
+                            <Image
+                              src={team!.crest}
+                              alt={team!.name}
+                              width={20}
+                              height={20}
+                              className="h-5 w-5 rounded-full border border-white dark:border-zinc-900"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="flex h-5 w-5 items-center justify-center rounded-full border border-white bg-zinc-200 text-[8px] font-bold text-zinc-500 dark:border-zinc-900 dark:bg-zinc-700 dark:text-zinc-400">
+                              {team!.name[0]}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                )}
+                {/* Medals & podium badges */}
+                {(entry.medals.length > 0 ||
+                  (entry.podiumBadges && entry.podiumBadges.length > 0)) && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {entry.medals.map((medal) => (
+                      <BadgePopover
+                        key={medal.matchDay}
+                        title={t("standings.medalTitle", { n: medal.matchDay })}
+                        description={t("standings.medalDesc", {
+                          n: medal.matchDay,
+                          pts: medal.points,
+                        })}
+                        points={`+${medal.points} pts`}
+                        badge={
+                          <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                            🏅{medal.matchDay}
+                          </span>
+                        }
+                      />
+                    ))}
+                    {entry.podiumBadges?.map((badge) => {
+                      const config = podiumBadgeConfig(badge.position);
+                      return (
+                        <BadgePopover
+                          key={badge.position}
+                          title={t(config.titleKey)}
+                          description={t(config.descKey)}
+                          points={`+${badge.points} pts`}
+                          badge={
+                            <span
+                              className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${config.color}`}
+                            >
+                              {config.emoji}
+                              {config.label}
+                            </span>
+                          }
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Points column */}
+              <div className="shrink-0 text-right">
+                <div
+                  className={`text-lg font-bold ${sortBy === "totalPoints" ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-500 dark:text-zinc-400"}`}
+                >
+                  {entry.totalPoints}
+                </div>
+                <div
+                  className={`text-xs ${sortBy === "lastRoundPoints" ? "font-bold text-zinc-900 dark:text-zinc-100" : "text-zinc-500 dark:text-zinc-400"}`}
+                >
+                  {entry.lastRoundPoints > 0 ? `+${entry.lastRoundPoints}` : "0"}
+                </div>
+                {hasBonusPoints && (entry.totalBonusPoints ?? 0) > 0 && (
+                  <div className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+                    +{entry.totalBonusPoints}★
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop table layout */}
+      <div className="hidden overflow-x-auto rounded-xl border border-zinc-200 md:block dark:border-zinc-700">
         <table className="w-full">
           <thead>
             <tr className="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-400">
@@ -271,7 +483,7 @@ export default function StandingsTab({
                   {/* Player */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      {/* Podium team crests (shown to the left when locked) */}
+                      {/* Podium team crests */}
                       {entry.podiumPicks && (
                         <div className="flex -space-x-1" title={t("podium.heading")}>
                           {[
@@ -358,33 +570,7 @@ export default function StandingsTab({
                               />
                             ))}
                             {entry.podiumBadges?.map((badge) => {
-                              const config =
-                                badge.position === "FIRST"
-                                  ? {
-                                      emoji: "🥇",
-                                      label: "1P",
-                                      titleKey: "podium.badge1PTitle",
-                                      descKey: "podium.badge1PDesc",
-                                      color:
-                                        "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-                                    }
-                                  : badge.position === "SECOND"
-                                    ? {
-                                        emoji: "🥈",
-                                        label: "2P",
-                                        titleKey: "podium.badge2PTitle",
-                                        descKey: "podium.badge2PDesc",
-                                        color:
-                                          "bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300",
-                                      }
-                                    : {
-                                        emoji: "🥉",
-                                        label: "3P",
-                                        titleKey: "podium.badge3PTitle",
-                                        descKey: "podium.badge3PDesc",
-                                        color:
-                                          "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-                                      };
+                              const config = podiumBadgeConfig(badge.position);
                               return (
                                 <BadgePopover
                                   key={badge.position}
