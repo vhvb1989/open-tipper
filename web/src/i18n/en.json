@@ -240,7 +240,11 @@
     "uniqueBonusBanner": "Unique result bonus active — x{multiplier} bonus for each scoring factor that only you earned!",
     "bonusHeader": "Bonus",
     "bonusTooltip": "Unique bonus: +{points}",
-    "uniqueBadge": "★"
+    "uniqueBadge": "★",
+    "defaultPrediction": "Default Prediction",
+    "defaultPredictionShort": "DF",
+    "defaultPredictionDesc": "This prediction was auto-generated (0–0) because the player did not submit one before kickoff. Default predictions are excluded from uniqueness bonus calculations.",
+    "defaultScoreSeparator": "default score"
   },
   "standings": {
     "noStandings": "No standings yet",
