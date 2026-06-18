@@ -346,6 +346,7 @@ describe("uniqueness bonus", () => {
     playoffMultiplier: false,
     uniqueBonusEnabled: true,
     uniqueBonusMultiplier: 2.0,
+    bonusEnabledAt: new Date("2025-01-01T00:00:00Z"),
   };
 
   it("awards bonus when a factor is unique to one player", async () => {
@@ -355,6 +356,7 @@ describe("uniqueness bonus", () => {
       awayGoals: 1,
       status: "FINISHED",
       stage: null,
+      kickoffTime: new Date("2025-06-01T20:00:00Z"),
     });
 
     // Player 1 gets exactScore + GD + outcome, Player 2 gets only outcome
@@ -419,6 +421,7 @@ describe("uniqueness bonus", () => {
       awayGoals: 0,
       status: "FINISHED",
       stage: null,
+      kickoffTime: new Date("2025-06-01T20:00:00Z"),
     });
 
     // Both get exactScore, but p2 is backfilled
@@ -472,6 +475,7 @@ describe("uniqueness bonus", () => {
       awayGoals: 1,
       status: "FINISHED",
       stage: null,
+      kickoffTime: new Date("2025-06-01T20:00:00Z"),
     });
 
     vi.mocked(calculateScore).mockReturnValue({
@@ -499,6 +503,95 @@ describe("uniqueness bonus", () => {
 
     await scoreMatch("m1", db);
 
+    expect(mockPrisma.prediction.update).toHaveBeenCalledWith({
+      where: { id: "p1" },
+      data: { pointsAwarded: 20, bonusPoints: 0 },
+    });
+  });
+
+  it("does not award bonus to matches that kicked off before bonusEnabledAt", async () => {
+    // Match kicked off on Jan 1, but bonus was enabled on June 1
+    mockPrisma.match.findUnique.mockResolvedValue({
+      id: "m1",
+      homeGoals: 2,
+      awayGoals: 1,
+      status: "FINISHED",
+      stage: null,
+      kickoffTime: new Date("2025-01-15T20:00:00Z"),
+    });
+
+    vi.mocked(calculateScore).mockReturnValue({
+      exactScore: 10,
+      goalDifference: 6,
+      outcome: 4,
+      oneTeamGoals: 0,
+      totalGoals: 0,
+      reverseGoalDifference: 0,
+      total: 20,
+    });
+
+    const rulesEnabledLater = {
+      ...bonusRules,
+      bonusEnabledAt: new Date("2025-06-01T00:00:00Z"),
+    };
+    mockPrisma.prediction.findMany.mockResolvedValue([
+      {
+        id: "p1",
+        groupId: "g1",
+        homeGoals: 2,
+        awayGoals: 1,
+        isBackfilled: false,
+        group: { scoringRules: rulesEnabledLater },
+      },
+    ]);
+    mockPrisma.prediction.update.mockResolvedValue({});
+
+    await scoreMatch("m1", db);
+
+    // No bonus because match kicked off before bonus was enabled
+    expect(mockPrisma.prediction.update).toHaveBeenCalledWith({
+      where: { id: "p1" },
+      data: { pointsAwarded: 20, bonusPoints: 0 },
+    });
+  });
+
+  it("does not award bonus when bonusEnabledAt is null", async () => {
+    mockPrisma.match.findUnique.mockResolvedValue({
+      id: "m1",
+      homeGoals: 2,
+      awayGoals: 1,
+      status: "FINISHED",
+      stage: null,
+      kickoffTime: new Date("2025-06-01T20:00:00Z"),
+    });
+
+    vi.mocked(calculateScore).mockReturnValue({
+      exactScore: 10,
+      goalDifference: 6,
+      outcome: 4,
+      oneTeamGoals: 0,
+      totalGoals: 0,
+      reverseGoalDifference: 0,
+      total: 20,
+    });
+
+    // bonusEnabled is true but bonusEnabledAt is null (legacy data)
+    const rulesNullTimestamp = { ...bonusRules, bonusEnabledAt: null };
+    mockPrisma.prediction.findMany.mockResolvedValue([
+      {
+        id: "p1",
+        groupId: "g1",
+        homeGoals: 2,
+        awayGoals: 1,
+        isBackfilled: false,
+        group: { scoringRules: rulesNullTimestamp },
+      },
+    ]);
+    mockPrisma.prediction.update.mockResolvedValue({});
+
+    await scoreMatch("m1", db);
+
+    // No bonus because bonusEnabledAt is null
     expect(mockPrisma.prediction.update).toHaveBeenCalledWith({
       where: { id: "p1" },
       data: { pointsAwarded: 20, bonusPoints: 0 },

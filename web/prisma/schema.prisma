@@ -227,6 +227,7 @@ model ScoringRules {
   playoffMultiplier      Boolean          @default(false) @map("playoff_multiplier")
   uniqueBonusEnabled     Boolean          @default(false) @map("unique_bonus_enabled")
   uniqueBonusMultiplier  Float            @default(2.0) @map("unique_bonus_multiplier")
+  bonusEnabledAt         DateTime?        @map("bonus_enabled_at")
   createdAt              DateTime         @default(now()) @map("created_at")
   updatedAt              DateTime         @updatedAt @map("updated_at")
 

@@ -126,6 +126,7 @@ export async function POST(request: NextRequest) {
             playoffMultiplier: scoringRules?.playoffMultiplier ?? false,
             uniqueBonusEnabled: scoringRules?.uniqueBonusEnabled ?? false,
             uniqueBonusMultiplier: scoringRules?.uniqueBonusMultiplier ?? 2.0,
+            ...(scoringRules?.uniqueBonusEnabled ? { bonusEnabledAt: new Date() } : {}),
           },
         },
         ...(podiumEnabled

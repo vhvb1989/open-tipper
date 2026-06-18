@@ -56,6 +56,7 @@ export async function scoreMatch(matchId: string, db: PrismaClient): Promise<Sco
       awayGoals: true,
       status: true,
       stage: true,
+      kickoffTime: true,
     },
   });
 
@@ -122,6 +123,11 @@ export async function scoreMatch(matchId: string, db: PrismaClient): Promise<Sco
 
     const bonusEnabled = rules?.uniqueBonusEnabled ?? false;
     const bonusMultiplier = rules?.uniqueBonusMultiplier ?? 2.0;
+    const bonusEnabledAt = rules?.bonusEnabledAt ?? null;
+
+    // Bonus only applies if the match kicked off after the feature was enabled
+    const bonusApplies =
+      bonusEnabled && bonusEnabledAt !== null && match.kickoffTime >= bonusEnabledAt;
 
     // Calculate breakdowns for all predictions in this group
     const breakdowns: Array<{
@@ -164,7 +170,8 @@ export async function scoreMatch(matchId: string, db: PrismaClient): Promise<Sco
       let bonusPoints = 0;
 
       // Only award bonus to non-backfilled predictions when feature is enabled
-      if (bonusEnabled && !isBackfilled) {
+      // and the match kicked off after the feature was turned on
+      if (bonusApplies && !isBackfilled) {
         for (const key of factorKeys) {
           if (breakdown[key] > 0 && factorCounts[key] === 1) {
             // This player is the only one who earned this factor
