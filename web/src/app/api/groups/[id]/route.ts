@@ -118,6 +118,24 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Update scoring rules if provided
     if (scoringRules) {
+      // Determine if we need to set bonusEnabledAt (toggling bonus ON)
+      let bonusEnabledAtUpdate: { bonusEnabledAt?: Date | null } = {};
+      if (scoringRules.uniqueBonusEnabled !== undefined) {
+        if (scoringRules.uniqueBonusEnabled) {
+          // Check if currently disabled — only set timestamp on toggle ON
+          const currentRules = await prisma.scoringRules.findUnique({
+            where: { groupId: id },
+            select: { uniqueBonusEnabled: true, bonusEnabledAt: true },
+          });
+          if (!currentRules || !currentRules.uniqueBonusEnabled) {
+            bonusEnabledAtUpdate = { bonusEnabledAt: new Date() };
+          }
+        } else {
+          // Toggling OFF: clear the timestamp
+          bonusEnabledAtUpdate = { bonusEnabledAt: null };
+        }
+      }
+
       await prisma.scoringRules.upsert({
         where: { groupId: id },
         update: {
@@ -145,6 +163,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           ...(scoringRules.uniqueBonusMultiplier !== undefined && {
             uniqueBonusMultiplier: scoringRules.uniqueBonusMultiplier,
           }),
+          ...bonusEnabledAtUpdate,
         },
         create: {
           groupId: id,
@@ -158,6 +177,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           playoffMultiplier: scoringRules.playoffMultiplier ?? false,
           uniqueBonusEnabled: scoringRules.uniqueBonusEnabled ?? false,
           uniqueBonusMultiplier: scoringRules.uniqueBonusMultiplier ?? 2.0,
+          ...bonusEnabledAtUpdate,
         },
       });
     }
