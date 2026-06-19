@@ -166,6 +166,7 @@
     "podium": "Podium",
     "standings": "Standings",
     "results": "Results",
+    "trajectory": "Trajectory",
     "members": "Members",
     "settings": "Settings"
   },
@@ -414,5 +415,17 @@
   "createGroup.podiumFirstPlace": "1st place points",
   "createGroup.podiumSecondPlace": "2nd place points",
   "createGroup.podiumThirdPlace": "3rd place points",
-  "createGroup.podiumThirdPlaceNote": "3rd place is only available for World Cup tournaments."
+  "createGroup.podiumThirdPlaceNote": "3rd place is only available for World Cup tournaments.",
+  "trajectory": {
+    "title": "Points Trajectory",
+    "matchDayLabel": "Match Day {n}",
+    "pts": "pts",
+    "unknown": "Unknown",
+    "clickLegend": "Click a name in the legend to highlight a player",
+    "hint": "Tap on the chart to see match details. Click a name in the legend to highlight.",
+    "noData": "No trajectory data yet",
+    "noDataDesc": "Trajectory will appear once matches have been played and scored.",
+    "error": "Failed to load trajectory. Please try again.",
+    "retry": "Retry"
+  }
 }
