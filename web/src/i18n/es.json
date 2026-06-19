@@ -166,6 +166,7 @@
     "podium": "Podio",
     "standings": "Clasificación",
     "results": "Resultados",
+    "trajectory": "Trayectoria",
     "members": "Miembros",
     "settings": "Configuración"
   },
@@ -414,5 +415,17 @@
   "createGroup.podiumFirstPlace": "Puntos por 1er lugar",
   "createGroup.podiumSecondPlace": "Puntos por 2do lugar",
   "createGroup.podiumThirdPlace": "Puntos por 3er lugar",
-  "createGroup.podiumThirdPlaceNote": "El 3er lugar solo está disponible para torneos de Copa del Mundo."
+  "createGroup.podiumThirdPlaceNote": "El 3er lugar solo está disponible para torneos de Copa del Mundo.",
+  "trajectory": {
+    "title": "Trayectoria de Puntos",
+    "matchDayLabel": "Jornada {n}",
+    "pts": "pts",
+    "unknown": "Desconocido",
+    "clickLegend": "Haz clic en un nombre de la leyenda para resaltar un jugador",
+    "hint": "Toca la gráfica para ver detalles del partido. Haz clic en la leyenda para resaltar.",
+    "noData": "Aún no hay datos de trayectoria",
+    "noDataDesc": "La trayectoria aparecerá cuando se hayan jugado y puntuado partidos.",
+    "error": "No se pudo cargar la trayectoria. Inténtalo de nuevo.",
+    "retry": "Reintentar"
+  }
 }

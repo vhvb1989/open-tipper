@@ -20,6 +20,9 @@ export function GroupTabs({ groupId, isAdmin, isMember }: GroupTabsProps) {
       : []),
     { label: t("groupTabs.standings"), href: `/groups/${groupId}/standings` },
     { label: t("groupTabs.results"), href: `/groups/${groupId}/results` },
+    ...(isMember
+      ? [{ label: t("groupTabs.trajectory"), href: `/groups/${groupId}/trajectory` }]
+      : []),
     ...(isMember ? [{ label: t("groupTabs.members"), href: `/groups/${groupId}/members` }] : []),
     ...(isAdmin ? [{ label: t("groupTabs.settings"), href: `/groups/${groupId}/settings` }] : []),
   ];
