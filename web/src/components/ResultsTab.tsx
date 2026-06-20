@@ -35,6 +35,24 @@ interface PredictionEntry {
     totalGoals: number;
     reverseGoalDifference: number;
   } | null;
+  riskPredictions: RiskPredictionEntry[];
+  totalPointsRisked: number;
+  riskNetPoints: number;
+}
+
+interface RiskPredictionEntry {
+  category: "YELLOW_CARDS" | "RED_CARDS" | "CORNER_KICKS" | "OFFSIDES";
+  predictedValue: number;
+  pointsRisked: number;
+  status: "PENDING" | "WON" | "LOST" | "CANCELLED";
+  pointsAwarded: number | null;
+}
+
+interface MatchStatsSummary {
+  yellowCards: number | null;
+  redCards: number | null;
+  cornerKicks: number | null;
+  offsides: number | null;
 }
 
 interface MatchResult {
@@ -47,6 +65,7 @@ interface MatchResult {
   awayGoals: number | null;
   homeTeam: Team;
   awayTeam: Team;
+  matchStats?: MatchStatsSummary;
   predictions: PredictionEntry[];
 }
 
@@ -71,6 +90,41 @@ function pointsBgClass(points: number | null): string {
 function isExactHit(pred: PredictionEntry, result: MatchResult): boolean {
   return pred.homeGoals === result.homeGoals && pred.awayGoals === result.awayGoals;
 }
+
+function isFinishedMatch(match: MatchResult): boolean {
+  return match.status === "FINISHED" || match.status === "AWARDED";
+}
+
+function hasAnyMatchStats(stats?: MatchStatsSummary): stats is MatchStatsSummary {
+  return Boolean(
+    stats &&
+    [stats.yellowCards, stats.redCards, stats.cornerKicks, stats.offsides].some(
+      (value) => value !== null,
+    ),
+  );
+}
+
+function getRiskActualValue(
+  category: RiskPredictionEntry["category"],
+  stats?: MatchStatsSummary,
+): number | null {
+  if (!stats) return null;
+  if (category === "YELLOW_CARDS") return stats.yellowCards;
+  if (category === "RED_CARDS") return stats.redCards;
+  if (category === "CORNER_KICKS") return stats.cornerKicks;
+  return stats.offsides;
+}
+
+const RISK_STAT_ITEMS: Array<{
+  key: keyof MatchStatsSummary;
+  icon: string;
+  titleKey: string;
+}> = [
+  { key: "yellowCards", icon: "🟨", titleKey: "results.riskYellowCards" },
+  { key: "redCards", icon: "🟥", titleKey: "results.riskRedCards" },
+  { key: "cornerKicks", icon: "🚩", titleKey: "results.riskCornerKicks" },
+  { key: "offsides", icon: "⚑", titleKey: "results.riskOffsides" },
+];
 
 /** Scoring factor badge definitions */
 const FACTOR_BADGES: Array<{
@@ -153,66 +207,185 @@ function BreakdownBadges({ breakdown }: { breakdown: NonNullable<PredictionEntry
   );
 }
 
-function PredictionRow({ pred, match }: { pred: PredictionEntry; match: MatchResult }) {
+function MatchStatsBadges({ stats }: { stats: MatchStatsSummary }) {
   const { t } = useTranslation();
-  const exact = isExactHit(pred, match);
 
   return (
-    <div
-      className={`flex items-center justify-between px-4 py-2.5 ${pointsBgClass(pred.pointsAwarded)}`}
-    >
-      {/* User info */}
-      <div className="flex items-center gap-2">
-        {pred.userImage ? (
-          <Image
-            src={pred.userImage}
-            alt=""
-            width={24}
-            height={24}
-            className="h-6 w-6 rounded-full"
-            unoptimized
-          />
-        ) : (
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-200 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
-            {(pred.userName ?? "?")[0]?.toUpperCase()}
-          </div>
-        )}
-        <span className="text-sm text-zinc-700 dark:text-zinc-300">
-          {pred.userName ?? t("results.unknown")}
-        </span>
-      </div>
+    <div className="mt-1 flex flex-wrap items-center justify-center gap-1 text-[11px] text-zinc-500 dark:text-zinc-400">
+      {RISK_STAT_ITEMS.map(({ key, icon, titleKey }) => {
+        const value = stats[key];
+        if (value === null) return null;
 
-      {/* Prediction + breakdown + points */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-          {pred.homeGoals} – {pred.awayGoals}
-        </span>
-        {pred.breakdown && <BreakdownBadges breakdown={pred.breakdown} />}
-        <div className="flex items-center gap-1">
-          {exact && (
-            <span className="text-xs" title={t("results.exactScoreBang")}>
-              🎯
-            </span>
-          )}
+        return (
           <span
-            className={`min-w-[36px] text-right text-sm font-bold ${pointsColorClass(pred.pointsAwarded)}`}
+            key={key}
+            title={t(titleKey)}
+            className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-1.5 py-0.5 dark:bg-zinc-800"
           >
-            {pred.pointsAwarded != null
-              ? t("results.points", { n: pred.pointsAwarded })
-              : t("results.noPoints")}
+            <span aria-hidden="true">{icon}</span>
+            <span>{value}</span>
           </span>
-          {pred.bonusPoints > 0 && (
-            <span
-              className="text-xs font-semibold text-amber-600 dark:text-amber-400"
-              title={t("results.bonusTooltip", {
-                points: String(pred.bonusPoints),
-              })}
-            >
-              +{pred.bonusPoints}★
-            </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function RiskDetails({
+  riskPredictions,
+  matchStats,
+}: {
+  riskPredictions: RiskPredictionEntry[];
+  matchStats?: MatchStatsSummary;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="mt-2 overflow-x-auto rounded-lg border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+      <table className="min-w-full text-left text-xs">
+        <thead className="bg-zinc-50 text-zinc-500 dark:bg-zinc-800/80 dark:text-zinc-400">
+          <tr>
+            <th className="px-3 py-2 font-medium">{t("results.riskCategory")}</th>
+            <th className="px-3 py-2 font-medium">{t("results.riskPredicted")}</th>
+            <th className="px-3 py-2 font-medium">{t("results.riskActual")}</th>
+            <th className="px-3 py-2 font-medium">{t("results.riskPointsRisked")}</th>
+            <th className="px-3 py-2 font-medium">{t("results.riskResult")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {riskPredictions.map((risk) => {
+            const actual = getRiskActualValue(risk.category, matchStats);
+            let resultLabel = t("results.riskPending");
+            let resultClass = "text-zinc-500 dark:text-zinc-400";
+
+            if (risk.status === "WON") {
+              resultLabel = "✓";
+              resultClass = "text-emerald-600 dark:text-emerald-400";
+            } else if (risk.status === "LOST") {
+              resultLabel = "✗";
+              resultClass = "text-red-600 dark:text-red-400";
+            } else if (risk.status === "CANCELLED") {
+              resultLabel = t("results.riskCancelled");
+            }
+
+            return (
+              <tr key={risk.category} className="border-t border-zinc-100 dark:border-zinc-800">
+                <td className="px-3 py-2">{t(`results.riskCategories.${risk.category}`)}</td>
+                <td className="px-3 py-2">{risk.predictedValue}</td>
+                <td className="px-3 py-2">{actual ?? "—"}</td>
+                <td className="px-3 py-2">{t("results.points", { n: risk.pointsRisked })}</td>
+                <td className={`px-3 py-2 font-semibold ${resultClass}`}>{resultLabel}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function PredictionRow({
+  pred,
+  match,
+  isRiskExpanded,
+  onToggleRisk,
+}: {
+  pred: PredictionEntry;
+  match: MatchResult;
+  isRiskExpanded: boolean;
+  onToggleRisk: () => void;
+}) {
+  const { t } = useTranslation();
+  const exact = isExactHit(pred, match);
+  const hasResolvedRisk = pred.riskPredictions.some(
+    (risk) => risk.status === "WON" || risk.status === "LOST",
+  );
+  const showRiskNetBadge = hasResolvedRisk && pred.riskNetPoints !== 0;
+
+  return (
+    <div className={`px-4 py-2.5 ${pointsBgClass(pred.pointsAwarded)}`}>
+      <div className="flex items-center justify-between gap-3">
+        {/* User info */}
+        <div className="flex min-w-0 items-center gap-2">
+          {pred.userImage ? (
+            <Image
+              src={pred.userImage}
+              alt=""
+              width={24}
+              height={24}
+              className="h-6 w-6 rounded-full"
+              unoptimized
+            />
+          ) : (
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-200 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+              {(pred.userName ?? "?")[0]?.toUpperCase()}
+            </div>
           )}
+          <span className="truncate text-sm text-zinc-700 dark:text-zinc-300">
+            {pred.userName ?? t("results.unknown")}
+          </span>
+        </div>
+
+        {/* Prediction + breakdown + points */}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+            {pred.homeGoals} – {pred.awayGoals}
+          </span>
+          {pred.breakdown && <BreakdownBadges breakdown={pred.breakdown} />}
+          <div className="flex items-center gap-1">
+            {exact && (
+              <span className="text-xs" title={t("results.exactScoreBang")}>
+                🎯
+              </span>
+            )}
+            <span
+              className={`min-w-[36px] text-right text-sm font-bold ${pointsColorClass(pred.pointsAwarded)}`}
+            >
+              {pred.pointsAwarded != null
+                ? t("results.points", { n: pred.pointsAwarded })
+                : t("results.noPoints")}
+            </span>
+            {showRiskNetBadge && (
+              <span
+                className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                  pred.riskNetPoints > 0
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                    : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                }`}
+              >
+                {pred.riskNetPoints > 0 ? "+" : ""}
+                {pred.riskNetPoints}Risk
+              </span>
+            )}
+            {pred.bonusPoints > 0 && (
+              <span
+                className="text-xs font-semibold text-amber-600 dark:text-amber-400"
+                title={t("results.bonusTooltip", {
+                  points: String(pred.bonusPoints),
+                })}
+              >
+                +{pred.bonusPoints}★
+              </span>
+            )}
+          </div>
         </div>
       </div>
+
+      {pred.riskPredictions.length > 0 && (
+        <div className="mt-2 pl-8">
+          <button
+            type="button"
+            onClick={onToggleRisk}
+            className="text-xs font-medium text-zinc-600 underline underline-offset-2 dark:text-zinc-300"
+          >
+            {isRiskExpanded ? t("results.hideRisk") : t("results.showRisk")} (
+            {t("results.points", { n: pred.totalPointsRisked })})
+          </button>
+          {isRiskExpanded && (
+            <RiskDetails riskPredictions={pred.riskPredictions} matchStats={match.matchStats} />
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -220,9 +393,13 @@ function PredictionRow({ pred, match }: { pred: PredictionEntry; match: MatchRes
 function PredictionList({
   predictions,
   match,
+  expandedRiskRows,
+  onToggleRisk,
 }: {
   predictions: PredictionEntry[];
   match: MatchResult;
+  expandedRiskRows: Set<string>;
+  onToggleRisk: (key: string) => void;
 }) {
   const { t } = useTranslation();
   const real = predictions.filter((p) => !p.isBackfilled);
@@ -231,7 +408,13 @@ function PredictionList({
   return (
     <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
       {real.map((pred) => (
-        <PredictionRow key={pred.userId} pred={pred} match={match} />
+        <PredictionRow
+          key={pred.userId}
+          pred={pred}
+          match={match}
+          isRiskExpanded={expandedRiskRows.has(`${match.id}:${pred.userId}`)}
+          onToggleRisk={() => onToggleRisk(`${match.id}:${pred.userId}`)}
+        />
       ))}
       {backfilled.length > 0 && (
         <>
@@ -243,7 +426,13 @@ function PredictionList({
             <div className="h-px flex-1 bg-zinc-300 dark:bg-zinc-600" />
           </div>
           {backfilled.map((pred) => (
-            <PredictionRow key={pred.userId} pred={pred} match={match} />
+            <PredictionRow
+              key={pred.userId}
+              pred={pred}
+              match={match}
+              isRiskExpanded={expandedRiskRows.has(`${match.id}:${pred.userId}`)}
+              onToggleRisk={() => onToggleRisk(`${match.id}:${pred.userId}`)}
+            />
           ))}
         </>
       )}
@@ -253,7 +442,7 @@ function PredictionList({
 
 /* ---------- Component ---------- */
 
-function MatchScore({ match }: { match: MatchResult }) {
+function MatchScore({ match, showRiskStats }: { match: MatchResult; showRiskStats: boolean }) {
   const liveData = useLiveMatch(match.id);
   const { t } = useTranslation();
   const isLive =
@@ -281,6 +470,9 @@ function MatchScore({ match }: { match: MatchResult }) {
           <LiveBadge status={status} />
         </div>
       )}
+      {showRiskStats && match.matchStats && hasAnyMatchStats(match.matchStats) && (
+        <MatchStatsBadges stats={match.matchStats} />
+      )}
     </div>
   );
 }
@@ -290,8 +482,10 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
   const [rounds, setRounds] = useState<Round[]>([]);
   const [selectedRoundKey, setSelectedRoundKey] = useState<string | null>(null);
   const [expandedMatches, setExpandedMatches] = useState<Set<string>>(new Set());
+  const [expandedRiskRows, setExpandedRiskRows] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [riskEnabled, setRiskEnabled] = useState(false);
   const [uniqueBonus, setUniqueBonus] = useState<{
     enabled: boolean;
     multiplier: number;
@@ -324,6 +518,7 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
         setResults(data.results);
         if (data.rounds) setRounds(data.rounds);
         if (data.uniqueBonus) setUniqueBonus(data.uniqueBonus);
+        setRiskEnabled(Boolean(data.riskEnabled));
         if (selectedRoundKey === null && data.rounds && data.rounds.length > 0) {
           // Default to the latest played round
           setSelectedRoundKey(data.rounds[data.rounds.length - 1].key);
@@ -355,6 +550,7 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
   const handleRoundChange = (round: Round) => {
     setSelectedRoundKey(round.key);
     setExpandedMatches(new Set());
+    setExpandedRiskRows(new Set());
     fetchResults(round);
   };
 
@@ -365,6 +561,18 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
         next.delete(matchId);
       } else {
         next.add(matchId);
+      }
+      return next;
+    });
+  };
+
+  const toggleRiskRow = (rowKey: string) => {
+    setExpandedRiskRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(rowKey)) {
+        next.delete(rowKey);
+      } else {
+        next.add(rowKey);
       }
       return next;
     });
@@ -487,6 +695,8 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
       <div className="space-y-3">
         {results.map((match) => {
           const isExpanded = expandedMatches.has(match.id);
+          const showRiskStats =
+            riskEnabled && isFinishedMatch(match) && hasAnyMatchStats(match.matchStats);
 
           return (
             <div
@@ -517,7 +727,7 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
                   </div>
 
                   {/* Score — live-aware */}
-                  <MatchScore match={match} />
+                  <MatchScore match={match} showRiskStats={showRiskStats} />
 
                   {/* Away team */}
                   <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -566,7 +776,12 @@ export default function ResultsTab({ groupId }: { groupId: string }) {
                       {t("results.noPredictions")}
                     </div>
                   ) : (
-                    <PredictionList predictions={match.predictions} match={match} />
+                    <PredictionList
+                      predictions={match.predictions}
+                      match={match}
+                      expandedRiskRows={expandedRiskRows}
+                      onToggleRisk={toggleRiskRow}
+                    />
                   )}
                 </div>
               )}

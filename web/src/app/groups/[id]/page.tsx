@@ -28,9 +28,18 @@ export default async function GroupPredictionsPage({
     if (membership) {
       const group = await prisma.group.findUnique({
         where: { id },
-        select: { podiumSettings: { select: { enabled: true } } },
+        select: {
+          podiumSettings: { select: { enabled: true } },
+          riskEnabled: true,
+        },
       });
-      return <PredictionsTab groupId={id} hasPodium={!!group?.podiumSettings?.enabled} />;
+      return (
+        <PredictionsTab
+          groupId={id}
+          hasPodium={!!group?.podiumSettings?.enabled}
+          riskEnabled={group?.riskEnabled ?? false}
+        />
+      );
     }
   }
 

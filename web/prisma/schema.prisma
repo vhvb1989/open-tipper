@@ -37,6 +37,7 @@ model User {
   medals      Medal[]
   podiumPredictions PodiumPrediction[]
   podiumBadges      PodiumBadge[]
+  riskPredictions   RiskPrediction[]
 
   @@map("users")
 }
@@ -162,7 +163,9 @@ model Match {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  predictions Prediction[]
+  predictions     Prediction[]
+  stats           MatchStats?
+  riskPredictions RiskPrediction[]
 
   @@index([contestId])
   @@index([kickoffTime])
@@ -197,6 +200,7 @@ model Group {
   inviteCode  String          @unique @default(cuid()) @map("invite_code")
   contestId   String          @map("contest_id")
   contest     Contest         @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  riskEnabled Boolean         @default(false) @map("risk_enabled")
   createdAt   DateTime        @default(now()) @map("created_at")
   updatedAt   DateTime        @updatedAt @map("updated_at")
 
@@ -207,6 +211,7 @@ model Group {
   medals       Medal[]
   podiumPredictions PodiumPrediction[]
   podiumBadges      PodiumBadge[]
+  riskPredictions   RiskPrediction[]
 
   @@index([contestId])
   @@index([inviteCode])
@@ -361,4 +366,60 @@ model PodiumBadge {
   @@index([groupId])
   @@index([userId])
   @@map("podium_badges")
+}
+
+// ---------------------------------------------------------------------------
+// Risk Feature — Match Statistics & Risk Predictions
+// ---------------------------------------------------------------------------
+
+/// Cached match statistics fetched from API-Football after a match finishes.
+model MatchStats {
+  id          String   @id @default(cuid())
+  matchId     String   @unique @map("match_id")
+  match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  yellowCards Int?     @map("yellow_cards") /// Combined total (home + away)
+  redCards    Int?     @map("red_cards")
+  cornerKicks Int?    @map("corner_kicks")
+  offsides    Int?
+  fetchedAt   DateTime @default(now()) @map("fetched_at")
+
+  @@map("match_stats")
+}
+
+enum RiskCategory {
+  YELLOW_CARDS
+  RED_CARDS
+  CORNER_KICKS
+  OFFSIDES
+}
+
+enum RiskStatus {
+  PENDING
+  WON
+  LOST
+  CANCELLED
+}
+
+/// A user's risk prediction on a specific match statistic.
+model RiskPrediction {
+  id             String       @id @default(cuid())
+  userId         String       @map("user_id")
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  groupId        String       @map("group_id")
+  group          Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  matchId        String       @map("match_id")
+  match          Match        @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  category       RiskCategory
+  predictedValue Int          @map("predicted_value") /// User's guess for combined total
+  pointsRisked   Int          @map("points_risked")   /// Points wagered
+  status         RiskStatus   @default(PENDING)
+  pointsAwarded  Int?         @map("points_awarded")  /// null until resolved; pointsRisked*2 if won, 0 if lost
+  createdAt      DateTime     @default(now()) @map("created_at")
+  resolvedAt     DateTime?    @map("resolved_at")
+
+  @@unique([userId, groupId, matchId, category])
+  @@index([groupId])
+  @@index([matchId])
+  @@index([userId])
+  @@map("risk_predictions")
 }

@@ -200,7 +200,20 @@
     "syncing": "Sincronizando…",
     "syncedAll": "¡Predicciones sincronizadas!",
     "syncFailed": "Error al sincronizar — ¿reintentar?",
-    "syncMatch": "Aplicar esta predicción a todos mis grupos"
+    "syncMatch": "Aplicar esta predicción a todos mis grupos",
+    "riskMore": "🎲 Arriesgar más",
+    "riskAvailable": "Disponible: {points} pts",
+    "riskConfirm": "Confirmar",
+    "riskCancel": "Cancelar",
+    "riskYellowCards": "Tarjetas amarillas",
+    "riskRedCards": "Tarjetas rojas",
+    "riskCornerKicks": "Tiros de esquina",
+    "riskOffsides": "Fueras de juego",
+    "riskPointsToRisk": "Puntos",
+    "riskPredictedTotal": "Total",
+    "riskConfirmed": "Confirmado",
+    "riskPending": "Pendiente",
+    "riskInsufficientBalance": "No tienes puntos suficientes"
   },
   "results": {
     "vs": "vs",
@@ -245,7 +258,26 @@
     "defaultPrediction": "Predicción por defecto",
     "defaultPredictionShort": "DF",
     "defaultPredictionDesc": "Esta predicción fue generada automáticamente (0–0) porque el jugador no envió una antes del inicio. Las predicciones por defecto no se consideran para el bonus por resultado único.",
-    "defaultScoreSeparator": "marcador por defecto"
+    "defaultScoreSeparator": "marcador por defecto",
+    "showRisk": "Mostrar riesgo",
+    "hideRisk": "Ocultar riesgo",
+    "riskCategory": "Categoría",
+    "riskPredicted": "Predicho",
+    "riskActual": "Real",
+    "riskPointsRisked": "Puntos apostados",
+    "riskResult": "Resultado",
+    "riskPending": "Pendiente",
+    "riskCancelled": "Cancelado",
+    "riskYellowCards": "Tarjetas amarillas",
+    "riskRedCards": "Tarjetas rojas",
+    "riskCornerKicks": "Tiros de esquina",
+    "riskOffsides": "Fueras de juego",
+    "riskCategories": {
+      "YELLOW_CARDS": "Tarjetas amarillas",
+      "RED_CARDS": "Tarjetas rojas",
+      "CORNER_KICKS": "Tiros de esquina",
+      "OFFSIDES": "Fueras de juego"
+    }
   },
   "standings": {
     "noStandings": "Sin clasificación aún",
@@ -258,6 +290,7 @@
     "player": "Jugador",
     "pointsHeader": "Puntos",
     "lastRoundHeader": "Última Jornada",
+    "riskHeader": "Riesgo",
     "bonusHeader": "Bonus",
     "tips": "Predicciones",
     "unknown": "Desconocido",

@@ -39,6 +39,7 @@ interface StandingEntry {
   role: string;
   totalPoints: number;
   totalBonusPoints: number;
+  riskPoints: number;
   predictionsScored: number;
   lastRoundPoints: number;
   medals: MedalEntry[];
@@ -89,6 +90,7 @@ export default function StandingsTab({
   const [standings, setStandings] = useState<StandingEntry[]>([]);
   const [rounds, setRounds] = useState<Round[]>([]);
   const [selectedRoundKey, setSelectedRoundKey] = useState<string | null>(null);
+  const [riskEnabled, setRiskEnabled] = useState(false);
   const [sortBy, setSortBy] = useState<SortField>("totalPoints");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +111,7 @@ export default function StandingsTab({
         if (!res.ok) throw new Error("Failed to fetch standings");
         const data = await res.json();
         setStandings(data.standings);
+        setRiskEnabled(Boolean(data.riskEnabled));
         if (data.rounds) setRounds(data.rounds);
         if (selectedRoundKey === null && data.selectedRoundKey != null) {
           setSelectedRoundKey(data.selectedRoundKey);
@@ -191,6 +194,13 @@ export default function StandingsTab({
 
   // Show bonus column if any player has bonus points
   const hasBonusPoints = standings.some((s) => (s.totalBonusPoints ?? 0) > 0);
+  const getRiskPointsClassName = (riskPoints: number) => {
+    if (riskPoints > 0) return "text-emerald-600 dark:text-emerald-400";
+    if (riskPoints < 0) return "text-red-600 dark:text-red-400";
+    return "text-zinc-500 dark:text-zinc-400";
+  };
+  const formatRiskPoints = (riskPoints: number) =>
+    riskPoints > 0 ? `+${riskPoints}` : `${riskPoints}`;
 
   return (
     <div>
@@ -406,6 +416,13 @@ export default function StandingsTab({
                 >
                   {entry.lastRoundPoints > 0 ? `+${entry.lastRoundPoints}` : "0"}
                 </div>
+                {riskEnabled && (
+                  <div
+                    className={`text-xs font-semibold ${getRiskPointsClassName(entry.riskPoints)}`}
+                  >
+                    {t("standings.riskHeader")}: {formatRiskPoints(entry.riskPoints)}
+                  </div>
+                )}
                 {hasBonusPoints && (entry.totalBonusPoints ?? 0) > 0 && (
                   <div className="text-xs font-semibold text-amber-600 dark:text-amber-400">
                     +{entry.totalBonusPoints}★
@@ -442,6 +459,9 @@ export default function StandingsTab({
                   {sortIndicator("lastRoundPoints")}
                 </button>
               </th>
+              {riskEnabled && (
+                <th className="w-20 px-4 py-3 text-right">{t("standings.riskHeader")}</th>
+              )}
               {hasBonusPoints && (
                 <th className="w-20 px-4 py-3 text-right">
                   <span className="text-amber-600 dark:text-amber-400">
@@ -611,6 +631,17 @@ export default function StandingsTab({
                       {entry.lastRoundPoints > 0 ? `+${entry.lastRoundPoints}` : "0"}
                     </span>
                   </td>
+
+                  {/* Risk */}
+                  {riskEnabled && (
+                    <td className="px-4 py-3 text-right">
+                      <span
+                        className={`text-sm font-semibold ${getRiskPointsClassName(entry.riskPoints)}`}
+                      >
+                        {formatRiskPoints(entry.riskPoints)}
+                      </span>
+                    </td>
+                  )}
 
                   {/* Bonus */}
                   {hasBonusPoints && (

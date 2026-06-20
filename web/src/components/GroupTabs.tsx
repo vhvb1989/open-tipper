@@ -8,9 +8,10 @@ interface GroupTabsProps {
   groupId: string;
   isAdmin: boolean;
   isMember: boolean;
+  riskEnabled: boolean;
 }
 
-export function GroupTabs({ groupId, isAdmin, isMember }: GroupTabsProps) {
+export function GroupTabs({ groupId, isAdmin, isMember, riskEnabled }: GroupTabsProps) {
   const pathname = usePathname();
   const { t } = useTranslation();
 
@@ -29,7 +30,11 @@ export function GroupTabs({ groupId, isAdmin, isMember }: GroupTabsProps) {
 
   return (
     <div className="border-b border-zinc-200 dark:border-zinc-800">
-      <nav className="-mb-px flex gap-1 overflow-x-auto" aria-label="Tabs">
+      <nav
+        className="-mb-px flex gap-1 overflow-x-auto"
+        aria-label="Tabs"
+        data-risk-enabled={riskEnabled}
+      >
         {tabs.map((tab) => {
           const isActive = tab.exact ? pathname === tab.href : pathname.startsWith(tab.href);
 

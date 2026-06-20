@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { FootballApiClient, SUPPORTED_COMPETITIONS } from "./football-api";
+import {
+  extractMatchStats,
+  FootballApiClient,
+  SUPPORTED_COMPETITIONS,
+  type AfTeamStatistics,
+} from "./football-api";
 
 describe("FootballApiClient", () => {
   beforeEach(() => {
@@ -93,5 +98,87 @@ describe("SUPPORTED_COMPETITIONS", () => {
     expect(ids).toContain(2); // Champions League
     expect(ids).toContain(1); // World Cup
     expect(ids).toContain(262); // Liga MX
+  });
+});
+
+describe("extractMatchStats", () => {
+  const createTeamStats = (
+    id: number,
+    name: string,
+    statistics: AfTeamStatistics["statistics"],
+  ): AfTeamStatistics => ({
+    team: { id, name, logo: null },
+    statistics,
+  });
+
+  it("sums values from both teams", () => {
+    const response = [
+      createTeamStats(1, "Home", [
+        { type: "Yellow Cards", value: 2 },
+        { type: "Red Cards", value: 1 },
+        { type: "Corner Kicks", value: 6 },
+        { type: "Offsides", value: 3 },
+      ]),
+      createTeamStats(2, "Away", [
+        { type: "Yellow Cards", value: 3 },
+        { type: "Red Cards", value: 0 },
+        { type: "Corner Kicks", value: 4 },
+        { type: "Offsides", value: 1 },
+      ]),
+    ];
+
+    expect(extractMatchStats(response)).toEqual({
+      yellowCards: 5,
+      redCards: 1,
+      cornerKicks: 10,
+      offsides: 4,
+    });
+  });
+
+  it("handles one team with null values", () => {
+    const response = [
+      createTeamStats(1, "Home", [
+        { type: "Yellow Cards", value: null },
+        { type: "Red Cards", value: null },
+        { type: "Corner Kicks", value: 5 },
+        { type: "Offsides", value: null },
+      ]),
+      createTeamStats(2, "Away", [
+        { type: "Yellow Cards", value: 4 },
+        { type: "Red Cards", value: 1 },
+        { type: "Corner Kicks", value: 2 },
+        { type: "Offsides", value: 3 },
+      ]),
+    ];
+
+    expect(extractMatchStats(response)).toEqual({
+      yellowCards: 4,
+      redCards: 1,
+      cornerKicks: 7,
+      offsides: 3,
+    });
+  });
+
+  it("returns null for missing stat types", () => {
+    const response = [
+      createTeamStats(1, "Home", [{ type: "Yellow Cards", value: 2 }]),
+      createTeamStats(2, "Away", [{ type: "Shots on Goal", value: 7 }]),
+    ];
+
+    expect(extractMatchStats(response)).toEqual({
+      yellowCards: 2,
+      redCards: null,
+      cornerKicks: null,
+      offsides: null,
+    });
+  });
+
+  it("returns nulls for an empty response array", () => {
+    expect(extractMatchStats([])).toEqual({
+      yellowCards: null,
+      redCards: null,
+      cornerKicks: null,
+      offsides: null,
+    });
   });
 });

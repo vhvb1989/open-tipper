@@ -4,75 +4,7 @@ import { auth } from "@/lib/auth";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-/**
- * GET /api/groups/:id
- *
- * Get group details including contest, scoring rules, and member count.
- */
-export async function GET(_request: NextRequest, { params }: RouteParams) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { id } = await params;
-
-    const group = await prisma.group.findUnique({
-      where: { id },
-      include: {
-        contest: {
-          select: { id: true, name: true, code: true, season: true, emblem: true, status: true },
-        },
-        scoringRules: true,
-        podiumSettings: true,
-        _count: { select: { memberships: true } },
-        memberships: {
-          where: { userId: session.user.id },
-          select: { role: true },
-        },
-      },
-    });
-
-    if (!group) {
-      return NextResponse.json({ error: "Group not found" }, { status: 404 });
-    }
-
-    // Check access: public groups are visible to all, private groups only to members
-    const userRole = group.memberships[0]?.role ?? null;
-    if (group.visibility === "PRIVATE" && !userRole) {
-      return NextResponse.json({ error: "Group not found" }, { status: 404 });
-    }
-
-    return NextResponse.json({
-      group: {
-        id: group.id,
-        name: group.name,
-        description: group.description,
-        visibility: group.visibility,
-        inviteCode: userRole === "ADMIN" ? group.inviteCode : undefined,
-        contest: group.contest,
-        scoringRules: group.scoringRules,
-        podiumSettings: group.podiumSettings,
-        memberCount: group._count.memberships,
-        role: userRole,
-        createdAt: group.createdAt,
-      },
-    });
-  } catch (error) {
-    console.error("Failed to fetch group:", error);
-    return NextResponse.json({ error: "Failed to fetch group" }, { status: 500 });
-  }
-}
-
-/**
- * PUT /api/groups/:id
- *
- * Update group settings. Admin only.
- *
- * Body: { name?, description?, visibility?, scoringRules? }
- */
-export async function PUT(request: NextRequest, { params }: RouteParams) {
+async function updateGroup(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -90,9 +22,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { name, description, visibility, scoringRules } = body;
+    const { name, description, visibility, scoringRules, riskEnabled } = body;
 
-    // Update group
     const updateData: Record<string, unknown> = {};
     if (name !== undefined) {
       if (typeof name !== "string" || name.trim().length === 0) {
@@ -105,6 +36,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
     if (visibility !== undefined) {
       updateData.visibility = visibility === "PUBLIC" ? "PUBLIC" : "PRIVATE";
+    }
+    if (riskEnabled !== undefined) {
+      if (typeof riskEnabled !== "boolean") {
+        return NextResponse.json({ error: "riskEnabled must be a boolean" }, { status: 400 });
+      }
+      updateData.riskEnabled = riskEnabled;
     }
 
     const group = await prisma.group.update({
@@ -221,6 +158,88 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     console.error("Failed to update group:", error);
     return NextResponse.json({ error: "Failed to update group" }, { status: 500 });
   }
+}
+
+/**
+ * GET /api/groups/:id
+ *
+ * Get group details including contest, scoring rules, and member count.
+ */
+export async function GET(_request: NextRequest, { params }: RouteParams) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    const group = await prisma.group.findUnique({
+      where: { id },
+      include: {
+        contest: {
+          select: { id: true, name: true, code: true, season: true, emblem: true, status: true },
+        },
+        scoringRules: true,
+        podiumSettings: true,
+        _count: { select: { memberships: true } },
+        memberships: {
+          where: { userId: session.user.id },
+          select: { role: true },
+        },
+      },
+    });
+
+    if (!group) {
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+
+    // Check access: public groups are visible to all, private groups only to members
+    const userRole = group.memberships[0]?.role ?? null;
+    if (group.visibility === "PRIVATE" && !userRole) {
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      group: {
+        id: group.id,
+        name: group.name,
+        description: group.description,
+        visibility: group.visibility,
+        inviteCode: userRole === "ADMIN" ? group.inviteCode : undefined,
+        contest: group.contest,
+        scoringRules: group.scoringRules,
+        podiumSettings: group.podiumSettings,
+        riskEnabled: group.riskEnabled,
+        memberCount: group._count.memberships,
+        role: userRole,
+        createdAt: group.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to fetch group:", error);
+    return NextResponse.json({ error: "Failed to fetch group" }, { status: 500 });
+  }
+}
+
+/**
+ * PUT /api/groups/:id
+ *
+ * Update group settings. Admin only.
+ *
+ * Body: { name?, description?, visibility?, scoringRules?, riskEnabled? }
+ */
+export async function PUT(request: NextRequest, routeParams: RouteParams) {
+  return updateGroup(request, routeParams);
+}
+
+/**
+ * PATCH /api/groups/:id
+ *
+ * Partially update group settings. Admin only.
+ */
+export async function PATCH(request: NextRequest, routeParams: RouteParams) {
+  return updateGroup(request, routeParams);
 }
 
 /**
