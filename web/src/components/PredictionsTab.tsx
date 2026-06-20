@@ -41,6 +41,25 @@ interface PredictionData {
   pointsAwarded: number | null;
 }
 
+type RiskCategory = "YELLOW_CARDS" | "RED_CARDS" | "CORNER_KICKS" | "OFFSIDES";
+type RiskPredictionStatus = "PENDING" | "WON" | "LOST" | "CANCELLED";
+
+interface RiskPredictionData {
+  id: string;
+  category: RiskCategory;
+  predictedValue: number;
+  pointsRisked: number;
+  status: RiskPredictionStatus;
+}
+
+interface RiskFormState {
+  enabled: boolean;
+  predictedValue: string;
+  pointsRisked: string;
+  submitting: boolean;
+  error: string | null;
+}
+
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 type SyncStatus = "idle" | "syncing" | "synced" | "error";
 
@@ -124,17 +143,44 @@ function recordColorClasses(r: TeamRecord): string {
   return "text-amber-700 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30";
 }
 
+const RISK_OPTIONS: Array<{
+  category: RiskCategory;
+  icon: string;
+  labelKey: string;
+}> = [
+  { category: "YELLOW_CARDS", icon: "🟨", labelKey: "predictions.riskYellowCards" },
+  { category: "RED_CARDS", icon: "🟥", labelKey: "predictions.riskRedCards" },
+  { category: "CORNER_KICKS", icon: "⚑", labelKey: "predictions.riskCornerKicks" },
+  { category: "OFFSIDES", icon: "🚫", labelKey: "predictions.riskOffsides" },
+];
+
+const EMPTY_RISK_FORM: RiskFormState = {
+  enabled: false,
+  predictedValue: "",
+  pointsRisked: "",
+  submitting: false,
+  error: null,
+};
+
 /* ---------- Component ---------- */
 
 export default function PredictionsTab({
   groupId,
   hasPodium,
+  riskEnabled = false,
 }: {
   groupId: string;
   hasPodium?: boolean;
+  riskEnabled?: boolean;
 }) {
   const [matches, setMatches] = useState<Match[]>([]);
   const [predictions, setPredictions] = useState<Record<string, PredictionData>>({});
+  const [riskPredictions, setRiskPredictions] = useState<Record<string, RiskPredictionData[]>>({});
+  const [availableBalance, setAvailableBalance] = useState(0);
+  const [riskExpandedMatches, setRiskExpandedMatches] = useState<Set<string>>(new Set());
+  const [riskForms, setRiskForms] = useState<
+    Record<string, Partial<Record<RiskCategory, RiskFormState>>>
+  >({});
   const [rounds, setRounds] = useState<Round[]>([]);
   const [selectedRoundKey, setSelectedRoundKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -231,6 +277,26 @@ export default function PredictionsTab({
     }
   }, [groupId]);
 
+  /* ---- Fetch user's risk predictions ---- */
+  const fetchRiskPredictions = useCallback(async () => {
+    if (!riskEnabled) {
+      setRiskPredictions({});
+      setAvailableBalance(0);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/groups/${groupId}/predictions/risk`);
+      if (!res.ok) throw new Error("Failed to fetch risk predictions");
+      const data = await res.json();
+      setRiskPredictions(data.risks ?? data.riskPredictions ?? {});
+      setAvailableBalance(typeof data.balance === "number" ? data.balance : 0);
+    } catch (err) {
+      console.error("Failed to load risk predictions:", err);
+      setError("Failed to load predictions.");
+    }
+  }, [groupId, riskEnabled]);
+
   /* ---- Fetch sibling groups (same contest) ---- */
   const fetchSiblingGroups = useCallback(async () => {
     try {
@@ -300,6 +366,18 @@ export default function PredictionsTab({
     fetchSiblingGroups();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (riskEnabled) {
+      fetchRiskPredictions();
+      return;
+    }
+
+    setRiskPredictions({});
+    setAvailableBalance(0);
+    setRiskExpandedMatches(new Set());
+    setRiskForms({});
+  }, [fetchRiskPredictions, riskEnabled]);
 
   /* ---- Navigate rounds ---- */
   const handleRoundChange = async (round: Round) => {
@@ -398,6 +476,190 @@ export default function PredictionsTab({
     e.target.select();
   };
 
+  const getRiskFormState = useCallback(
+    (matchId: string, category: RiskCategory): RiskFormState =>
+      riskForms[matchId]?.[category] ?? EMPTY_RISK_FORM,
+    [riskForms],
+  );
+
+  const updateRiskFormState = useCallback(
+    (
+      matchId: string,
+      category: RiskCategory,
+      updater: RiskFormState | ((current: RiskFormState) => RiskFormState),
+    ) => {
+      setRiskForms((prev) => {
+        const current = prev[matchId]?.[category] ?? EMPTY_RISK_FORM;
+        const next = typeof updater === "function" ? updater(current) : updater;
+        return {
+          ...prev,
+          [matchId]: {
+            ...prev[matchId],
+            [category]: next,
+          },
+        };
+      });
+    },
+    [],
+  );
+
+  const toggleRiskSection = useCallback((matchId: string) => {
+    setRiskExpandedMatches((prev) => {
+      const next = new Set(prev);
+      if (next.has(matchId)) {
+        next.delete(matchId);
+      } else {
+        next.add(matchId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleRiskToggle = useCallback(
+    (matchId: string, category: RiskCategory) => {
+      updateRiskFormState(matchId, category, (current) => ({
+        ...EMPTY_RISK_FORM,
+        enabled: !current.enabled,
+      }));
+    },
+    [updateRiskFormState],
+  );
+
+  const handleRiskInputChange = useCallback(
+    (
+      matchId: string,
+      category: RiskCategory,
+      field: "pointsRisked" | "predictedValue",
+      value: string,
+    ) => {
+      if (value !== "" && !/^\d+$/.test(value)) return;
+      updateRiskFormState(matchId, category, (current) => ({
+        ...current,
+        [field]: value,
+        error: null,
+      }));
+    },
+    [updateRiskFormState],
+  );
+
+  const handleRiskConfirm = useCallback(
+    async (matchId: string, category: RiskCategory) => {
+      const current = getRiskFormState(matchId, category);
+      const pointsRisked = Number.parseInt(current.pointsRisked, 10);
+      const predictedValue = Number.parseInt(current.predictedValue, 10);
+
+      if (!Number.isInteger(pointsRisked) || pointsRisked < 1) {
+        updateRiskFormState(matchId, category, (form) => ({
+          ...form,
+          error: t("predictions.riskPointsToRisk"),
+        }));
+        return;
+      }
+
+      if (!Number.isInteger(predictedValue) || predictedValue < 0) {
+        updateRiskFormState(matchId, category, (form) => ({
+          ...form,
+          error: t("predictions.riskPredictedTotal"),
+        }));
+        return;
+      }
+
+      if (pointsRisked > availableBalance) {
+        updateRiskFormState(matchId, category, (form) => ({
+          ...form,
+          error: t("predictions.riskInsufficientBalance"),
+        }));
+        return;
+      }
+
+      updateRiskFormState(matchId, category, (form) => ({
+        ...form,
+        submitting: true,
+        error: null,
+      }));
+
+      try {
+        const res = await fetch(`/api/groups/${groupId}/predictions/risk`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ matchId, category, predictedValue, pointsRisked }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(
+            data.error === "Insufficient available balance"
+              ? t("predictions.riskInsufficientBalance")
+              : data.error || t("predictions.failedToSave"),
+          );
+        }
+
+        const savedRisk: RiskPredictionData = data.riskPrediction;
+        setRiskPredictions((prev) => ({
+          ...prev,
+          [matchId]: [
+            ...(prev[matchId] ?? []).filter((risk) => risk.category !== category),
+            savedRisk,
+          ],
+        }));
+        setAvailableBalance((balance) =>
+          typeof data.balance === "number" ? data.balance : Math.max(balance - pointsRisked, 0),
+        );
+        updateRiskFormState(matchId, category, {
+          enabled: true,
+          pointsRisked: String(savedRisk.pointsRisked),
+          predictedValue: String(savedRisk.predictedValue),
+          submitting: false,
+          error: null,
+        });
+      } catch (err) {
+        console.error("Failed to save risk prediction:", err);
+        updateRiskFormState(matchId, category, (form) => ({
+          ...form,
+          submitting: false,
+          error: err instanceof Error ? err.message : t("predictions.failedToSave"),
+        }));
+      }
+    },
+    [availableBalance, getRiskFormState, groupId, t, updateRiskFormState],
+  );
+
+  const handleRiskCancel = useCallback(
+    async (matchId: string, risk: RiskPredictionData) => {
+      updateRiskFormState(matchId, risk.category, (form) => ({
+        ...form,
+        submitting: true,
+        error: null,
+      }));
+
+      try {
+        const res = await fetch(`/api/groups/${groupId}/predictions/risk/${risk.id}`, {
+          method: "DELETE",
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || t("predictions.failedToSave"));
+        }
+
+        setRiskPredictions((prev) => {
+          const next = (prev[matchId] ?? []).filter((entry) => entry.id !== risk.id);
+          return { ...prev, [matchId]: next };
+        });
+        setAvailableBalance((balance) =>
+          typeof data.balance === "number" ? data.balance : balance + risk.pointsRisked,
+        );
+        updateRiskFormState(matchId, risk.category, EMPTY_RISK_FORM);
+      } catch (err) {
+        console.error("Failed to cancel risk prediction:", err);
+        updateRiskFormState(matchId, risk.category, (form) => ({
+          ...form,
+          submitting: false,
+          error: err instanceof Error ? err.message : t("predictions.failedToSave"),
+        }));
+      }
+    },
+    [groupId, t, updateRiskFormState],
+  );
+
   /* ---- Cleanup debounce timers ---- */
   useEffect(() => {
     const timers = debounceTimers.current;
@@ -442,6 +704,7 @@ export default function PredictionsTab({
               setError(null);
               fetchMatches(selectedRound);
               fetchPredictions();
+              if (riskEnabled) fetchRiskPredictions();
             }}
             className="ml-2 underline"
           >
@@ -576,6 +839,10 @@ export default function PredictionsTab({
               {dayMatches.map((match) => {
                 const locked = isLocked(match);
                 const pred = predictions[match.id];
+                const matchRisks = riskPredictions[match.id] ?? [];
+                const pendingRisks = matchRisks.filter((risk) => risk.status === "PENDING");
+                const showLockedRisks = locked && pendingRisks.length > 0;
+                const riskOpen = riskExpandedMatches.has(match.id) || showLockedRisks;
                 const status = saveStatuses[match.id] || "idle";
 
                 return (
@@ -809,6 +1076,211 @@ export default function PredictionsTab({
                           </span>
                         </div>
                       )}
+
+                    {riskEnabled && !locked && (
+                      <div className="mt-4">
+                        <button
+                          type="button"
+                          onClick={() => toggleRiskSection(match.id)}
+                          className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300 dark:hover:bg-amber-950/50"
+                        >
+                          <span aria-hidden="true">🎲</span>
+                          {t("predictions.riskMore")}
+                        </button>
+                      </div>
+                    )}
+
+                    {riskEnabled && riskOpen && (
+                      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-900/50 dark:bg-amber-950/20">
+                        <div className="mb-3 flex items-center justify-between gap-2">
+                          <span className="text-xs font-semibold text-amber-900 dark:text-amber-200">
+                            {t("predictions.riskMore")}
+                          </span>
+                          <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                            {t("predictions.riskAvailable", {
+                              points: String(availableBalance),
+                            })}
+                          </span>
+                        </div>
+
+                        <div className="space-y-3">
+                          {(locked
+                            ? RISK_OPTIONS.filter((option) =>
+                                pendingRisks.some((risk) => risk.category === option.category),
+                              )
+                            : RISK_OPTIONS
+                          ).map((option) => {
+                            const existingRisk =
+                              pendingRisks.find((risk) => risk.category === option.category) ??
+                              null;
+                            const formState = getRiskFormState(match.id, option.category);
+                            const rowOpen = Boolean(existingRisk) || formState.enabled;
+                            const rowDisabled = Boolean(existingRisk) || locked;
+                            const pointsValue = existingRisk
+                              ? String(existingRisk.pointsRisked)
+                              : formState.pointsRisked;
+                            const predictedValue = existingRisk
+                              ? String(existingRisk.predictedValue)
+                              : formState.predictedValue;
+
+                            return (
+                              <div
+                                key={option.category}
+                                className={`rounded-lg border p-3 ${
+                                  existingRisk
+                                    ? "border-amber-400 bg-white shadow-sm dark:border-amber-700 dark:bg-zinc-900/70"
+                                    : "border-amber-100 bg-white/80 dark:border-amber-900/40 dark:bg-zinc-900/50"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-base" aria-hidden="true">
+                                      {option.icon}
+                                    </span>
+                                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                      {t(option.labelKey)}
+                                    </span>
+                                  </div>
+
+                                  <div className="flex items-center gap-2">
+                                    {existingRisk && (
+                                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                                        <svg
+                                          className="h-3 w-3"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                          strokeWidth={1.8}
+                                          stroke="currentColor"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+                                          />
+                                        </svg>
+                                        {locked
+                                          ? t("predictions.riskPending")
+                                          : t("predictions.riskConfirmed")}
+                                      </span>
+                                    )}
+
+                                    <button
+                                      type="button"
+                                      role="switch"
+                                      aria-checked={rowOpen}
+                                      aria-label={t(option.labelKey)}
+                                      disabled={rowDisabled}
+                                      onClick={() => handleRiskToggle(match.id, option.category)}
+                                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                        rowOpen
+                                          ? "bg-amber-500 dark:bg-amber-600"
+                                          : "bg-zinc-300 dark:bg-zinc-700"
+                                      } ${rowDisabled ? "cursor-not-allowed opacity-70" : ""}`}
+                                    >
+                                      <span
+                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                          rowOpen ? "translate-x-6" : "translate-x-1"
+                                        }`}
+                                      />
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {rowOpen && (
+                                  <div className="mt-3 space-y-3">
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                      <label className="space-y-1 text-xs font-medium text-zinc-600 dark:text-zinc-300">
+                                        <span>{t("predictions.riskPointsToRisk")}</span>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          max={Math.max(availableBalance, 1)}
+                                          value={pointsValue}
+                                          disabled={Boolean(existingRisk) || formState.submitting}
+                                          onChange={(e) =>
+                                            handleRiskInputChange(
+                                              match.id,
+                                              option.category,
+                                              "pointsRisked",
+                                              e.target.value,
+                                            )
+                                          }
+                                          className={`h-10 w-full rounded-lg border px-3 text-sm font-semibold ${
+                                            existingRisk
+                                              ? "cursor-not-allowed border-amber-200 bg-amber-100/70 text-zinc-600 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-zinc-300"
+                                              : "border-amber-200 bg-white text-zinc-900 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 dark:border-amber-900/40 dark:bg-zinc-800 dark:text-zinc-100"
+                                          }`}
+                                        />
+                                      </label>
+
+                                      <label className="space-y-1 text-xs font-medium text-zinc-600 dark:text-zinc-300">
+                                        <span>{t("predictions.riskPredictedTotal")}</span>
+                                        <input
+                                          type="number"
+                                          min={0}
+                                          value={predictedValue}
+                                          disabled={Boolean(existingRisk) || formState.submitting}
+                                          onChange={(e) =>
+                                            handleRiskInputChange(
+                                              match.id,
+                                              option.category,
+                                              "predictedValue",
+                                              e.target.value,
+                                            )
+                                          }
+                                          className={`h-10 w-full rounded-lg border px-3 text-sm font-semibold ${
+                                            existingRisk
+                                              ? "cursor-not-allowed border-amber-200 bg-amber-100/70 text-zinc-600 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-zinc-300"
+                                              : "border-amber-200 bg-white text-zinc-900 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 dark:border-amber-900/40 dark:bg-zinc-800 dark:text-zinc-100"
+                                          }`}
+                                        />
+                                      </label>
+                                    </div>
+
+                                    {!existingRisk && availableBalance < 1 && (
+                                      <p className="text-xs text-red-600 dark:text-red-400">
+                                        {t("predictions.riskInsufficientBalance")}
+                                      </p>
+                                    )}
+                                    {formState.error && (
+                                      <p className="text-xs text-red-600 dark:text-red-400">
+                                        {formState.error}
+                                      </p>
+                                    )}
+
+                                    <div className="flex justify-end">
+                                      {existingRisk ? (
+                                        !locked && (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleRiskCancel(match.id, existingRisk)}
+                                            disabled={formState.submitting}
+                                            className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 disabled:opacity-60 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-300 dark:hover:bg-red-950/30"
+                                          >
+                                            {t("predictions.riskCancel")}
+                                          </button>
+                                        )
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            handleRiskConfirm(match.id, option.category)
+                                          }
+                                          disabled={formState.submitting || availableBalance < 1}
+                                          className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-amber-600 dark:hover:bg-amber-500"
+                                        >
+                                          {t("predictions.riskConfirm")}
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}

@@ -1,0 +1,177 @@
+/**
+ * Risk Scoring Service — Unit Tests
+ */
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { resolveRisksForMatch } from "./risk-scoring";
+
+// ---------------------------------------------------------------------------
+// Mock Prisma client
+// ---------------------------------------------------------------------------
+
+function createMockDb() {
+  return {
+    matchStats: {
+      findUnique: vi.fn(),
+    },
+    riskPrediction: {
+      findMany: vi.fn(),
+      update: vi.fn(),
+    },
+    match: {
+      findMany: vi.fn(),
+    },
+  } as unknown as Parameters<typeof resolveRisksForMatch>[1];
+}
+
+describe("resolveRisksForMatch", () => {
+  let db: ReturnType<typeof createMockDb>;
+
+  beforeEach(() => {
+    db = createMockDb();
+  });
+
+  it("returns 0 resolved when no match stats exist", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (db as any).matchStats.findUnique.mockResolvedValue(null);
+
+    const result = await resolveRisksForMatch("match-1", db);
+
+    expect(result).toEqual({ matchId: "match-1", resolved: 0, won: 0, lost: 0 });
+  });
+
+  it("returns 0 resolved when no pending risks exist", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (db as any).matchStats.findUnique.mockResolvedValue({
+      yellowCards: 5,
+      redCards: 1,
+      cornerKicks: 10,
+      offsides: 3,
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (db as any).riskPrediction.findMany.mockResolvedValue([]);
+
+    const result = await resolveRisksForMatch("match-1", db);
+
+    expect(result).toEqual({ matchId: "match-1", resolved: 0, won: 0, lost: 0 });
+  });
+
+  it("marks correct prediction as WON with doubled points", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (db as any).matchStats.findUnique.mockResolvedValue({
+      yellowCards: 5,
+      redCards: 1,
+      cornerKicks: 10,
+      offsides: 3,
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (db as any).riskPrediction.findMany.mockResolvedValue([
+      {
+        id: "risk-1",
+        category: "YELLOW_CARDS",
+        predictedValue: 5,
+        pointsRisked: 10,
+      },
+    ]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (db as any).riskPrediction.update.mockResolvedValue({});
+
+    const result = await resolveRisksForMatch("match-1", db);
+
+    expect(result).toEqual({ matchId: "match-1", resolved: 1, won: 1, lost: 0 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((db as any).riskPrediction.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "risk-1" },
+        data: expect.objectContaining({
+          status: "WON",
+          pointsAwarded: 20,
+        }),
+      }),
+    );
+  });
+
+  it("marks incorrect prediction as LOST with 0 points", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (db as any).matchStats.findUnique.mockResolvedValue({
+      yellowCards: 5,
+      redCards: 1,
+      cornerKicks: 10,
+      offsides: 3,
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (db as any).riskPrediction.findMany.mockResolvedValue([
+      {
+        id: "risk-2",
+        category: "CORNER_KICKS",
+        predictedValue: 8, // actual is 10
+        pointsRisked: 5,
+      },
+    ]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (db as any).riskPrediction.update.mockResolvedValue({});
+
+    const result = await resolveRisksForMatch("match-1", db);
+
+    expect(result).toEqual({ matchId: "match-1", resolved: 1, won: 0, lost: 1 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((db as any).riskPrediction.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "risk-2" },
+        data: expect.objectContaining({
+          status: "LOST",
+          pointsAwarded: 0,
+        }),
+      }),
+    );
+  });
+
+  it("skips resolution when stat value is null", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (db as any).matchStats.findUnique.mockResolvedValue({
+      yellowCards: 5,
+      redCards: null, // not available
+      cornerKicks: 10,
+      offsides: 3,
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (db as any).riskPrediction.findMany.mockResolvedValue([
+      {
+        id: "risk-3",
+        category: "RED_CARDS",
+        predictedValue: 0,
+        pointsRisked: 3,
+      },
+    ]);
+
+    const result = await resolveRisksForMatch("match-1", db);
+
+    expect(result).toEqual({ matchId: "match-1", resolved: 0, won: 0, lost: 0 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((db as any).riskPrediction.update).not.toHaveBeenCalled();
+  });
+
+  it("resolves multiple risks for the same match (mix of won and lost)", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (db as any).matchStats.findUnique.mockResolvedValue({
+      yellowCards: 5,
+      redCards: 1,
+      cornerKicks: 10,
+      offsides: 3,
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (db as any).riskPrediction.findMany.mockResolvedValue([
+      { id: "r1", category: "YELLOW_CARDS", predictedValue: 5, pointsRisked: 10 }, // WON
+      { id: "r2", category: "RED_CARDS", predictedValue: 0, pointsRisked: 5 }, // LOST
+      { id: "r3", category: "OFFSIDES", predictedValue: 3, pointsRisked: 8 }, // WON
+      { id: "r4", category: "CORNER_KICKS", predictedValue: 12, pointsRisked: 4 }, // LOST
+    ]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (db as any).riskPrediction.update.mockResolvedValue({});
+
+    const result = await resolveRisksForMatch("match-1", db);
+
+    expect(result).toEqual({ matchId: "match-1", resolved: 4, won: 2, lost: 2 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((db as any).riskPrediction.update).toHaveBeenCalledTimes(4);
+  });
+});

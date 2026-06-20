@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { RiskStatus } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { buildRounds } from "@/lib/rounds";
@@ -31,11 +32,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Get the group with contest info and visibility
     const group = await prisma.group.findUnique({
       where: { id: groupId },
-      select: { contestId: true, visibility: true },
+      select: { contestId: true, visibility: true, riskEnabled: true },
     });
     if (!group) {
       return NextResponse.json({ error: "Group not found" }, { status: 404 });
     }
+    const riskEnabled = group.riskEnabled === true;
 
     // Access control: public groups are visible to anyone, private groups to members only
     if (group.visibility === "PRIVATE") {
@@ -73,6 +75,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         },
       },
     });
+
+    const resolvedRiskPredictions = riskEnabled
+      ? await prisma.riskPrediction.findMany({
+          where: {
+            groupId,
+            status: {
+              in: [RiskStatus.WON, RiskStatus.LOST],
+            },
+          },
+          select: {
+            userId: true,
+            status: true,
+            pointsRisked: true,
+            pointsAwarded: true,
+          },
+        })
+      : [];
 
     // Build unified rounds list from scored matches
     const scoredMatchData = predictions.map((p) => ({
@@ -132,6 +151,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       } else if (selectedStage != null && p.match.stage === selectedStage) {
         entry.lastRound += pts + bonus;
       }
+    }
+
+    const riskPointsByUser = new Map<string, number>();
+    for (const riskPrediction of resolvedRiskPredictions) {
+      const currentRiskPoints = riskPointsByUser.get(riskPrediction.userId) ?? 0;
+      // Double-or-nothing: WON net = pointsAwarded - pointsRisked, LOST net = -pointsRisked
+      const riskDelta =
+        riskPrediction.status === RiskStatus.WON
+          ? (riskPrediction.pointsAwarded ?? 0) - riskPrediction.pointsRisked
+          : -riskPrediction.pointsRisked;
+
+      riskPointsByUser.set(riskPrediction.userId, currentRiskPoints + riskDelta);
     }
 
     // Fetch medals for this group
@@ -210,13 +241,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const standings = members
       .map((m) => {
         const stats = totals.get(m.user.id) ?? { total: 0, scored: 0, lastRound: 0, bonus: 0 };
+        const riskPoints = riskPointsByUser.get(m.user.id) ?? 0;
         return {
           userId: m.user.id,
           userName: m.user.name,
           userImage: m.user.image,
           role: m.role,
-          totalPoints: stats.total,
+          totalPoints: stats.total + riskPoints,
           totalBonusPoints: stats.bonus,
+          riskPoints,
           predictionsScored: stats.scored,
           lastRoundPoints: stats.lastRound,
           medals: medalsByUser.get(m.user.id) ?? [],
@@ -245,6 +278,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({
       standings,
+      riskEnabled,
       rounds,
       matchDays: sortedMatchDays,
       lastMatchDay: latestMatchDay,

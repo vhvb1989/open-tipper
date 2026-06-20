@@ -200,7 +200,20 @@
     "syncing": "Syncing…",
     "syncedAll": "All tips synced!",
     "syncFailed": "Sync failed — retry?",
-    "syncMatch": "Apply this tip to all my groups"
+    "syncMatch": "Apply this tip to all my groups",
+    "riskMore": "🎲 Risk More",
+    "riskAvailable": "Available: {points} pts",
+    "riskConfirm": "Confirm",
+    "riskCancel": "Cancel",
+    "riskYellowCards": "Yellow Cards",
+    "riskRedCards": "Red Cards",
+    "riskCornerKicks": "Corner Kicks",
+    "riskOffsides": "Offsides",
+    "riskPointsToRisk": "Points",
+    "riskPredictedTotal": "Total",
+    "riskConfirmed": "Confirmed",
+    "riskPending": "Pending",
+    "riskInsufficientBalance": "Not enough points"
   },
   "results": {
     "vs": "vs",
@@ -245,7 +258,26 @@
     "defaultPrediction": "Default Prediction",
     "defaultPredictionShort": "DF",
     "defaultPredictionDesc": "This prediction was auto-generated (0–0) because the player did not submit one before kickoff. Default predictions are excluded from uniqueness bonus calculations.",
-    "defaultScoreSeparator": "default score"
+    "defaultScoreSeparator": "default score",
+    "showRisk": "Show Risk",
+    "hideRisk": "Hide Risk",
+    "riskCategory": "Category",
+    "riskPredicted": "Predicted",
+    "riskActual": "Actual",
+    "riskPointsRisked": "Points Risked",
+    "riskResult": "Result",
+    "riskPending": "Pending",
+    "riskCancelled": "Cancelled",
+    "riskYellowCards": "Yellow cards",
+    "riskRedCards": "Red cards",
+    "riskCornerKicks": "Corner kicks",
+    "riskOffsides": "Offsides",
+    "riskCategories": {
+      "YELLOW_CARDS": "Yellow Cards",
+      "RED_CARDS": "Red Cards",
+      "CORNER_KICKS": "Corner Kicks",
+      "OFFSIDES": "Offsides"
+    }
   },
   "standings": {
     "noStandings": "No standings yet",
@@ -258,6 +290,7 @@
     "player": "Player",
     "pointsHeader": "Points",
     "lastRoundHeader": "Last Round",
+    "riskHeader": "Risk",
     "bonusHeader": "Bonus",
     "tips": "Tips",
     "unknown": "Unknown",

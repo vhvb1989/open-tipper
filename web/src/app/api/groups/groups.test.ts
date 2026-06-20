@@ -25,6 +25,12 @@ const mockPrisma = {
     delete: vi.fn(),
   },
   scoringRules: {
+    findUnique: vi.fn(),
+    upsert: vi.fn(),
+  },
+  podiumSettings: {
+    findUnique: vi.fn(),
+    update: vi.fn(),
     upsert: vi.fn(),
   },
 };
@@ -195,6 +201,97 @@ describe("Groups API", () => {
       const req = new NextRequest("http://localhost:3000/api/groups/g1");
       const res = await GET(req, { params: Promise.resolve({ id: "g1" }) });
       expect(res.status).toBe(404);
+    });
+
+    it("includes riskEnabled in the response", async () => {
+      mockAuth.mockResolvedValue({ user: { id: "user-1" } });
+      mockPrisma.group.findUnique.mockResolvedValue({
+        id: "g1",
+        name: "Risk Group",
+        description: null,
+        visibility: "PUBLIC",
+        inviteCode: "abc",
+        createdAt: new Date(),
+        riskEnabled: true,
+        contest: {
+          id: "c1",
+          name: "CL",
+          code: "CL",
+          season: "2025",
+          emblem: null,
+          status: "ACTIVE",
+        },
+        scoringRules: null,
+        podiumSettings: null,
+        _count: { memberships: 3 },
+        memberships: [{ role: "ADMIN" }],
+      });
+
+      const { GET } = await import("@/app/api/groups/[id]/route");
+      const req = new NextRequest("http://localhost:3000/api/groups/g1");
+      const res = await GET(req, { params: Promise.resolve({ id: "g1" }) });
+      const data = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(data.group.riskEnabled).toBe(true);
+    });
+  });
+
+  describe("PATCH /api/groups/:id", () => {
+    it("updates riskEnabled when requested by an admin", async () => {
+      mockAuth.mockResolvedValue({ user: { id: "user-1" } });
+      mockPrisma.membership.findUnique.mockResolvedValue({
+        userId: "user-1",
+        groupId: "g1",
+        role: "ADMIN",
+      });
+      mockPrisma.group.update.mockResolvedValue({
+        id: "g1",
+        name: "Risk Group",
+        description: null,
+        visibility: "PRIVATE",
+        riskEnabled: true,
+        contest: { id: "c1", name: "CL", code: "CL", season: "2025" },
+        _count: { memberships: 2 },
+      });
+
+      const { PATCH } = await import("@/app/api/groups/[id]/route");
+      const req = new NextRequest("http://localhost:3000/api/groups/g1", {
+        method: "PATCH",
+        body: JSON.stringify({ riskEnabled: true }),
+      });
+      const res = await PATCH(req, { params: Promise.resolve({ id: "g1" }) });
+      const data = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(mockPrisma.group.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "g1" },
+          data: { riskEnabled: true },
+        }),
+      );
+      expect(data.group.riskEnabled).toBe(true);
+    });
+
+    it("rejects non-boolean riskEnabled values", async () => {
+      mockAuth.mockResolvedValue({ user: { id: "user-1" } });
+      mockPrisma.membership.findUnique.mockResolvedValue({
+        userId: "user-1",
+        groupId: "g1",
+        role: "ADMIN",
+      });
+
+      const { PATCH } = await import("@/app/api/groups/[id]/route");
+      const req = new NextRequest("http://localhost:3000/api/groups/g1", {
+        method: "PATCH",
+        body: JSON.stringify({ riskEnabled: "yes" }),
+      });
+      const res = await PATCH(req, { params: Promise.resolve({ id: "g1" }) });
+      const data = await res.json();
+
+      expect(res.status).toBe(400);
+      expect(data.error).toBe("riskEnabled must be a boolean");
+      expect(mockPrisma.group.update).not.toHaveBeenCalled();
     });
   });
 

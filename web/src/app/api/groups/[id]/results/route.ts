@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { RiskStatus } from "@/generated/prisma/client";
 import {
   calculateScore,
   isPlayoffStage,
@@ -37,6 +38,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       select: {
         contestId: true,
         visibility: true,
+        riskEnabled: true,
         scoringRules: true,
       },
     });
@@ -147,11 +149,20 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         awayGoals: true,
         homeTeam: { select: { id: true, name: true, shortName: true, tla: true, crest: true } },
         awayTeam: { select: { id: true, name: true, shortName: true, tla: true, crest: true } },
+        stats: { select: { yellowCards: true, redCards: true, cornerKicks: true, offsides: true } },
       },
     });
 
+    const riskEnabled = group.riskEnabled ?? false;
+
+    // Include uniqueBonus settings so the UI knows whether to show the banner
+    const uniqueBonus = {
+      enabled: group.scoringRules?.uniqueBonusEnabled ?? false,
+      multiplier: group.scoringRules?.uniqueBonusMultiplier ?? 2.0,
+    };
+
     if (matches.length === 0) {
-      return NextResponse.json({ results: [], matchDays: [], rounds });
+      return NextResponse.json({ results: [], matchDays: [], rounds, uniqueBonus, riskEnabled });
     }
 
     // Get all predictions for these matches in this group
@@ -172,6 +183,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       },
       orderBy: [{ pointsAwarded: { sort: "desc", nulls: "last" } }],
     });
+    const riskPredictions = riskEnabled
+      ? await prisma.riskPrediction.findMany({
+          where: {
+            groupId,
+            matchId: { in: matchIds },
+          },
+          select: {
+            matchId: true,
+            userId: true,
+            category: true,
+            predictedValue: true,
+            pointsRisked: true,
+            status: true,
+            pointsAwarded: true,
+          },
+        })
+      : [];
 
     // Build scoring rules config for this group
     const rules: ScoringRulesConfig = group.scoringRules
@@ -189,6 +217,29 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Build a lookup for match results
     const matchById = new Map(matches.map((m) => [m.id, m]));
+    const risksByMatchUser = new Map<
+      string,
+      Array<{
+        category: string;
+        predictedValue: number;
+        pointsRisked: number;
+        status: RiskStatus;
+        pointsAwarded: number | null;
+      }>
+    >();
+
+    for (const risk of riskPredictions) {
+      const key = `${risk.matchId}:${risk.userId}`;
+      const existing = risksByMatchUser.get(key) ?? [];
+      existing.push({
+        category: risk.category,
+        predictedValue: risk.predictedValue,
+        pointsRisked: risk.pointsRisked,
+        status: risk.status,
+        pointsAwarded: risk.pointsAwarded,
+      });
+      risksByMatchUser.set(key, existing);
+    }
 
     // Group predictions by matchId, with scoring breakdown
     const predsByMatch = new Map<
@@ -210,6 +261,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           totalGoals: number;
           reverseGoalDifference: number;
         } | null;
+        riskPredictions: Array<{
+          category: string;
+          predictedValue: number;
+          pointsRisked: number;
+          status: RiskStatus;
+          pointsAwarded: number | null;
+        }>;
+        totalPointsRisked: number;
+        riskNetPoints: number;
       }>
     >();
     for (const p of predictions) {
@@ -234,6 +294,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         };
       }
 
+      const userRiskPredictions = riskEnabled
+        ? (risksByMatchUser.get(`${p.matchId}:${p.user.id}`) ?? [])
+        : [];
+      const totalPointsRisked = userRiskPredictions.reduce(
+        (sum, risk) => (risk.status === RiskStatus.CANCELLED ? sum : sum + risk.pointsRisked),
+        0,
+      );
+      const riskNetPoints = userRiskPredictions.reduce((sum, risk) => {
+        if (risk.status === RiskStatus.WON) {
+          return sum + (risk.pointsAwarded ?? 0);
+        }
+        if (risk.status === RiskStatus.LOST) {
+          return sum - risk.pointsRisked;
+        }
+        return sum;
+      }, 0);
+
       predsByMatch.get(p.matchId)!.push({
         userId: p.user.id,
         userName: p.user.name,
@@ -244,22 +321,31 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         bonusPoints: p.bonusPoints ?? 0,
         isBackfilled: p.isBackfilled,
         breakdown,
+        riskPredictions: userRiskPredictions,
+        totalPointsRisked,
+        riskNetPoints,
       });
     }
 
     // Build results with predictions attached
-    const results = matches.map((match) => ({
-      ...match,
-      predictions: predsByMatch.get(match.id) ?? [],
-    }));
+    const results = matches.map((match) => {
+      const { stats, ...matchData } = match;
 
-    // Include uniqueBonus settings so the UI knows whether to show the banner
-    const uniqueBonus = {
-      enabled: group.scoringRules?.uniqueBonusEnabled ?? false,
-      multiplier: group.scoringRules?.uniqueBonusMultiplier ?? 2.0,
-    };
+      return {
+        ...matchData,
+        matchStats: riskEnabled
+          ? {
+              yellowCards: stats?.yellowCards ?? null,
+              redCards: stats?.redCards ?? null,
+              cornerKicks: stats?.cornerKicks ?? null,
+              offsides: stats?.offsides ?? null,
+            }
+          : undefined,
+        predictions: predsByMatch.get(match.id) ?? [],
+      };
+    });
 
-    return NextResponse.json({ results, matchDays, rounds, uniqueBonus });
+    return NextResponse.json({ results, matchDays, rounds, uniqueBonus, riskEnabled });
   } catch (error) {
     console.error("Failed to fetch results:", error);
     return NextResponse.json({ error: "Failed to fetch results" }, { status: 500 });

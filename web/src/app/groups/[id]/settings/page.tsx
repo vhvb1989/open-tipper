@@ -29,6 +29,7 @@ interface GroupDetails {
   name: string;
   description: string | null;
   visibility: "PUBLIC" | "PRIVATE";
+  riskEnabled: boolean;
   inviteCode?: string;
   contest: { code: string };
   scoringRules: ScoringRules | null;
@@ -63,6 +64,7 @@ export default function GroupSettingsPage({ params }: { params: Promise<{ id: st
     uniqueBonusMultiplier: 2.0,
   });
   const [podiumEnabled, setPodiumEnabled] = useState(false);
+  const [riskEnabled, setRiskEnabled] = useState(false);
   const [podiumPoints, setPodiumPoints] = useState({
     firstPlacePoints: 100,
     secondPlacePoints: 50,
@@ -83,6 +85,7 @@ export default function GroupSettingsPage({ params }: { params: Promise<{ id: st
         setName(g.name);
         setDescription(g.description ?? "");
         setVisibility(g.visibility);
+        setRiskEnabled(g.riskEnabled ?? false);
         if (g.scoringRules) {
           setScoring(g.scoringRules);
         }
@@ -116,6 +119,7 @@ export default function GroupSettingsPage({ params }: { params: Promise<{ id: st
           name,
           description: description || null,
           visibility,
+          riskEnabled,
           scoringRules: scoring,
           podiumSettings: {
             enabled: podiumEnabled,
@@ -243,6 +247,23 @@ export default function GroupSettingsPage({ params }: { params: Promise<{ id: st
             <span className="text-sm text-zinc-700 dark:text-zinc-300">Public</span>
           </label>
         </div>
+      </div>
+
+      <div className="space-y-2 rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+        <label className="flex cursor-pointer items-center gap-2">
+          <input
+            type="checkbox"
+            checked={riskEnabled}
+            onChange={(e) => setRiskEnabled(e.target.checked)}
+            className="rounded text-zinc-900 focus:ring-zinc-500"
+          />
+          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Enable risk mode
+          </span>
+        </label>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          Allow this group to use risk-enabled features.
+        </p>
       </div>
 
       {/* Scoring Rules */}

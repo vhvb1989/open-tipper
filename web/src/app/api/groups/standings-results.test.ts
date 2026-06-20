@@ -12,6 +12,7 @@ const mockPrisma = {
   membership: { findUnique: vi.fn(), findMany: vi.fn() },
   group: { findUnique: vi.fn() },
   prediction: { findMany: vi.fn() },
+  riskPrediction: { findMany: vi.fn() },
   match: { findMany: vi.fn(), findFirst: vi.fn() },
   medal: { findMany: vi.fn() },
   podiumBadge: { findMany: vi.fn() },
@@ -29,6 +30,7 @@ describe("Standings API — GET /api/groups/:id/standings", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.riskPrediction.findMany.mockResolvedValue([]);
     mockPrisma.medal.findMany.mockResolvedValue([]);
     mockPrisma.podiumBadge.findMany.mockResolvedValue([]);
     mockPrisma.podiumPrediction.findMany.mockResolvedValue([]);
@@ -281,6 +283,76 @@ describe("Standings API — GET /api/groups/:id/standings", () => {
 
     expect(data.matchDays).toEqual([1, 3, 5]);
   });
+
+  it("adds resolved risk points to standings when risk is enabled", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
+    mockPrisma.group.findUnique.mockResolvedValue({
+      contestId: "c-1",
+      visibility: "PUBLIC",
+      riskEnabled: true,
+    });
+    mockPrisma.membership.findMany.mockResolvedValue([
+      { user: { id: "user-1", name: "Alice", image: null }, role: "ADMIN" },
+      { user: { id: "user-2", name: "Bob", image: null }, role: "MEMBER" },
+    ]);
+    mockPrisma.prediction.findMany.mockResolvedValue([
+      {
+        userId: "user-1",
+        pointsAwarded: 10,
+        bonusPoints: 0,
+        match: { matchDay: 1, stage: null, kickoffTime: new Date("2025-06-01T18:00:00Z") },
+      },
+      {
+        userId: "user-2",
+        pointsAwarded: 12,
+        bonusPoints: 0,
+        match: { matchDay: 1, stage: null, kickoffTime: new Date("2025-06-01T18:00:00Z") },
+      },
+    ]);
+    mockPrisma.riskPrediction.findMany.mockResolvedValue([
+      {
+        userId: "user-1",
+        status: "WON",
+        pointsRisked: 5,
+        pointsAwarded: 10,
+      },
+      {
+        userId: "user-2",
+        status: "LOST",
+        pointsRisked: 4,
+        pointsAwarded: 0,
+      },
+    ]);
+    mockPrisma.match.findMany.mockResolvedValue([]);
+
+    const { GET } = await import("@/app/api/groups/[id]/standings/route");
+    const req = new NextRequest("http://localhost:3000/api/groups/group-1/standings");
+    const res = await GET(req, routeParams);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.riskEnabled).toBe(true);
+    expect(data.standings[0].userName).toBe("Alice");
+    expect(data.standings[0].riskPoints).toBe(5);
+    expect(data.standings[0].totalPoints).toBe(15);
+    expect(data.standings[1].userName).toBe("Bob");
+    expect(data.standings[1].riskPoints).toBe(-4);
+    expect(data.standings[1].totalPoints).toBe(8);
+    expect(mockPrisma.riskPrediction.findMany).toHaveBeenCalledWith({
+      where: {
+        groupId: "group-1",
+        status: {
+          in: ["WON", "LOST"],
+        },
+      },
+      select: {
+        userId: true,
+        status: true,
+        pointsRisked: true,
+        pointsAwarded: true,
+      },
+    });
+  });
 });
 
 /* ================================================================
@@ -291,6 +363,7 @@ describe("Results API — GET /api/groups/:id/results", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.riskPrediction.findMany.mockResolvedValue([]);
   });
 
   it("returns 404 when group does not exist (results)", async () => {
@@ -341,17 +414,23 @@ describe("Results API — GET /api/groups/:id/results", () => {
 
   it("returns finished matches with predictions attached", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1", visibility: "PUBLIC" });
+    mockPrisma.group.findUnique.mockResolvedValue({
+      contestId: "c-1",
+      visibility: "PUBLIC",
+      riskEnabled: false,
+    });
     mockPrisma.match.findMany.mockResolvedValue([
       {
         id: "match-1",
         matchDay: 1,
         stage: "GROUP_STAGE",
+        status: "FINISHED",
         kickoffTime: new Date("2025-06-01T18:00:00Z"),
         homeGoals: 2,
         awayGoals: 1,
         homeTeam: { id: "t1", name: "Team A", shortName: "TMA", tla: "TMA", crest: null },
         awayTeam: { id: "t2", name: "Team B", shortName: "TMB", tla: "TMB", crest: null },
+        stats: null,
       },
     ]);
     mockPrisma.prediction.findMany.mockResolvedValue([
@@ -360,6 +439,8 @@ describe("Results API — GET /api/groups/:id/results", () => {
         homeGoals: 2,
         awayGoals: 1,
         pointsAwarded: 25,
+        bonusPoints: 0,
+        isBackfilled: false,
         user: { id: "user-1", name: "Alice", image: null },
       },
       {
@@ -367,6 +448,8 @@ describe("Results API — GET /api/groups/:id/results", () => {
         homeGoals: 1,
         awayGoals: 0,
         pointsAwarded: 8,
+        bonusPoints: 0,
+        isBackfilled: false,
         user: { id: "user-2", name: "Bob", image: null },
       },
     ]);
@@ -386,6 +469,109 @@ describe("Results API — GET /api/groups/:id/results", () => {
     expect(data.results[0].predictions[1].userName).toBe("Bob");
     expect(data.results[0].predictions[1].pointsAwarded).toBe(8);
     expect(data.matchDays).toEqual([1]);
+    expect(data.riskEnabled).toBe(false);
+  });
+
+  it("includes risk stats and per-user risk summaries when enabled", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
+    mockPrisma.group.findUnique.mockResolvedValue({
+      contestId: "c-1",
+      visibility: "PUBLIC",
+      riskEnabled: true,
+    });
+    mockPrisma.match.findMany.mockResolvedValue([
+      {
+        id: "match-1",
+        matchDay: 1,
+        stage: "GROUP_STAGE",
+        status: "FINISHED",
+        kickoffTime: new Date("2025-06-01T18:00:00Z"),
+        homeGoals: 2,
+        awayGoals: 1,
+        homeTeam: { id: "t1", name: "Team A", shortName: "TMA", tla: "TMA", crest: null },
+        awayTeam: { id: "t2", name: "Team B", shortName: "TMB", tla: "TMB", crest: null },
+        stats: { yellowCards: 5, redCards: 1, cornerKicks: 10, offsides: 3 },
+      },
+    ]);
+    mockPrisma.prediction.findMany.mockResolvedValue([
+      {
+        matchId: "match-1",
+        homeGoals: 2,
+        awayGoals: 1,
+        pointsAwarded: 25,
+        bonusPoints: 0,
+        isBackfilled: false,
+        user: { id: "user-1", name: "Alice", image: null },
+      },
+    ]);
+    mockPrisma.riskPrediction.findMany.mockResolvedValue([
+      {
+        matchId: "match-1",
+        userId: "user-1",
+        category: "YELLOW_CARDS",
+        predictedValue: 5,
+        pointsRisked: 3,
+        status: "WON",
+        pointsAwarded: 6,
+      },
+      {
+        matchId: "match-1",
+        userId: "user-1",
+        category: "OFFSIDES",
+        predictedValue: 4,
+        pointsRisked: 2,
+        status: "LOST",
+        pointsAwarded: 0,
+      },
+      {
+        matchId: "match-1",
+        userId: "user-1",
+        category: "RED_CARDS",
+        predictedValue: 1,
+        pointsRisked: 5,
+        status: "CANCELLED",
+        pointsAwarded: null,
+      },
+    ]);
+
+    const { GET } = await import("@/app/api/groups/[id]/results/route");
+    const req = new NextRequest("http://localhost:3000/api/groups/group-1/results");
+    const res = await GET(req, routeParams);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.riskEnabled).toBe(true);
+    expect(data.results[0].matchStats).toEqual({
+      yellowCards: 5,
+      redCards: 1,
+      cornerKicks: 10,
+      offsides: 3,
+    });
+    expect(data.results[0].predictions[0].riskPredictions).toEqual([
+      {
+        category: "YELLOW_CARDS",
+        predictedValue: 5,
+        pointsRisked: 3,
+        status: "WON",
+        pointsAwarded: 6,
+      },
+      {
+        category: "OFFSIDES",
+        predictedValue: 4,
+        pointsRisked: 2,
+        status: "LOST",
+        pointsAwarded: 0,
+      },
+      {
+        category: "RED_CARDS",
+        predictedValue: 1,
+        pointsRisked: 5,
+        status: "CANCELLED",
+        pointsAwarded: null,
+      },
+    ]);
+    expect(data.results[0].predictions[0].totalPointsRisked).toBe(5);
+    expect(data.results[0].predictions[0].riskNetPoints).toBe(4);
   });
 
   it("returns empty predictions array for matches with no tips", async () => {

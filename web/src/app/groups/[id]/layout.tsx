@@ -114,7 +114,12 @@ export default async function GroupLayout({
       </div>
 
       {/* Tabs */}
-      <GroupTabs groupId={id} isAdmin={userRole === "ADMIN"} isMember={isMember} />
+      <GroupTabs
+        groupId={id}
+        isAdmin={userRole === "ADMIN"}
+        isMember={isMember}
+        riskEnabled={group.riskEnabled}
+      />
 
       {/* Tab content — wrapped with LiveProvider for real-time updates */}
       <LiveProvider contestIds={[group.contestId]}>

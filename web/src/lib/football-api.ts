@@ -93,6 +93,58 @@ export interface AfFixture {
   };
 }
 
+export interface AfStatisticItem {
+  type: string;
+  value: number | string | null;
+}
+
+export interface AfTeamStatistics {
+  team: AfTeamRef;
+  statistics: AfStatisticItem[];
+}
+
+export interface MatchStatsSummary {
+  yellowCards: number | null;
+  redCards: number | null;
+  cornerKicks: number | null;
+  offsides: number | null;
+}
+
+export function extractMatchStats(response: AfTeamStatistics[]): MatchStatsSummary {
+  const statTypeMap = {
+    "Yellow Cards": "yellowCards",
+    "Red Cards": "redCards",
+    "Corner Kicks": "cornerKicks",
+    Offsides: "offsides",
+  } as const;
+
+  const summary: MatchStatsSummary = {
+    yellowCards: null,
+    redCards: null,
+    cornerKicks: null,
+    offsides: null,
+  };
+
+  for (const [statType, summaryKey] of Object.entries(statTypeMap) as Array<
+    [keyof typeof statTypeMap, keyof MatchStatsSummary]
+  >) {
+    let total = 0;
+    let hasNumericValue = false;
+
+    for (const teamStats of response) {
+      const stat = teamStats.statistics.find((item) => item.type === statType);
+      if (typeof stat?.value === "number") {
+        total += stat.value;
+        hasNumericValue = true;
+      }
+    }
+
+    summary[summaryKey] = hasNumericValue ? total : null;
+  }
+
+  return summary;
+}
+
 // ---------------------------------------------------------------------------
 // Competitions we support
 // ---------------------------------------------------------------------------
@@ -160,5 +212,12 @@ export class FootballApiClient {
     const params = [`league=${leagueId}`];
     if (season) params.push(`season=${season}`);
     return this.request<AfFixture>(`/fixtures?${params.join("&")}`);
+  }
+
+  /**
+   * Fetch statistics for a single fixture by numeric id.
+   */
+  async getFixtureStatistics(fixtureId: number): Promise<AfApiResponse<AfTeamStatistics>> {
+    return this.request<AfTeamStatistics>(`/fixtures/statistics?fixture=${fixtureId}`);
   }
 }
