@@ -119,10 +119,10 @@ export function extractMatchStats(response: AfTeamStatistics[]): MatchStatsSumma
   } as const;
 
   const summary: MatchStatsSummary = {
-    yellowCards: null,
-    redCards: null,
-    cornerKicks: null,
-    offsides: null,
+    yellowCards: 0,
+    redCards: 0,
+    cornerKicks: 0,
+    offsides: 0,
   };
 
   for (const [statType, summaryKey] of Object.entries(statTypeMap) as Array<
@@ -139,7 +139,7 @@ export function extractMatchStats(response: AfTeamStatistics[]): MatchStatsSumma
       }
     }
 
-    summary[summaryKey] = hasNumericValue ? total : null;
+    summary[summaryKey] = hasNumericValue ? total : 0;
   }
 
   return summary;

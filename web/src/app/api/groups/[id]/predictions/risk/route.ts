@@ -82,10 +82,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (
       typeof predictedValue !== "number" ||
       !Number.isInteger(predictedValue) ||
-      predictedValue < 0
+      predictedValue < 1
     ) {
       return NextResponse.json(
-        { error: "Predicted value must be a non-negative integer" },
+        { error: "Predicted value must be a positive integer (minimum 1)" },
         { status: 400 },
       );
     }

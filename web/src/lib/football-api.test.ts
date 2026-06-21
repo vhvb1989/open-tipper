@@ -159,7 +159,7 @@ describe("extractMatchStats", () => {
     });
   });
 
-  it("returns null for missing stat types", () => {
+  it("returns 0 for missing stat types", () => {
     const response = [
       createTeamStats(1, "Home", [{ type: "Yellow Cards", value: 2 }]),
       createTeamStats(2, "Away", [{ type: "Shots on Goal", value: 7 }]),
@@ -167,18 +167,18 @@ describe("extractMatchStats", () => {
 
     expect(extractMatchStats(response)).toEqual({
       yellowCards: 2,
-      redCards: null,
-      cornerKicks: null,
-      offsides: null,
+      redCards: 0,
+      cornerKicks: 0,
+      offsides: 0,
     });
   });
 
-  it("returns nulls for an empty response array", () => {
+  it("returns zeros for an empty response array", () => {
     expect(extractMatchStats([])).toEqual({
-      yellowCards: null,
-      redCards: null,
-      cornerKicks: null,
-      offsides: null,
+      yellowCards: 0,
+      redCards: 0,
+      cornerKicks: 0,
+      offsides: 0,
     });
   });
 });

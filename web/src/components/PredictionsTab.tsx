@@ -556,7 +556,7 @@ export default function PredictionsTab({
         return;
       }
 
-      if (!Number.isInteger(predictedValue) || predictedValue < 0) {
+      if (!Number.isInteger(predictedValue) || predictedValue < 1) {
         updateRiskFormState(matchId, category, (form) => ({
           ...form,
           error: t("predictions.riskPredictedTotal"),
@@ -1217,7 +1217,7 @@ export default function PredictionsTab({
                                         <span>{t("predictions.riskPredictedTotal")}</span>
                                         <input
                                           type="number"
-                                          min={0}
+                                          min={1}
                                           value={predictedValue}
                                           disabled={Boolean(existingRisk) || formState.submitting}
                                           onChange={(e) =>
