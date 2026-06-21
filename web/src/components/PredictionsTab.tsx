@@ -23,7 +23,7 @@ interface Team {
   record?: TeamRecord;
 }
 
-interface Match {
+export interface Match {
   id: string;
   matchDay: number | null;
   stage: string | null;
@@ -96,11 +96,11 @@ function formatTime(dateStr: string): string {
 }
 
 /** Group matches by calendar date string */
-function isFinishedStatus(status: string): boolean {
+export function isFinishedStatus(status: string): boolean {
   return status === "FINISHED" || status === "AWARDED";
 }
 
-function groupMatchesByDate(matches: Match[]): [string, Match[]][] {
+export function groupMatchesByDate(matches: Match[]): [string, Match[]][] {
   const groups = new Map<string, Match[]>();
   for (const match of matches) {
     const dateKey = new Date(match.kickoffTime).toLocaleDateString();
@@ -115,7 +115,12 @@ function groupMatchesByDate(matches: Match[]): [string, Match[]][] {
     const finished = dayMatches.filter((m) => isFinishedStatus(m.status));
     groups.set(key, [...active, ...finished]);
   }
-  return Array.from(groups.entries());
+  const entries = Array.from(groups.entries());
+  // Sort date groups: days with active/upcoming games first, fully-finished
+  // days sink to the bottom. Within each bucket, original date order is kept.
+  const activeDays = entries.filter(([, ms]) => ms.some((m) => !isFinishedStatus(m.status)));
+  const finishedDays = entries.filter(([, ms]) => ms.every((m) => isFinishedStatus(m.status)));
+  return [...activeDays, ...finishedDays];
 }
 
 function statusLabel(status: string, t: (key: string) => string): string {
