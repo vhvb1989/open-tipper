@@ -96,6 +96,10 @@ function formatTime(dateStr: string): string {
 }
 
 /** Group matches by calendar date string */
+function isFinishedStatus(status: string): boolean {
+  return status === "FINISHED" || status === "AWARDED";
+}
+
 function groupMatchesByDate(matches: Match[]): [string, Match[]][] {
   const groups = new Map<string, Match[]>();
   for (const match of matches) {
@@ -103,6 +107,13 @@ function groupMatchesByDate(matches: Match[]): [string, Match[]][] {
     const list = groups.get(dateKey) ?? [];
     list.push(match);
     groups.set(dateKey, list);
+  }
+  // Within each day, send finished games to the bottom while preserving
+  // original order among non-finished and finished games respectively.
+  for (const [key, dayMatches] of groups) {
+    const active = dayMatches.filter((m) => !isFinishedStatus(m.status));
+    const finished = dayMatches.filter((m) => isFinishedStatus(m.status));
+    groups.set(key, [...active, ...finished]);
   }
   return Array.from(groups.entries());
 }
