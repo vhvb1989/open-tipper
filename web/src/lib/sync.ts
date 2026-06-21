@@ -305,17 +305,23 @@ export async function syncCompetition(
     // 8. Fetch statistics for newly-finished matches (for risk resolution)
     let statsFetched = 0;
     try {
-      // Find finished matches that don't have stats yet
-      const finishedWithoutStats = await prisma.match.findMany({
+      // Find finished matches that either have no stats or have incomplete stats (null values)
+      const finishedNeedingStats = await prisma.match.findMany({
         where: {
           contestId: contest.id,
           status: { in: ["FINISHED", "AWARDED"] },
-          stats: null,
+          OR: [
+            { stats: null },
+            { stats: { yellowCards: null } },
+            { stats: { redCards: null } },
+            { stats: { cornerKicks: null } },
+            { stats: { offsides: null } },
+          ],
         },
         select: { id: true, externalId: true },
       });
 
-      for (const match of finishedWithoutStats) {
+      for (const match of finishedNeedingStats) {
         try {
           const statsResponse = await api.getFixtureStatistics(match.externalId);
           const summary = extractMatchStats(statsResponse.response);

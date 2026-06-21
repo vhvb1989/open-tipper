@@ -125,11 +125,11 @@ describe("resolveRisksForMatch", () => {
     );
   });
 
-  it("skips resolution when stat value is null", async () => {
+  it("treats null stat value as 0 and resolves the risk", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (db as any).matchStats.findUnique.mockResolvedValue({
       yellowCards: 5,
-      redCards: null, // not available
+      redCards: null, // not reported = treated as 0
       cornerKicks: 10,
       offsides: 3,
     });
@@ -138,16 +138,16 @@ describe("resolveRisksForMatch", () => {
       {
         id: "risk-3",
         category: "RED_CARDS",
-        predictedValue: 0,
+        predictedValue: 1, // predicted 1, actual is 0 → LOST
         pointsRisked: 3,
       },
     ]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (db as any).riskPrediction.update.mockResolvedValue({});
 
     const result = await resolveRisksForMatch("match-1", db);
 
-    expect(result).toEqual({ matchId: "match-1", resolved: 0, won: 0, lost: 0 });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((db as any).riskPrediction.update).not.toHaveBeenCalled();
+    expect(result).toEqual({ matchId: "match-1", resolved: 1, won: 0, lost: 1 });
   });
 
   it("resolves multiple risks for the same match (mix of won and lost)", async () => {

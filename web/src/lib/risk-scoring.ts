@@ -77,12 +77,8 @@ export async function resolveRisksForMatch(
 
   for (const risk of pendingRisks) {
     const statField = CATEGORY_TO_STAT_FIELD[risk.category];
-    const actualValue = matchStats[statField];
-
-    // If we don't have the actual stat, skip (don't resolve)
-    if (actualValue === null || actualValue === undefined) {
-      continue;
-    }
+    // Treat null/undefined as 0 (stat not reported means 0 occurrences)
+    const actualValue = matchStats[statField] ?? 0;
 
     const isCorrect = risk.predictedValue === actualValue;
 
