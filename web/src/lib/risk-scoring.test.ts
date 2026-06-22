@@ -55,7 +55,7 @@ describe("resolveRisksForMatch", () => {
     expect(result).toEqual({ matchId: "match-1", resolved: 0, won: 0, lost: 0 });
   });
 
-  it("marks correct prediction as WON with doubled points", async () => {
+  it("marks correct prediction as WON with the tiered (3×) payout", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (db as any).matchStats.findUnique.mockResolvedValue({
       yellowCards: 5,
@@ -84,7 +84,42 @@ describe("resolveRisksForMatch", () => {
         where: { id: "risk-1" },
         data: expect.objectContaining({
           status: "WON",
-          pointsAwarded: 20,
+          pointsAwarded: 30,
+        }),
+      }),
+    );
+  });
+
+  it("refunds the stake (1×) for a near-miss within the refund tier", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (db as any).matchStats.findUnique.mockResolvedValue({
+      yellowCards: 5,
+      redCards: 1,
+      cornerKicks: 10,
+      offsides: 3,
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (db as any).riskPrediction.findMany.mockResolvedValue([
+      {
+        id: "risk-refund",
+        category: "CORNER_KICKS",
+        predictedValue: 8, // actual 10 → off by 2 → refund tier
+        pointsRisked: 5,
+      },
+    ]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (db as any).riskPrediction.update.mockResolvedValue({});
+
+    const result = await resolveRisksForMatch("match-1", db);
+
+    expect(result).toEqual({ matchId: "match-1", resolved: 1, won: 1, lost: 0 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((db as any).riskPrediction.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "risk-refund" },
+        data: expect.objectContaining({
+          status: "WON",
+          pointsAwarded: 5,
         }),
       }),
     );
@@ -103,7 +138,7 @@ describe("resolveRisksForMatch", () => {
       {
         id: "risk-2",
         category: "CORNER_KICKS",
-        predictedValue: 8, // actual is 10
+        predictedValue: 5, // actual is 10 → off by 5 → lost
         pointsRisked: 5,
       },
     ]);
@@ -160,10 +195,10 @@ describe("resolveRisksForMatch", () => {
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (db as any).riskPrediction.findMany.mockResolvedValue([
-      { id: "r1", category: "YELLOW_CARDS", predictedValue: 5, pointsRisked: 10 }, // WON
-      { id: "r2", category: "RED_CARDS", predictedValue: 0, pointsRisked: 5 }, // LOST
-      { id: "r3", category: "OFFSIDES", predictedValue: 3, pointsRisked: 8 }, // WON
-      { id: "r4", category: "CORNER_KICKS", predictedValue: 12, pointsRisked: 4 }, // LOST
+      { id: "r1", category: "YELLOW_CARDS", predictedValue: 5, pointsRisked: 10 }, // WON (exact)
+      { id: "r2", category: "RED_CARDS", predictedValue: 0, pointsRisked: 5 }, // LOST (no vs actual yes)
+      { id: "r3", category: "OFFSIDES", predictedValue: 3, pointsRisked: 8 }, // WON (exact)
+      { id: "r4", category: "CORNER_KICKS", predictedValue: 14, pointsRisked: 4 }, // LOST (off by 4)
     ]);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (db as any).riskPrediction.update.mockResolvedValue({});

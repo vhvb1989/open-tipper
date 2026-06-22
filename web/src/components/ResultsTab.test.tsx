@@ -56,6 +56,8 @@ vi.mock("@/i18n/TranslationProvider", () => ({
         "results.riskCategories.RED_CARDS": "Red Cards",
         "results.riskCategories.CORNER_KICKS": "Corner Kicks",
         "results.riskCategories.OFFSIDES": "Offsides",
+        "results.riskRedYes": "Yes",
+        "results.riskRedNo": "No",
       };
 
       return map[key] ?? key;
@@ -116,6 +118,13 @@ describe("ResultsTab", () => {
                       status: "PENDING",
                       pointsAwarded: null,
                     },
+                    {
+                      category: "RED_CARDS",
+                      predictedValue: 1,
+                      pointsRisked: 2,
+                      status: "WON",
+                      pointsAwarded: 6,
+                    },
                   ],
                 },
               ],
@@ -149,7 +158,10 @@ describe("ResultsTab", () => {
 
     expect(screen.getByText("Yellow Cards")).toBeDefined();
     expect(screen.getByText("Offsides")).toBeDefined();
+    expect(screen.getByText("Red Cards")).toBeDefined();
     expect(screen.getByText("Pending")).toBeDefined();
-    expect(screen.getByText("✓")).toBeDefined();
+    // Red-card prediction (1) and actual (1) render as "Yes" rather than a number
+    expect(screen.getAllByText("Yes").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("✓").length).toBeGreaterThanOrEqual(1);
   });
 });

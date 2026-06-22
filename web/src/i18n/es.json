@@ -213,7 +213,23 @@
     "riskPredictedTotal": "Total",
     "riskConfirmed": "Confirmado",
     "riskPending": "Pendiente",
-    "riskInsufficientBalance": "No tienes puntos suficientes"
+    "riskInsufficientBalance": "No tienes puntos suficientes",
+    "riskRedQuestion": "¿Habrá tarjeta roja?",
+    "riskRedYes": "¡Tarjeta roja!",
+    "riskRedNo": "Sin tarjeta",
+    "riskHowItWorks": "¿Cómo funciona?",
+    "riskRulesIntro": "Arriesga puntos sobre las estadísticas del partido. Acertar justo siempre paga más; acercarte puede pagar menos o devolverte los puntos.",
+    "riskRulesCornersTitle": "Tiros de esquina",
+    "riskRulesCornersRules": "Adivina el total de córners. Exacto = 3×, fallo de 1 = 2×, fallo de 2 = recuperas tus puntos, más lejos = pierdes la apuesta.",
+    "riskRulesCornersExample": "Ejemplo: 11 córners → 11 gana 3×, 10 o 12 gana 2×, 9 o 13 te devuelve, 8 o menos pierde.",
+    "riskRulesYellowTitle": "Tarjetas amarillas",
+    "riskRulesOffsidesTitle": "Fueras de juego",
+    "riskRulesCardsRules": "Adivina el total. Exacto = 3×, fallo de 1 = recuperas tus puntos, más lejos = pierdes la apuesta.",
+    "riskRulesYellowExample": "Ejemplo: 4 amarillas → 4 gana 3×, 3 o 5 te devuelve, 2 o 6 pierde.",
+    "riskRulesOffsidesExample": "Ejemplo: 4 fueras de juego → 4 gana 3×, 3 o 5 te devuelve, 2 o 6 pierde.",
+    "riskRulesRedTitle": "Tarjetas rojas",
+    "riskRulesRedRules": "Solo decídelo: ¿habrá tarjeta roja? \"Sin tarjeta\" paga 1.3×, \"¡Tarjeta roja!\" paga 3×.",
+    "riskRulesRedExample": "Ejemplo: hay tarjeta roja → \"¡Tarjeta roja!\" gana 3×, \"Sin tarjeta\" pierde."
   },
   "results": {
     "vs": "vs",
@@ -272,6 +288,8 @@
     "riskRedCards": "Tarjetas rojas",
     "riskCornerKicks": "Tiros de esquina",
     "riskOffsides": "Fueras de juego",
+    "riskRedYes": "Sí",
+    "riskRedNo": "No",
     "riskCategories": {
       "YELLOW_CARDS": "Tarjetas amarillas",
       "RED_CARDS": "Tarjetas rojas",

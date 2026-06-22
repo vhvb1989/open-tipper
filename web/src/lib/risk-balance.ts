@@ -73,7 +73,8 @@ export async function getAvailableBalance(
     getRiskTotals(userId, groupId, db),
   ]);
 
-  // Double-or-nothing: stake is always deducted, winnings (2×stake) are added back
+  // Tiered payouts: stake is always deducted; winnings (stored pointsAwarded)
+  // are added back for won risks. A refund tier stores pointsAwarded === stake.
   const balance =
     predictionPoints +
     riskTotals[RiskStatus.WON].pointsAwarded -
