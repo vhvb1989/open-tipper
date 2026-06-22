@@ -213,7 +213,23 @@
     "riskPredictedTotal": "Total",
     "riskConfirmed": "Confirmed",
     "riskPending": "Pending",
-    "riskInsufficientBalance": "Not enough points"
+    "riskInsufficientBalance": "Not enough points",
+    "riskRedQuestion": "Will there be a red card?",
+    "riskRedYes": "Red card!",
+    "riskRedNo": "No card",
+    "riskHowItWorks": "How does it work?",
+    "riskRulesIntro": "Risk points on match stats. A perfect guess always pays the most; closer guesses may win less or get your points back.",
+    "riskRulesCornersTitle": "Corner kicks",
+    "riskRulesCornersRules": "Guess the total corners. Exact = 3×, off by 1 = 2×, off by 2 = points back, further off = lose your stake.",
+    "riskRulesCornersExample": "Example: 11 corners → guess 11 wins 3×, 10 or 12 wins 2×, 9 or 13 refunds, 8 or less loses.",
+    "riskRulesYellowTitle": "Yellow cards",
+    "riskRulesOffsidesTitle": "Offsides",
+    "riskRulesCardsRules": "Guess the total. Exact = 3×, off by 1 = points back, further off = lose your stake.",
+    "riskRulesYellowExample": "Example: 4 yellows → guess 4 wins 3×, 3 or 5 refunds, 2 or 6 loses.",
+    "riskRulesOffsidesExample": "Example: 4 offsides → guess 4 wins 3×, 3 or 5 refunds, 2 or 6 loses.",
+    "riskRulesRedTitle": "Red cards",
+    "riskRulesRedRules": "Just call it: will there be a red card? \"No card\" pays 1.3×, \"Red card!\" pays 3×.",
+    "riskRulesRedExample": "Example: a red card is shown → \"Red card!\" wins 3×, \"No card\" loses."
   },
   "results": {
     "vs": "vs",
@@ -272,6 +288,8 @@
     "riskRedCards": "Red cards",
     "riskCornerKicks": "Corner kicks",
     "riskOffsides": "Offsides",
+    "riskRedYes": "Yes",
+    "riskRedNo": "No",
     "riskCategories": {
       "YELLOW_CARDS": "Yellow Cards",
       "RED_CARDS": "Red Cards",

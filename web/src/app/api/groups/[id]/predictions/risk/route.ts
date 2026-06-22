@@ -79,7 +79,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (!isValidRiskCategory(category)) {
       return NextResponse.json({ error: "Invalid risk category" }, { status: 400 });
     }
-    if (
+    if (category === RiskCategory.RED_CARDS) {
+      // Binary over/under-0.5 market: 0 = no red card, 1 = red card.
+      if (predictedValue !== 0 && predictedValue !== 1) {
+        return NextResponse.json(
+          { error: "Predicted value for red cards must be 0 (no) or 1 (yes)" },
+          { status: 400 },
+        );
+      }
+    } else if (
       typeof predictedValue !== "number" ||
       !Number.isInteger(predictedValue) ||
       predictedValue < 1

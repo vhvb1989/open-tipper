@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useTranslation } from "@/i18n/TranslationProvider";
 import PodiumSection from "./PodiumSection";
+import RiskRulesDialog from "./RiskRulesDialog";
 import type { Round } from "@/lib/rounds";
 
 /* ---------- Types ---------- */
@@ -572,7 +573,13 @@ export default function PredictionsTab({
         return;
       }
 
-      if (!Number.isInteger(predictedValue) || predictedValue < 1) {
+      const isRedCards = category === "RED_CARDS";
+      const minPredicted = isRedCards ? 0 : 1;
+      if (
+        !Number.isInteger(predictedValue) ||
+        predictedValue < minPredicted ||
+        (isRedCards && predictedValue > 1)
+      ) {
         updateRiskFormState(matchId, category, (form) => ({
           ...form,
           error: t("predictions.riskPredictedTotal"),
@@ -1109,9 +1116,12 @@ export default function PredictionsTab({
                     {riskEnabled && riskOpen && (
                       <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-900/50 dark:bg-amber-950/20">
                         <div className="mb-3 flex items-center justify-between gap-2">
-                          <span className="text-xs font-semibold text-amber-900 dark:text-amber-200">
-                            {t("predictions.riskMore")}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-amber-900 dark:text-amber-200">
+                              {t("predictions.riskMore")}
+                            </span>
+                            <RiskRulesDialog />
+                          </div>
                           <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
                             {t("predictions.riskAvailable", {
                               points: String(availableBalance),
@@ -1229,28 +1239,69 @@ export default function PredictionsTab({
                                         />
                                       </label>
 
-                                      <label className="space-y-1 text-xs font-medium text-zinc-600 dark:text-zinc-300">
-                                        <span>{t("predictions.riskPredictedTotal")}</span>
-                                        <input
-                                          type="number"
-                                          min={1}
-                                          value={predictedValue}
-                                          disabled={Boolean(existingRisk) || formState.submitting}
-                                          onChange={(e) =>
-                                            handleRiskInputChange(
-                                              match.id,
-                                              option.category,
-                                              "predictedValue",
-                                              e.target.value,
-                                            )
-                                          }
-                                          className={`h-10 w-full rounded-lg border px-3 text-sm font-semibold ${
-                                            existingRisk
-                                              ? "cursor-not-allowed border-amber-200 bg-amber-100/70 text-zinc-600 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-zinc-300"
-                                              : "border-amber-200 bg-white text-zinc-900 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 dark:border-amber-900/40 dark:bg-zinc-800 dark:text-zinc-100"
-                                          }`}
-                                        />
-                                      </label>
+                                      {option.category === "RED_CARDS" ? (
+                                        <div className="space-y-1 text-xs font-medium text-zinc-600 dark:text-zinc-300">
+                                          <span>{t("predictions.riskRedQuestion")}</span>
+                                          <div className="flex gap-2">
+                                            {(
+                                              [
+                                                { value: "0", labelKey: "predictions.riskRedNo" },
+                                                { value: "1", labelKey: "predictions.riskRedYes" },
+                                              ] as const
+                                            ).map((choice) => {
+                                              const selected = predictedValue === choice.value;
+                                              return (
+                                                <button
+                                                  key={choice.value}
+                                                  type="button"
+                                                  disabled={
+                                                    Boolean(existingRisk) || formState.submitting
+                                                  }
+                                                  aria-pressed={selected}
+                                                  onClick={() =>
+                                                    handleRiskInputChange(
+                                                      match.id,
+                                                      option.category,
+                                                      "predictedValue",
+                                                      choice.value,
+                                                    )
+                                                  }
+                                                  className={`h-10 flex-1 rounded-lg border px-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
+                                                    selected
+                                                      ? "border-amber-400 bg-amber-500 text-white dark:border-amber-600 dark:bg-amber-600"
+                                                      : "border-amber-200 bg-white text-zinc-900 hover:bg-amber-50 dark:border-amber-900/40 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+                                                  }`}
+                                                >
+                                                  {t(choice.labelKey)}
+                                                </button>
+                                              );
+                                            })}
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <label className="space-y-1 text-xs font-medium text-zinc-600 dark:text-zinc-300">
+                                          <span>{t("predictions.riskPredictedTotal")}</span>
+                                          <input
+                                            type="number"
+                                            min={1}
+                                            value={predictedValue}
+                                            disabled={Boolean(existingRisk) || formState.submitting}
+                                            onChange={(e) =>
+                                              handleRiskInputChange(
+                                                match.id,
+                                                option.category,
+                                                "predictedValue",
+                                                e.target.value,
+                                              )
+                                            }
+                                            className={`h-10 w-full rounded-lg border px-3 text-sm font-semibold ${
+                                              existingRisk
+                                                ? "cursor-not-allowed border-amber-200 bg-amber-100/70 text-zinc-600 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-zinc-300"
+                                                : "border-amber-200 bg-white text-zinc-900 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 dark:border-amber-900/40 dark:bg-zinc-800 dark:text-zinc-100"
+                                            }`}
+                                          />
+                                        </label>
+                                      )}
                                     </div>
 
                                     {!existingRisk && availableBalance < 1 && (

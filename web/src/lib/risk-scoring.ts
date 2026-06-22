@@ -4,11 +4,14 @@
  * Resolves risk predictions after a match finishes by comparing
  * user-predicted values against actual match statistics.
  *
- * - Correct prediction → WON, pointsAwarded = pointsRisked * 2
- * - Incorrect prediction → LOST, pointsAwarded = 0
+ * Payouts are tier-based per category (see risk-tiers.ts):
+ * - Bullseye (exact) is always the best reward.
+ * - Closer guesses may win a smaller multiplier or a refund.
+ * - Red cards is a binary over/under-0.5 market.
  */
 
 import { PrismaClient, RiskStatus } from "@/generated/prisma/client";
+import { scoreRisk } from "@/lib/risk-tiers";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -80,27 +83,25 @@ export async function resolveRisksForMatch(
     // Treat null/undefined as 0 (stat not reported means 0 occurrences)
     const actualValue = matchStats[statField] ?? 0;
 
-    const isCorrect = risk.predictedValue === actualValue;
+    const { status, pointsAwarded } = scoreRisk(
+      risk.category,
+      risk.predictedValue,
+      actualValue,
+      risk.pointsRisked,
+    );
 
-    if (isCorrect) {
-      await db.riskPrediction.update({
-        where: { id: risk.id },
-        data: {
-          status: RiskStatus.WON,
-          pointsAwarded: risk.pointsRisked * 2,
-          resolvedAt: now,
-        },
-      });
+    await db.riskPrediction.update({
+      where: { id: risk.id },
+      data: {
+        status,
+        pointsAwarded,
+        resolvedAt: now,
+      },
+    });
+
+    if (status === RiskStatus.WON) {
       won++;
     } else {
-      await db.riskPrediction.update({
-        where: { id: risk.id },
-        data: {
-          status: RiskStatus.LOST,
-          pointsAwarded: 0,
-          resolvedAt: now,
-        },
-      });
       lost++;
     }
   }

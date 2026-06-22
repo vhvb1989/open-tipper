@@ -271,8 +271,18 @@ function RiskDetails({
             return (
               <tr key={risk.category} className="border-t border-zinc-100 dark:border-zinc-800">
                 <td className="px-3 py-2">{t(`results.riskCategories.${risk.category}`)}</td>
-                <td className="px-3 py-2">{risk.predictedValue}</td>
-                <td className="px-3 py-2">{actual ?? "—"}</td>
+                <td className="px-3 py-2">
+                  {risk.category === "RED_CARDS"
+                    ? t(risk.predictedValue >= 1 ? "results.riskRedYes" : "results.riskRedNo")
+                    : risk.predictedValue}
+                </td>
+                <td className="px-3 py-2">
+                  {actual === null
+                    ? "—"
+                    : risk.category === "RED_CARDS"
+                      ? t(actual >= 1 ? "results.riskRedYes" : "results.riskRedNo")
+                      : actual}
+                </td>
                 <td className="px-3 py-2">{t("results.points", { n: risk.pointsRisked })}</td>
                 <td className={`px-3 py-2 font-semibold ${resultClass}`}>{resultLabel}</td>
               </tr>
