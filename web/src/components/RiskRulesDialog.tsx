@@ -43,12 +43,6 @@ export default function RiskRulesDialog() {
         rulesKey: "predictions.riskRulesCardsRules",
         exampleKey: "predictions.riskRulesOffsidesExample",
       },
-      {
-        icon: "🟥",
-        titleKey: "predictions.riskRulesRedTitle",
-        rulesKey: "predictions.riskRulesRedRules",
-        exampleKey: "predictions.riskRulesRedExample",
-      },
     ];
 
   const modal = open ? (

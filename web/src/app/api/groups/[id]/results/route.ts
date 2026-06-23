@@ -303,7 +303,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
       const riskNetPoints = userRiskPredictions.reduce((sum, risk) => {
         if (risk.status === RiskStatus.WON) {
-          return sum + (risk.pointsAwarded ?? 0);
+          // Net winnings = gross payout minus the stake that was wagered.
+          return sum + (risk.pointsAwarded ?? 0) - risk.pointsRisked;
         }
         if (risk.status === RiskStatus.LOST) {
           return sum - risk.pointsRisked;

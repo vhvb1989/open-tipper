@@ -7,7 +7,6 @@
  * Payouts are tier-based per category (see risk-tiers.ts):
  * - Bullseye (exact) is always the best reward.
  * - Closer guesses may win a smaller multiplier or a refund.
- * - Red cards is a binary over/under-0.5 market.
  */
 
 import { PrismaClient, RiskStatus } from "@/generated/prisma/client";
@@ -30,7 +29,6 @@ export interface ResolveRisksResult {
 
 const CATEGORY_TO_STAT_FIELD = {
   YELLOW_CARDS: "yellowCards",
-  RED_CARDS: "redCards",
   CORNER_KICKS: "cornerKicks",
   OFFSIDES: "offsides",
 } as const;

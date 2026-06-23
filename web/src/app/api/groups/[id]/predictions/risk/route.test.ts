@@ -82,7 +82,7 @@ describe("Risk predictions API", () => {
           userId: "u1",
           groupId: "g1",
           matchId: "m2",
-          category: RiskCategory.RED_CARDS,
+          category: RiskCategory.OFFSIDES,
           predictedValue: 1,
           pointsRisked: 2,
           status: RiskStatus.WON,
@@ -247,61 +247,7 @@ describe("Risk predictions API", () => {
       expect(res.status).toBe(400);
     });
 
-    it("accepts a red-card prediction of 0 (no card)", async () => {
-      mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c1", riskEnabled: true });
-      mockPrisma.match.findUnique.mockResolvedValue({
-        id: "m1",
-        contestId: "c1",
-        kickoffTime: new Date("2025-06-16T12:00:00Z"),
-        status: MatchStatus.SCHEDULED,
-      });
-      mockPrisma.riskPrediction.findUnique.mockResolvedValue(null);
-      mockPrisma.riskPrediction.create.mockResolvedValue({
-        id: "r-red",
-        userId: "u1",
-        groupId: "g1",
-        matchId: "m1",
-        category: RiskCategory.RED_CARDS,
-        predictedValue: 0,
-        pointsRisked: 5,
-        status: RiskStatus.PENDING,
-        pointsAwarded: null,
-        createdAt: NOW,
-        resolvedAt: null,
-      });
-
-      const { PUT } = await import("@/app/api/groups/[id]/predictions/risk/route");
-      const res = await PUT(
-        makeRequest({
-          matchId: "m1",
-          category: RiskCategory.RED_CARDS,
-          predictedValue: 0,
-          pointsRisked: 5,
-        }),
-        { params: Promise.resolve({ id: "g1" }) },
-      );
-
-      expect(res.status).toBe(200);
-    });
-
-    it("rejects a red-card prediction other than 0 or 1", async () => {
-      mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c1", riskEnabled: true });
-
-      const { PUT } = await import("@/app/api/groups/[id]/predictions/risk/route");
-      const res = await PUT(
-        makeRequest({
-          matchId: "m1",
-          category: RiskCategory.RED_CARDS,
-          predictedValue: 2,
-          pointsRisked: 5,
-        }),
-        { params: Promise.resolve({ id: "g1" }) },
-      );
-
-      expect(res.status).toBe(400);
-    });
-
-    it("rejects a non-red-card prediction below 1", async () => {
+    it("rejects a count-category prediction below 1", async () => {
       mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c1", riskEnabled: true });
 
       const { PUT } = await import("@/app/api/groups/[id]/predictions/risk/route");

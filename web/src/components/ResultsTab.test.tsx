@@ -53,11 +53,8 @@ vi.mock("@/i18n/TranslationProvider", () => ({
         "results.riskCornerKicks": "Corner kicks",
         "results.riskOffsides": "Offsides",
         "results.riskCategories.YELLOW_CARDS": "Yellow Cards",
-        "results.riskCategories.RED_CARDS": "Red Cards",
         "results.riskCategories.CORNER_KICKS": "Corner Kicks",
         "results.riskCategories.OFFSIDES": "Offsides",
-        "results.riskRedYes": "Yes",
-        "results.riskRedNo": "No",
       };
 
       return map[key] ?? key;
@@ -119,11 +116,11 @@ describe("ResultsTab", () => {
                       pointsAwarded: null,
                     },
                     {
-                      category: "RED_CARDS",
-                      predictedValue: 1,
-                      pointsRisked: 2,
-                      status: "WON",
-                      pointsAwarded: 6,
+                      category: "CORNER_KICKS",
+                      predictedValue: 3,
+                      pointsRisked: 4,
+                      status: "LOST",
+                      pointsAwarded: 0,
                     },
                   ],
                 },
@@ -158,10 +155,10 @@ describe("ResultsTab", () => {
 
     expect(screen.getByText("Yellow Cards")).toBeDefined();
     expect(screen.getByText("Offsides")).toBeDefined();
-    expect(screen.getByText("Red Cards")).toBeDefined();
     expect(screen.getByText("Pending")).toBeDefined();
-    // Red-card prediction (1) and actual (1) render as "Yes" rather than a number
-    expect(screen.getAllByText("Yes").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByText("✓").length).toBeGreaterThanOrEqual(1);
+    // WON row shows net winnings (payout 6 − stake 3 = +3) and the gross multiplier (6/3 = 2×)
+    expect(screen.getByText("✓ +3 (2×)")).toBeDefined();
+    // LOST row shows the forfeited stake
+    expect(screen.getByText("✗ -4")).toBeDefined();
   });
 });

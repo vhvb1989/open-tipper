@@ -164,16 +164,16 @@ describe("resolveRisksForMatch", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (db as any).matchStats.findUnique.mockResolvedValue({
       yellowCards: 5,
-      redCards: null, // not reported = treated as 0
-      cornerKicks: 10,
+      redCards: null,
+      cornerKicks: null, // not reported = treated as 0
       offsides: 3,
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (db as any).riskPrediction.findMany.mockResolvedValue([
       {
         id: "risk-3",
-        category: "RED_CARDS",
-        predictedValue: 1, // predicted 1, actual is 0 → LOST
+        category: "CORNER_KICKS",
+        predictedValue: 5, // predicted 5, actual is 0 → LOST
         pointsRisked: 3,
       },
     ]);
@@ -196,7 +196,7 @@ describe("resolveRisksForMatch", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (db as any).riskPrediction.findMany.mockResolvedValue([
       { id: "r1", category: "YELLOW_CARDS", predictedValue: 5, pointsRisked: 10 }, // WON (exact)
-      { id: "r2", category: "RED_CARDS", predictedValue: 0, pointsRisked: 5 }, // LOST (no vs actual yes)
+      { id: "r2", category: "YELLOW_CARDS", predictedValue: 9, pointsRisked: 5 }, // LOST (off by 4)
       { id: "r3", category: "OFFSIDES", predictedValue: 3, pointsRisked: 8 }, // WON (exact)
       { id: "r4", category: "CORNER_KICKS", predictedValue: 14, pointsRisked: 4 }, // LOST (off by 4)
     ]);

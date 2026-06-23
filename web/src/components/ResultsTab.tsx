@@ -41,7 +41,7 @@ interface PredictionEntry {
 }
 
 interface RiskPredictionEntry {
-  category: "YELLOW_CARDS" | "RED_CARDS" | "CORNER_KICKS" | "OFFSIDES";
+  category: "YELLOW_CARDS" | "CORNER_KICKS" | "OFFSIDES";
   predictedValue: number;
   pointsRisked: number;
   status: "PENDING" | "WON" | "LOST" | "CANCELLED";
@@ -91,6 +91,13 @@ function isExactHit(pred: PredictionEntry, result: MatchResult): boolean {
   return pred.homeGoals === result.homeGoals && pred.awayGoals === result.awayGoals;
 }
 
+/**
+ * Format a gross payout multiplier for display, e.g. 3 → "3", 1.3 → "1.3".
+ */
+function formatMultiplier(multiplier: number): string {
+  return Number.isInteger(multiplier) ? String(multiplier) : String(Number(multiplier.toFixed(2)));
+}
+
 function isFinishedMatch(match: MatchResult): boolean {
   return match.status === "FINISHED" || match.status === "AWARDED";
 }
@@ -110,7 +117,6 @@ function getRiskActualValue(
 ): number | null {
   if (!stats) return null;
   if (category === "YELLOW_CARDS") return stats.yellowCards;
-  if (category === "RED_CARDS") return stats.redCards;
   if (category === "CORNER_KICKS") return stats.cornerKicks;
   return stats.offsides;
 }
@@ -259,10 +265,13 @@ function RiskDetails({
             let resultClass = "text-zinc-500 dark:text-zinc-400";
 
             if (risk.status === "WON") {
-              resultLabel = "✓";
+              const net = (risk.pointsAwarded ?? 0) - risk.pointsRisked;
+              const multiplier =
+                risk.pointsRisked > 0 ? (risk.pointsAwarded ?? 0) / risk.pointsRisked : 0;
+              resultLabel = `✓ +${net} (${formatMultiplier(multiplier)}×)`;
               resultClass = "text-emerald-600 dark:text-emerald-400";
             } else if (risk.status === "LOST") {
-              resultLabel = "✗";
+              resultLabel = `✗ -${risk.pointsRisked}`;
               resultClass = "text-red-600 dark:text-red-400";
             } else if (risk.status === "CANCELLED") {
               resultLabel = t("results.riskCancelled");
@@ -271,20 +280,12 @@ function RiskDetails({
             return (
               <tr key={risk.category} className="border-t border-zinc-100 dark:border-zinc-800">
                 <td className="px-3 py-2">{t(`results.riskCategories.${risk.category}`)}</td>
-                <td className="px-3 py-2">
-                  {risk.category === "RED_CARDS"
-                    ? t(risk.predictedValue >= 1 ? "results.riskRedYes" : "results.riskRedNo")
-                    : risk.predictedValue}
-                </td>
-                <td className="px-3 py-2">
-                  {actual === null
-                    ? "—"
-                    : risk.category === "RED_CARDS"
-                      ? t(actual >= 1 ? "results.riskRedYes" : "results.riskRedNo")
-                      : actual}
-                </td>
+                <td className="px-3 py-2">{risk.predictedValue}</td>
+                <td className="px-3 py-2">{actual === null ? "—" : actual}</td>
                 <td className="px-3 py-2">{t("results.points", { n: risk.pointsRisked })}</td>
-                <td className={`px-3 py-2 font-semibold ${resultClass}`}>{resultLabel}</td>
+                <td className={`whitespace-nowrap px-3 py-2 font-semibold ${resultClass}`}>
+                  {resultLabel}
+                </td>
               </tr>
             );
           })}
