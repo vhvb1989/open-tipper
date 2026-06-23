@@ -9,10 +9,6 @@
  * difference between the predicted and actual combined total. The first matching
  * tier (smallest `maxDiff`) wins. A multiplier of 1 is a refund (net 0); no
  * matching tier means the stake is lost.
- *
- * Red cards is a binary over/under-0.5 market: predict 0 ("no red card") or
- * >= 1 ("red card!"). It cannot be balanced as an exact count because ~74% of
- * matches have zero red cards.
  */
 
 import { RiskStatus } from "@/generated/prisma/client";
@@ -44,17 +40,6 @@ export const COUNT_TIERS: Partial<Record<RiskCategory, RiskTier[]>> = {
   ],
 };
 
-/**
- * Binary red-card payouts. `predictedValue` is stored as 0 ("no red card") or
- * >= 1 ("red card!").
- */
-export const RED_CARD_MULTIPLIERS = {
-  /** Safe call: no red card. */
-  no: 1.3,
-  /** Brave call: at least one red card. */
-  yes: 3,
-} as const;
-
 export interface RiskScore {
   status: RiskStatus;
   pointsAwarded: number;
@@ -64,7 +49,7 @@ export interface RiskScore {
  * Resolve a single risk prediction against the actual match value.
  *
  * @param category       The stat category being predicted.
- * @param predictedValue The user's predicted value (0/>=1 for red cards).
+ * @param predictedValue The user's predicted value.
  * @param actualValue    The actual combined total from match stats.
  * @param pointsRisked   The stake.
  */
@@ -74,16 +59,6 @@ export function scoreRisk(
   actualValue: number,
   pointsRisked: number,
 ): RiskScore {
-  if (String(category) === "RED_CARDS") {
-    const predictedRed = predictedValue >= 1;
-    const actualRed = actualValue >= 1;
-    if (predictedRed === actualRed) {
-      const multiplier = predictedRed ? RED_CARD_MULTIPLIERS.yes : RED_CARD_MULTIPLIERS.no;
-      return { status: RiskStatus.WON, pointsAwarded: Math.round(pointsRisked * multiplier) };
-    }
-    return { status: RiskStatus.LOST, pointsAwarded: 0 };
-  }
-
   const tiers = COUNT_TIERS[category];
   if (tiers) {
     const diff = Math.abs(predictedValue - actualValue);

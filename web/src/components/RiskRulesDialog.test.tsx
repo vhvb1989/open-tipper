@@ -16,9 +16,6 @@ vi.mock("@/i18n/TranslationProvider", () => ({
         "predictions.riskRulesCardsRules": "Exact = 3×.",
         "predictions.riskRulesYellowExample": "Example yellows.",
         "predictions.riskRulesOffsidesExample": "Example offsides.",
-        "predictions.riskRulesRedTitle": "Red cards",
-        "predictions.riskRulesRedRules": "No 1.3×, Yes 3×.",
-        "predictions.riskRulesRedExample": "Example red.",
       };
       return map[key] ?? key;
     },
@@ -39,7 +36,6 @@ describe("RiskRulesDialog", () => {
     expect(screen.getByText("Corner kicks")).toBeDefined();
     expect(screen.getByText("Yellow cards")).toBeDefined();
     expect(screen.getByText("Offsides")).toBeDefined();
-    expect(screen.getByText("Red cards")).toBeDefined();
   });
 
   it("closes when pressing Escape", () => {

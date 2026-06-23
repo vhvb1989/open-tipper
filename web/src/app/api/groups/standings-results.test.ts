@@ -523,15 +523,6 @@ describe("Results API — GET /api/groups/:id/results", () => {
         status: "LOST",
         pointsAwarded: 0,
       },
-      {
-        matchId: "match-1",
-        userId: "user-1",
-        category: "RED_CARDS",
-        predictedValue: 1,
-        pointsRisked: 5,
-        status: "CANCELLED",
-        pointsAwarded: null,
-      },
     ]);
 
     const { GET } = await import("@/app/api/groups/[id]/results/route");
@@ -562,16 +553,9 @@ describe("Results API — GET /api/groups/:id/results", () => {
         status: "LOST",
         pointsAwarded: 0,
       },
-      {
-        category: "RED_CARDS",
-        predictedValue: 1,
-        pointsRisked: 5,
-        status: "CANCELLED",
-        pointsAwarded: null,
-      },
     ]);
     expect(data.results[0].predictions[0].totalPointsRisked).toBe(5);
-    expect(data.results[0].predictions[0].riskNetPoints).toBe(4);
+    expect(data.results[0].predictions[0].riskNetPoints).toBe(1);
   });
 
   it("returns empty predictions array for matches with no tips", async () => {
