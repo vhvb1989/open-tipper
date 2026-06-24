@@ -201,9 +201,13 @@ export async function syncCompetition(
     const code = String(league.id);
 
     // 2. Upsert the contest
+    // A league's API-Football id (externalId) is stable across seasons, so we
+    // key the upsert on externalId. Re-syncing an existing league updates it
+    // in place to the current season instead of creating a duplicate contest
+    // (which would violate the unique externalId constraint).
     const contest = await prisma.contest.upsert({
       where: {
-        code_season: { code, season: seasonStr },
+        externalId: league.id,
       },
       create: {
         externalId: league.id,
@@ -218,6 +222,8 @@ export async function syncCompetition(
       },
       update: {
         name: league.name,
+        code,
+        season: seasonStr,
         type: league.type,
         emblem: league.logo,
         status: deriveContestStatus(currentSeason.start, currentSeason.end),

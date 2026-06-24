@@ -163,9 +163,14 @@ describe("syncCompetition", () => {
 
     const upsertCall = (mockDb as unknown as { contest: { upsert: ReturnType<typeof vi.fn> } })
       .contest.upsert.mock.calls[0][0];
+    expect(upsertCall.where).toEqual({ externalId: 2 });
     expect(upsertCall.create.code).toBe("2");
     expect(upsertCall.create.name).toBe("UEFA Champions League");
     expect(upsertCall.create.season).toBe("2025");
+    // Re-syncing an existing league must update season/code in place so a new
+    // season replaces the previous one instead of creating a duplicate contest.
+    expect(upsertCall.update.season).toBe("2025");
+    expect(upsertCall.update.code).toBe("2");
   });
 
   it("extracts unique teams from fixtures and upserts them", async () => {
