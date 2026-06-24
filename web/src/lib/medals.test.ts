@@ -17,12 +17,16 @@ const mockPrisma = {
     count: vi.fn(),
     findMany: vi.fn(),
   },
+  riskPrediction: {
+    findMany: vi.fn(),
+  },
   medal: {
     deleteMany: vi.fn(),
     upsert: vi.fn(),
   },
   group: {
     findMany: vi.fn(),
+    findUnique: vi.fn(),
   },
 };
 
@@ -35,6 +39,9 @@ const db = mockPrisma as unknown as PrismaClient;
 describe("awardMatchDayMedals", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: risk feature disabled and no risk predictions
+    mockPrisma.group.findUnique.mockResolvedValue({ riskEnabled: false });
+    mockPrisma.riskPrediction.findMany.mockResolvedValue([]);
   });
 
   it("returns 0 winners when no matches exist for the match day", async () => {
@@ -169,6 +176,108 @@ describe("awardMatchDayMedals", () => {
     });
   });
 
+  it("includes uniqueness bonus points when determining the winner", async () => {
+    // Without bonus: u1=160 wins over u2=158. With bonus, u2 gets +10 → 168 wins.
+    mockPrisma.match.findMany.mockResolvedValue([{ id: "m1", status: "FINISHED" }]);
+    mockPrisma.prediction.count.mockResolvedValue(0);
+    mockPrisma.prediction.findMany.mockResolvedValue([
+      { userId: "u1", pointsAwarded: 160, bonusPoints: 0 },
+      { userId: "u2", pointsAwarded: 158, bonusPoints: 10 },
+    ]);
+    mockPrisma.medal.deleteMany.mockResolvedValue({ count: 0 });
+    mockPrisma.medal.upsert.mockResolvedValue({});
+
+    const result = await awardMatchDayMedals("c1", "g1", 1, db);
+
+    expect(result.winnersCount).toBe(1);
+    expect(mockPrisma.medal.upsert).toHaveBeenCalledWith({
+      where: {
+        groupId_userId_matchDay: { groupId: "g1", userId: "u2", matchDay: 1 },
+      },
+      create: { groupId: "g1", userId: "u2", matchDay: 1, points: 168 },
+      update: { points: 168 },
+    });
+  });
+
+  it("includes net risk points when the risk feature is enabled", async () => {
+    mockPrisma.group.findUnique.mockResolvedValue({ riskEnabled: true });
+    mockPrisma.match.findMany.mockResolvedValue([{ id: "m1", status: "FINISHED" }]);
+    mockPrisma.prediction.count.mockResolvedValue(0);
+    mockPrisma.prediction.findMany.mockResolvedValue([
+      { userId: "u1", pointsAwarded: 20, bonusPoints: 0 },
+      { userId: "u2", pointsAwarded: 18, bonusPoints: 0 },
+    ]);
+    // u2 won a risk: +20 net (40 awarded - 20 risked) → 18 + 20 = 38 beats u1's 20
+    mockPrisma.riskPrediction.findMany.mockResolvedValue([
+      { userId: "u2", status: "WON", pointsRisked: 20, pointsAwarded: 40 },
+    ]);
+    mockPrisma.medal.deleteMany.mockResolvedValue({ count: 0 });
+    mockPrisma.medal.upsert.mockResolvedValue({});
+
+    const result = await awardMatchDayMedals("c1", "g1", 1, db);
+
+    expect(result.winnersCount).toBe(1);
+    expect(mockPrisma.medal.upsert).toHaveBeenCalledWith({
+      where: {
+        groupId_userId_matchDay: { groupId: "g1", userId: "u2", matchDay: 1 },
+      },
+      create: { groupId: "g1", userId: "u2", matchDay: 1, points: 38 },
+      update: { points: 38 },
+    });
+  });
+
+  it("subtracts lost risk stakes from the match-day score", async () => {
+    mockPrisma.group.findUnique.mockResolvedValue({ riskEnabled: true });
+    mockPrisma.match.findMany.mockResolvedValue([{ id: "m1", status: "FINISHED" }]);
+    mockPrisma.prediction.count.mockResolvedValue(0);
+    mockPrisma.prediction.findMany.mockResolvedValue([
+      { userId: "u1", pointsAwarded: 30, bonusPoints: 0 },
+      { userId: "u2", pointsAwarded: 25, bonusPoints: 0 },
+    ]);
+    // u1 lost a 15 stake → 30 - 15 = 15, so u2 (25) wins
+    mockPrisma.riskPrediction.findMany.mockResolvedValue([
+      { userId: "u1", status: "LOST", pointsRisked: 15, pointsAwarded: 0 },
+    ]);
+    mockPrisma.medal.deleteMany.mockResolvedValue({ count: 0 });
+    mockPrisma.medal.upsert.mockResolvedValue({});
+
+    const result = await awardMatchDayMedals("c1", "g1", 1, db);
+
+    expect(result.winnersCount).toBe(1);
+    expect(mockPrisma.medal.upsert).toHaveBeenCalledWith({
+      where: {
+        groupId_userId_matchDay: { groupId: "g1", userId: "u2", matchDay: 1 },
+      },
+      create: { groupId: "g1", userId: "u2", matchDay: 1, points: 25 },
+      update: { points: 25 },
+    });
+  });
+
+  it("ignores risk points when the risk feature is disabled", async () => {
+    mockPrisma.group.findUnique.mockResolvedValue({ riskEnabled: false });
+    mockPrisma.match.findMany.mockResolvedValue([{ id: "m1", status: "FINISHED" }]);
+    mockPrisma.prediction.count.mockResolvedValue(0);
+    mockPrisma.prediction.findMany.mockResolvedValue([
+      { userId: "u1", pointsAwarded: 20, bonusPoints: 0 },
+      { userId: "u2", pointsAwarded: 18, bonusPoints: 0 },
+    ]);
+    mockPrisma.medal.deleteMany.mockResolvedValue({ count: 0 });
+    mockPrisma.medal.upsert.mockResolvedValue({});
+
+    const result = await awardMatchDayMedals("c1", "g1", 1, db);
+
+    // Risk disabled → not queried, u1 wins on base points
+    expect(mockPrisma.riskPrediction.findMany).not.toHaveBeenCalled();
+    expect(result.winnersCount).toBe(1);
+    expect(mockPrisma.medal.upsert).toHaveBeenCalledWith({
+      where: {
+        groupId_userId_matchDay: { groupId: "g1", userId: "u1", matchDay: 1 },
+      },
+      create: { groupId: "g1", userId: "u1", matchDay: 1, points: 20 },
+      update: { points: 20 },
+    });
+  });
+
   it("handles AWARDED match status", async () => {
     mockPrisma.match.findMany.mockResolvedValue([{ id: "m1", status: "AWARDED" }]);
     mockPrisma.prediction.count.mockResolvedValue(0);
@@ -188,6 +297,8 @@ describe("awardMatchDayMedals", () => {
 describe("awardMedalsForContest", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.group.findUnique.mockResolvedValue({ riskEnabled: false });
+    mockPrisma.riskPrediction.findMany.mockResolvedValue([]);
   });
 
   it("returns empty when no groups exist", async () => {

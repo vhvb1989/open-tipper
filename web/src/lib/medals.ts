@@ -9,7 +9,7 @@
  * Ties are allowed: every user sharing the top score gets a medal.
  */
 
-import { PrismaClient } from "@/generated/prisma/client";
+import { PrismaClient, RiskStatus } from "@/generated/prisma/client";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -60,6 +60,14 @@ export async function awardMatchDayMedals(
 
   const matchIds = matchDayMatches.map((m) => m.id);
 
+  // Risk points only count toward the score when the group has the risk
+  // feature enabled (mirrors the standings calculation).
+  const group = await db.group.findUnique({
+    where: { id: groupId },
+    select: { riskEnabled: true },
+  });
+  const riskEnabled = group?.riskEnabled === true;
+
   // 2. Check all predictions for these matches are scored
   const unscoredCount = await db.prediction.count({
     where: {
@@ -74,7 +82,9 @@ export async function awardMatchDayMedals(
     return { matchDay, groupId, winnersCount: 0 };
   }
 
-  // 3. Aggregate points per user for this match day
+  // 3. Aggregate points per user for this match day.
+  //    Match-day score must mirror the standings total: base points
+  //    (pointsAwarded) + uniqueness bonus (bonusPoints) + net risk points.
   const predictions = await db.prediction.findMany({
     where: {
       groupId,
@@ -84,17 +94,49 @@ export async function awardMatchDayMedals(
     select: {
       userId: true,
       pointsAwarded: true,
+      bonusPoints: true,
     },
   });
 
-  if (predictions.length === 0) {
+  // Resolved risk predictions for this match day (won/lost only — pending
+  // wagers don't affect the score yet). Skipped entirely when the group has
+  // the risk feature disabled.
+  const riskPredictions = riskEnabled
+    ? await db.riskPrediction.findMany({
+        where: {
+          groupId,
+          matchId: { in: matchIds },
+          status: { in: [RiskStatus.WON, RiskStatus.LOST] },
+        },
+        select: {
+          userId: true,
+          status: true,
+          pointsRisked: true,
+          pointsAwarded: true,
+        },
+      })
+    : [];
+
+  if (predictions.length === 0 && riskPredictions.length === 0) {
     return { matchDay, groupId, winnersCount: 0 };
   }
 
   const pointsByUser = new Map<string, number>();
   for (const p of predictions) {
     const current = pointsByUser.get(p.userId) ?? 0;
-    pointsByUser.set(p.userId, current + (p.pointsAwarded ?? 0));
+    pointsByUser.set(p.userId, current + (p.pointsAwarded ?? 0) + (p.bonusPoints ?? 0));
+  }
+
+  for (const r of riskPredictions) {
+    // Double-or-nothing: WON net = pointsAwarded - pointsRisked, LOST net = -pointsRisked
+    const riskDelta =
+      r.status === RiskStatus.WON ? (r.pointsAwarded ?? 0) - r.pointsRisked : -r.pointsRisked;
+    const current = pointsByUser.get(r.userId) ?? 0;
+    pointsByUser.set(r.userId, current + riskDelta);
+  }
+
+  if (pointsByUser.size === 0) {
+    return { matchDay, groupId, winnersCount: 0 };
   }
 
   // 4. Find the max score
