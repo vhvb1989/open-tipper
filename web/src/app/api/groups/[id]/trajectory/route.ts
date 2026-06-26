@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { RiskStatus } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { getActiveGroupInfo } from "@/lib/rounds";
@@ -27,11 +28,12 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     // Check group exists
     const group = await prisma.group.findUnique({
       where: { id: groupId },
-      select: { contestId: true },
+      select: { contestId: true, riskEnabled: true },
     });
     if (!group) {
       return NextResponse.json({ error: "Group not found" }, { status: 404 });
     }
+    const riskEnabled = group.riskEnabled === true;
 
     // Only members can view trajectory
     const membership = await prisma.membership.findUnique({
@@ -115,6 +117,33 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       predMap.set(`${p.matchId}:${p.userId}`, p);
     }
 
+    // Get resolved risk-it predictions for these matches and build per-match
+    // per-user point deltas (WON net = pointsAwarded - pointsRisked, LOST = -pointsRisked).
+    const riskDeltaMap = new Map<string, number>();
+    if (riskEnabled) {
+      const riskPredictions = await prisma.riskPrediction.findMany({
+        where: {
+          groupId,
+          matchId: { in: matchIds },
+          status: { in: [RiskStatus.WON, RiskStatus.LOST] },
+        },
+        select: {
+          matchId: true,
+          userId: true,
+          status: true,
+          pointsRisked: true,
+          pointsAwarded: true,
+        },
+      });
+
+      for (const r of riskPredictions) {
+        const delta =
+          r.status === RiskStatus.WON ? (r.pointsAwarded ?? 0) - r.pointsRisked : -r.pointsRisked;
+        const key = `${r.matchId}:${r.userId}`;
+        riskDeltaMap.set(key, (riskDeltaMap.get(key) ?? 0) + delta);
+      }
+    }
+
     // Build trajectory: for each match, compute cumulative points per user
     const userIds = members.map((m) => m.user.id);
     const cumulativePoints = new Map<string, number>();
@@ -144,14 +173,17 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
       for (const uid of userIds) {
         const pred = predMap.get(`${match.id}:${uid}`);
-        const pts = pred ? (pred.pointsAwarded ?? 0) + (pred.bonusPoints ?? 0) : 0;
+        const predPts = pred ? (pred.pointsAwarded ?? 0) + (pred.bonusPoints ?? 0) : 0;
+        const riskDelta = riskDeltaMap.get(`${match.id}:${uid}`) ?? 0;
+        const pts = predPts + riskDelta;
         const prev = cumulativePoints.get(uid) ?? 0;
         const newTotal = prev + pts;
         cumulativePoints.set(uid, newTotal);
 
+        const hasActivity = pred != null || riskDelta !== 0;
         userPoints[uid] = {
           cumulative: newTotal,
-          matchPoints: pred ? (pred.pointsAwarded ?? 0) + (pred.bonusPoints ?? 0) : null,
+          matchPoints: hasActivity ? pts : null,
           prediction: pred ? `${pred.homeGoals} - ${pred.awayGoals}` : null,
         };
       }
