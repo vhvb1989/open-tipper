@@ -15,6 +15,7 @@ import { scoreFinishedMatches, backfillDefaultPredictions } from "./scoring-serv
 import { awardMedalsForContest } from "./medals";
 import { scorePodiumPredictions } from "./podium-scoring";
 import { resolveRisksForContest } from "./risk-scoring";
+import { advanceReview, statsChanged } from "./review-window";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -302,50 +303,142 @@ export async function syncCompetition(
       matchCount++;
     }
 
-    // 8. Fetch statistics for newly-finished matches (for risk resolution)
-    let statsFetched = 0;
-    try {
-      // Find finished matches that either have no stats or have incomplete stats (null values)
-      const finishedNeedingStats = await prisma.match.findMany({
-        where: {
-          contestId: contest.id,
-          status: { in: ["FINISHED", "AWARDED"] },
-          OR: [
-            { stats: null },
-            { stats: { yellowCards: null } },
-            { stats: { redCards: null } },
-            { stats: { cornerKicks: null } },
-            { stats: { offsides: null } },
-          ],
+    // 8. Fetch & settle match statistics.
+    //    Two concerns share the stats endpoint:
+    //    (a) Live in-game stats — refreshed every poll for IN_PLAY/PAUSED matches.
+    //    (b) Post-match review window — a FINISHED match with risk predictions is
+    //        re-polled until its stats settle before risks are allowed to resolve,
+    //        so a late event (e.g. a stoppage-time card not yet aggregated by the
+    //        provider) cannot lock in a wrong payout. status stays FINISHED; the
+    //        window is tracked via risksCompleted/reviewPollCount/reviewStableCount.
+    const upsertStats = async (matchId: string, summary: ReturnType<typeof extractMatchStats>) => {
+      await prisma.matchStats.upsert({
+        where: { matchId },
+        create: {
+          matchId,
+          yellowCards: summary.yellowCards,
+          redCards: summary.redCards,
+          cornerKicks: summary.cornerKicks,
+          offsides: summary.offsides,
         },
+        update: {
+          yellowCards: summary.yellowCards,
+          redCards: summary.redCards,
+          cornerKicks: summary.cornerKicks,
+          offsides: summary.offsides,
+          fetchedAt: new Date(),
+        },
+      });
+    };
+
+    // 8a. Live in-game stats — refresh every poll while a match is in progress.
+    let liveStatsFetched = 0;
+    try {
+      const liveMatches = await prisma.match.findMany({
+        where: { contestId: contest.id, status: { in: ["IN_PLAY", "PAUSED"] } },
         select: { id: true, externalId: true },
       });
 
-      for (const match of finishedNeedingStats) {
+      for (const match of liveMatches) {
+        try {
+          const statsResponse = await api.getFixtureStatistics(match.externalId);
+          await upsertStats(match.id, extractMatchStats(statsResponse.response));
+          liveStatsFetched++;
+        } catch (error) {
+          console.error(`  ✗ Failed to fetch live stats for fixture ${match.externalId}:`, error);
+        }
+      }
+
+      if (liveStatsFetched > 0) {
+        console.log(`  ✓ Refreshed live statistics for ${liveStatsFetched} matches`);
+      }
+    } catch (error) {
+      console.error("  ✗ Live stats fetching failed:", error);
+    }
+
+    // 8b. Post-match review window — settle stats before risks may resolve.
+    let statsFetched = 0;
+    try {
+      const reviewMatches = await prisma.match.findMany({
+        where: {
+          contestId: contest.id,
+          status: { in: ["FINISHED", "AWARDED"] },
+          risksCompleted: false,
+        },
+        select: {
+          id: true,
+          externalId: true,
+          status: true,
+          reviewPollCount: true,
+          reviewStableCount: true,
+          stats: {
+            select: {
+              yellowCards: true,
+              redCards: true,
+              cornerKicks: true,
+              offsides: true,
+            },
+          },
+          _count: { select: { riskPredictions: true } },
+        },
+      });
+
+      for (const match of reviewMatches) {
+        const hasRisks = match._count.riskPredictions > 0;
+        const needsStats =
+          !match.stats ||
+          match.stats.yellowCards === null ||
+          match.stats.redCards === null ||
+          match.stats.cornerKicks === null ||
+          match.stats.offsides === null;
+
+        // Matches that must not wait in the review window:
+        //  - no risk predictions (nothing to settle — save quota), or
+        //  - AWARDED (walkover/awarded result; resolve immediately as before).
+        // Still fetch stats once if missing (for display + awarded resolution).
+        if (!hasRisks || match.status === "AWARDED") {
+          if (needsStats) {
+            try {
+              const statsResponse = await api.getFixtureStatistics(match.externalId);
+              await upsertStats(match.id, extractMatchStats(statsResponse.response));
+              statsFetched++;
+            } catch (error) {
+              console.error(`  ✗ Failed to fetch stats for fixture ${match.externalId}:`, error);
+            }
+          }
+          await prisma.match.update({
+            where: { id: match.id },
+            data: { risksCompleted: true },
+          });
+          continue;
+        }
+
+        // FINISHED with risk predictions: run one review poll.
         try {
           const statsResponse = await api.getFixtureStatistics(match.externalId);
           const summary = extractMatchStats(statsResponse.response);
+          const changed = statsChanged(match.stats, summary);
+          await upsertStats(match.id, summary);
+          statsFetched++;
 
-          await prisma.matchStats.upsert({
-            where: { matchId: match.id },
-            create: {
-              matchId: match.id,
-              yellowCards: summary.yellowCards,
-              redCards: summary.redCards,
-              cornerKicks: summary.cornerKicks,
-              offsides: summary.offsides,
+          const advance = advanceReview(
+            {
+              reviewPollCount: match.reviewPollCount,
+              reviewStableCount: match.reviewStableCount,
             },
-            update: {
-              yellowCards: summary.yellowCards,
-              redCards: summary.redCards,
-              cornerKicks: summary.cornerKicks,
-              offsides: summary.offsides,
-              fetchedAt: new Date(),
+            changed,
+          );
+
+          await prisma.match.update({
+            where: { id: match.id },
+            data: {
+              reviewPollCount: advance.reviewPollCount,
+              reviewStableCount: advance.reviewStableCount,
+              risksCompleted: advance.complete,
             },
           });
-          statsFetched++;
         } catch (error) {
-          console.error(`  ✗ Failed to fetch stats for fixture ${match.externalId}:`, error);
+          console.error(`  ✗ Failed to review stats for fixture ${match.externalId}:`, error);
         }
       }
 

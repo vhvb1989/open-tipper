@@ -115,11 +115,13 @@ export async function resolveRisksForContest(
   contestId: string,
   db: PrismaClient,
 ): Promise<ResolveRisksResult[]> {
-  // Find matches that are finished, have stats, and have pending risks
+  // Find matches that are finished, have stats, review window has closed,
+  // and have pending risks
   const matchesWithPendingRisks = await db.match.findMany({
     where: {
       contestId,
       status: { in: ["FINISHED", "AWARDED"] },
+      risksCompleted: true,
       stats: { isNot: null },
       riskPredictions: {
         some: { status: RiskStatus.PENDING },
