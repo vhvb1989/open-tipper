@@ -143,11 +143,26 @@ async function upsertMatch(
     awayGoals: fixture.goals.away,
   };
 
-  return db.match.upsert({
+  const match = await db.match.upsert({
     where: { externalId: fixture.fixture.id },
-    create: { externalId: fixture.fixture.id, ...data },
+    create: {
+      externalId: fixture.fixture.id,
+      ...data,
+      finishedAt: data.status === MatchStatus.FINISHED ? new Date() : null,
+    },
     update: data,
   });
+
+  // Anchor the FT time once, the first time we observe the match FINISHED.
+  // updateMany with a finishedAt: null guard keeps this idempotent across polls.
+  if (data.status === MatchStatus.FINISHED) {
+    await db.match.updateMany({
+      where: { id: match.id, finishedAt: null },
+      data: { finishedAt: new Date() },
+    });
+  }
+
+  return match;
 }
 
 // ---------------------------------------------------------------------------
@@ -373,6 +388,7 @@ export async function syncCompetition(
           id: true,
           externalId: true,
           status: true,
+          finishedAt: true,
           reviewPollCount: true,
           reviewStableCount: true,
           stats: {
@@ -462,13 +478,12 @@ export async function syncCompetition(
           await upsertStats(match.id, summary);
           statsFetched++;
 
-          const advance = advanceReview(
-            {
-              reviewPollCount: match.reviewPollCount,
-              reviewStableCount: match.reviewStableCount,
-            },
+          const advance = advanceReview({
+            reviewPollCount: match.reviewPollCount,
+            reviewStableCount: match.reviewStableCount,
             changed,
-          );
+            msSinceFinished: match.finishedAt ? Date.now() - match.finishedAt.getTime() : null,
+          });
 
           await prisma.match.update({
             where: { id: match.id },

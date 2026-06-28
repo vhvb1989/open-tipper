@@ -127,6 +127,7 @@ function makeMockDb() {
     },
     match: {
       upsert: vi.fn().mockResolvedValue({ id: "match-1" }),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       findMany: vi.fn().mockResolvedValue([]),
     },
     prediction: {
@@ -279,6 +280,7 @@ interface ReviewMatchRow {
   id: string;
   externalId: number;
   status: string;
+  finishedAt: Date | null;
   reviewPollCount: number;
   reviewStableCount: number;
   stats: {
@@ -314,6 +316,7 @@ function makeReviewDb(reviewMatch: ReviewMatchRow) {
     },
     match: {
       upsert: vi.fn().mockResolvedValue({ id: "m1" }),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       findMany: vi.fn().mockImplementation(({ where }) => {
         // 8a: live in-game stats set
         if (where?.status?.in?.includes("IN_PLAY")) return Promise.resolve([]);
@@ -333,12 +336,17 @@ function makeReviewDb(reviewMatch: ReviewMatchRow) {
 
 describe("syncCompetition — post-match review window", () => {
   const provisional = { yellowCards: 2, redCards: 0, cornerKicks: 9, offsides: 3 };
+  // FT long enough ago that the minimum review wait is satisfied.
+  const PAST_MIN_WAIT = new Date(Date.now() - 12 * 60 * 1000);
+  // FT just now — inside the minimum review wait.
+  const WITHIN_MIN_WAIT = new Date(Date.now() - 2 * 60 * 1000);
 
   function baseMatch(overrides: Partial<ReviewMatchRow> = {}): ReviewMatchRow {
     return {
       id: "m1",
       externalId: 5001,
       status: "FINISHED",
+      finishedAt: PAST_MIN_WAIT,
       reviewPollCount: 0,
       reviewStableCount: 0,
       stats: { ...provisional },
@@ -355,19 +363,19 @@ describe("syncCompetition — post-match review window", () => {
       .upsert;
   }
 
-  it("keeps a stale finished match in review when stats change (late yellow card 2→3)", async () => {
-    const db = makeReviewDb(baseMatch());
-    const api = makeReviewApi(makeStatsResponse({ ...provisional, yellowCards: 3 }));
+  it("keeps a stale finished match in review when stats change (late offside 0→1)", async () => {
+    const db = makeReviewDb(baseMatch({ stats: { ...provisional, offsides: 0 } }));
+    const api = makeReviewApi(makeStatsResponse({ ...provisional, offsides: 1 }));
 
     await syncCompetition(1, undefined, db, api);
 
     // Corrected stats written…
     expect(getStatsUpsert(db)).toHaveBeenCalledWith(
       expect.objectContaining({
-        update: expect.objectContaining({ yellowCards: 3 }),
+        update: expect.objectContaining({ offsides: 1 }),
       }),
     );
-    // …and the window stays open (not yet stable).
+    // …and the window stays open (stability reset).
     expect(getUpdate(db)).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: "m1" },
@@ -376,16 +384,33 @@ describe("syncCompetition — post-match review window", () => {
     );
   });
 
-  it("closes the review window once stats hold steady across a poll", async () => {
-    // Already saw one change last poll (stable=0, poll=1); now stats are unchanged.
-    const db = makeReviewDb(baseMatch({ reviewPollCount: 1, reviewStableCount: 0 }));
+  it("closes the review window once stats are stable AND the minimum wait has elapsed", async () => {
+    // One stable poll already recorded; this poll reaches REVIEW_STABLE_REQUIRED (2),
+    // and FT was 12 min ago so the minimum wait is satisfied.
+    const db = makeReviewDb(baseMatch({ reviewPollCount: 1, reviewStableCount: 1 }));
     const api = makeReviewApi(makeStatsResponse(provisional));
 
     await syncCompetition(1, undefined, db, api);
 
     expect(getUpdate(db)).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: { reviewPollCount: 2, reviewStableCount: 1, risksCompleted: true },
+        data: { reviewPollCount: 2, reviewStableCount: 2, risksCompleted: true },
+      }),
+    );
+  });
+
+  it("does NOT resolve while stats are stable but the minimum wait has not elapsed", async () => {
+    // Stable enough, but FT was only 2 min ago.
+    const db = makeReviewDb(
+      baseMatch({ reviewPollCount: 1, reviewStableCount: 1, finishedAt: WITHIN_MIN_WAIT }),
+    );
+    const api = makeReviewApi(makeStatsResponse(provisional));
+
+    await syncCompetition(1, undefined, db, api);
+
+    expect(getUpdate(db)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { reviewPollCount: 2, reviewStableCount: 2, risksCompleted: false },
       }),
     );
   });

@@ -2,27 +2,41 @@
  * Post-match "Reviewing" window.
  *
  * A match can be reported FINISHED by the data provider before late events
- * (e.g. a yellow card shown in the final minute) have been aggregated into the
- * fixture statistics endpoint. Resolving risk payouts immediately at FINISHED
- * therefore locks in provisional stats that may still change.
+ * (e.g. a stoppage-time offside/card) have been aggregated into the fixture
+ * statistics endpoint. API-Football publishes no SLA: `/fixtures/statistics`
+ * returns well-formed but PROVISIONAL values right at FT and then fills in late
+ * events field-by-field over several minutes. Resolving risk payouts the moment
+ * the numbers look "stable" is therefore unsafe — a provisional value is stable
+ * precisely because the provider has not ingested the late event yet.
  *
- * To avoid that, a FINISHED match that has risk predictions enters a short
- * review window: every sync poll we re-fetch its statistics and only resolve
- * risks once the numbers have settled (unchanged across consecutive polls) or a
- * hard poll cap is reached. The match `status` stays FINISHED throughout; the
- * window is tracked via separate `Match` fields and the UI derives a
- * "Reviewing" label from `status === FINISHED && !risksCompleted`.
+ * To guard against that, a FINISHED match with risk predictions waits in a
+ * review window before its risks resolve. Completion requires BOTH:
+ *   - a minimum wall-clock delay since FT has elapsed (gives the provider time
+ *     to ingest late events), AND
+ *   - the stats have held steady across consecutive review polls,
+ * with a hard time/poll cap as a backstop. The match `status` stays FINISHED
+ * throughout; the window is tracked via separate `Match` fields and the UI
+ * derives a "Reviewing" label from `status === FINISHED && !risksCompleted`.
  */
 
-/** Hard cap on review polls before we resolve regardless of stability (~6 min at a 2-min cadence). */
-export const REVIEW_MAX_POLLS = 3;
+/** Minimum time after FT before risks may resolve, even if stats already look stable. */
+export const MIN_REVIEW_WAIT_MS = 10 * 60 * 1000; // 10 minutes
+
+/** Hard backstop: resolve once this much time has elapsed since FT regardless of stability. */
+export const REVIEW_MAX_WAIT_MS = 16 * 60 * 1000; // 16 minutes
 
 /**
- * Consecutive no-change review polls required to consider stats settled.
- * 1 means: one poll whose stats match the previously stored stats
- * (i.e. two equal consecutive samples).
+ * Consecutive no-change review polls required (in addition to the minimum wait)
+ * to consider stats settled. 2 means three equal consecutive samples.
  */
-export const REVIEW_STABLE_REQUIRED = 1;
+export const REVIEW_STABLE_REQUIRED = 2;
+
+/**
+ * Fallback poll-count cap, used only when the FT timestamp is unknown
+ * (e.g. legacy rows migrated without finishedAt). At the ~2-minute cron cadence
+ * this approximates REVIEW_MAX_WAIT_MS.
+ */
+export const REVIEW_MAX_POLLS = 8;
 
 /** The four tracked statistic totals, as stored on MatchStats / produced by extractMatchStats. */
 export interface ReviewStatTotals {
@@ -49,9 +63,13 @@ export function statsChanged(
   );
 }
 
-export interface ReviewCounters {
+export interface ReviewInput {
   reviewPollCount: number;
   reviewStableCount: number;
+  /** Whether this poll's stats differed from the stored stats. */
+  changed: boolean;
+  /** Milliseconds since FT was first observed, or null when unknown (legacy rows). */
+  msSinceFinished: number | null;
 }
 
 export interface ReviewAdvance {
@@ -62,15 +80,25 @@ export interface ReviewAdvance {
 }
 
 /**
- * Advance the review counters by one poll.
+ * Advance the review counters by one poll and decide whether the window closes.
  *
- * @param prev    Current counters from the Match row.
- * @param changed Whether this poll's stats differed from the stored stats.
+ * Closes when EITHER:
+ *   - the hard cap is reached (REVIEW_MAX_WAIT_MS elapsed, or REVIEW_MAX_POLLS
+ *     polls when the FT timestamp is unknown), OR
+ *   - the minimum wait has elapsed AND stats have been stable for
+ *     REVIEW_STABLE_REQUIRED consecutive polls.
  */
-export function advanceReview(prev: ReviewCounters, changed: boolean): ReviewAdvance {
-  const reviewPollCount = prev.reviewPollCount + 1;
-  const reviewStableCount = changed ? 0 : prev.reviewStableCount + 1;
-  const complete =
-    reviewStableCount >= REVIEW_STABLE_REQUIRED || reviewPollCount >= REVIEW_MAX_POLLS;
+export function advanceReview(input: ReviewInput): ReviewAdvance {
+  const reviewPollCount = input.reviewPollCount + 1;
+  const reviewStableCount = input.changed ? 0 : input.reviewStableCount + 1;
+
+  const knownTime = input.msSinceFinished !== null;
+  const minWaitMet = knownTime ? input.msSinceFinished! >= MIN_REVIEW_WAIT_MS : true;
+  const stableMet = reviewStableCount >= REVIEW_STABLE_REQUIRED;
+  const capMet = knownTime
+    ? input.msSinceFinished! >= REVIEW_MAX_WAIT_MS
+    : reviewPollCount >= REVIEW_MAX_POLLS;
+
+  const complete = capMet || (minWaitMet && stableMet);
   return { reviewPollCount, reviewStableCount, complete };
 }
