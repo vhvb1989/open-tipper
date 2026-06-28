@@ -167,6 +167,7 @@
     "standings": "Clasificación",
     "results": "Resultados",
     "trajectory": "Trayectoria",
+    "race": "Carrera",
     "members": "Miembros",
     "settings": "Configuración"
   },
@@ -467,6 +468,21 @@
     "noData": "Aún no hay datos de trayectoria",
     "noDataDesc": "La trayectoria aparecerá cuando se hayan jugado y puntuado partidos.",
     "error": "No se pudo cargar la trayectoria. Inténtalo de nuevo.",
+    "retry": "Reintentar"
+  },
+  "race": {
+    "title": "Carrera de Clasificación",
+    "hint": "Mira cómo evoluciona la clasificación partido a partido. Usa los controles para reproducir, pausar o avanzar.",
+    "matchDayLabel": "Jornada {n}",
+    "pts": "pts",
+    "unknown": "Desconocido",
+    "play": "Reproducir",
+    "pause": "Pausar",
+    "restart": "Reiniciar",
+    "speed": "Velocidad",
+    "noData": "Aún no hay datos de carrera",
+    "noDataDesc": "La carrera aparecerá cuando se hayan jugado y puntuado partidos.",
+    "error": "No se pudo cargar la carrera. Inténtalo de nuevo.",
     "retry": "Reintentar"
   }
 }

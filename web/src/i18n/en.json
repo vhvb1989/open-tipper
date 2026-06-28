@@ -167,6 +167,7 @@
     "standings": "Standings",
     "results": "Results",
     "trajectory": "Trajectory",
+    "race": "Race",
     "members": "Members",
     "settings": "Settings"
   },
@@ -467,6 +468,21 @@
     "noData": "No trajectory data yet",
     "noDataDesc": "Trajectory will appear once matches have been played and scored.",
     "error": "Failed to load trajectory. Please try again.",
+    "retry": "Retry"
+  },
+  "race": {
+    "title": "Standings Race",
+    "hint": "Watch the standings evolve match by match. Use the controls to play, pause, or scrub.",
+    "matchDayLabel": "Match Day {n}",
+    "pts": "pts",
+    "unknown": "Unknown",
+    "play": "Play",
+    "pause": "Pause",
+    "restart": "Restart",
+    "speed": "Speed",
+    "noData": "No race data yet",
+    "noDataDesc": "The race will appear once matches have been played and scored.",
+    "error": "Failed to load race data. Please try again.",
     "retry": "Retry"
   }
 }

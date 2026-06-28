@@ -24,6 +24,7 @@ export function GroupTabs({ groupId, isAdmin, isMember, riskEnabled }: GroupTabs
     ...(isMember
       ? [{ label: t("groupTabs.trajectory"), href: `/groups/${groupId}/trajectory` }]
       : []),
+    ...(isMember ? [{ label: t("groupTabs.race"), href: `/groups/${groupId}/race` }] : []),
     ...(isMember ? [{ label: t("groupTabs.members"), href: `/groups/${groupId}/members` }] : []),
     ...(isAdmin ? [{ label: t("groupTabs.settings"), href: `/groups/${groupId}/settings` }] : []),
   ];
