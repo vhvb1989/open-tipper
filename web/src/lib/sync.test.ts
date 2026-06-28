@@ -251,6 +251,197 @@ describe("syncCompetition", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Post-match review window behaviour
+// ---------------------------------------------------------------------------
+
+function makeStatsResponse(stats: {
+  yellowCards: number;
+  redCards?: number;
+  cornerKicks: number;
+  offsides: number;
+}) {
+  return {
+    response: [
+      {
+        statistics: [
+          { type: "Yellow Cards", value: stats.yellowCards },
+          { type: "Red Cards", value: stats.redCards ?? 0 },
+          { type: "Corner Kicks", value: stats.cornerKicks },
+          { type: "Offsides", value: stats.offsides },
+        ],
+      },
+    ],
+  };
+}
+
+interface ReviewMatchRow {
+  id: string;
+  externalId: number;
+  status: string;
+  reviewPollCount: number;
+  reviewStableCount: number;
+  stats: {
+    yellowCards: number | null;
+    redCards: number | null;
+    cornerKicks: number | null;
+    offsides: number | null;
+  } | null;
+  _count: { riskPredictions: number };
+}
+
+function makeReviewApi(statsResponse: ReturnType<typeof makeStatsResponse>) {
+  return {
+    getLeague: vi.fn().mockResolvedValue({
+      response: [
+        {
+          league: { id: 1, name: "FIFA World Cup", type: "Cup", logo: null },
+          country: { name: "World", code: null, flag: null },
+          seasons: [{ year: 2026, start: "2026-06-01", end: "2026-07-19", current: true }],
+        },
+      ],
+    }),
+    // No fixtures — isolate the review-window step from team/match upserts.
+    getFixtures: vi.fn().mockResolvedValue({ errors: [], response: [] }),
+    getFixtureStatistics: vi.fn().mockResolvedValue(statsResponse),
+  } as unknown as FootballApiClient;
+}
+
+function makeReviewDb(reviewMatch: ReviewMatchRow) {
+  return {
+    contest: {
+      upsert: vi.fn().mockResolvedValue({ id: "contest-1" }),
+    },
+    match: {
+      upsert: vi.fn().mockResolvedValue({ id: "m1" }),
+      findMany: vi.fn().mockImplementation(({ where }) => {
+        // 8a: live in-game stats set
+        if (where?.status?.in?.includes("IN_PLAY")) return Promise.resolve([]);
+        // 8b: post-match review set
+        if (where?.risksCompleted === false) return Promise.resolve([reviewMatch]);
+        // resolveRisksForContest and any other queries
+        return Promise.resolve([]);
+      }),
+      update: vi.fn().mockResolvedValue({}),
+    },
+    matchStats: {
+      upsert: vi.fn().mockResolvedValue({}),
+    },
+    $disconnect: vi.fn().mockResolvedValue(undefined),
+  } as unknown as PrismaClient;
+}
+
+describe("syncCompetition — post-match review window", () => {
+  const provisional = { yellowCards: 2, redCards: 0, cornerKicks: 9, offsides: 3 };
+
+  function baseMatch(overrides: Partial<ReviewMatchRow> = {}): ReviewMatchRow {
+    return {
+      id: "m1",
+      externalId: 5001,
+      status: "FINISHED",
+      reviewPollCount: 0,
+      reviewStableCount: 0,
+      stats: { ...provisional },
+      _count: { riskPredictions: 2 },
+      ...overrides,
+    };
+  }
+
+  function getUpdate(db: PrismaClient) {
+    return (db as unknown as { match: { update: ReturnType<typeof vi.fn> } }).match.update;
+  }
+  function getStatsUpsert(db: PrismaClient) {
+    return (db as unknown as { matchStats: { upsert: ReturnType<typeof vi.fn> } }).matchStats
+      .upsert;
+  }
+
+  it("keeps a stale finished match in review when stats change (late yellow card 2→3)", async () => {
+    const db = makeReviewDb(baseMatch());
+    const api = makeReviewApi(makeStatsResponse({ ...provisional, yellowCards: 3 }));
+
+    await syncCompetition(1, undefined, db, api);
+
+    // Corrected stats written…
+    expect(getStatsUpsert(db)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({ yellowCards: 3 }),
+      }),
+    );
+    // …and the window stays open (not yet stable).
+    expect(getUpdate(db)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "m1" },
+        data: { reviewPollCount: 1, reviewStableCount: 0, risksCompleted: false },
+      }),
+    );
+  });
+
+  it("closes the review window once stats hold steady across a poll", async () => {
+    // Already saw one change last poll (stable=0, poll=1); now stats are unchanged.
+    const db = makeReviewDb(baseMatch({ reviewPollCount: 1, reviewStableCount: 0 }));
+    const api = makeReviewApi(makeStatsResponse(provisional));
+
+    await syncCompetition(1, undefined, db, api);
+
+    expect(getUpdate(db)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { reviewPollCount: 2, reviewStableCount: 1, risksCompleted: true },
+      }),
+    );
+  });
+
+  it("completes immediately for a finished match with no risk predictions (no extra polling)", async () => {
+    const db = makeReviewDb(baseMatch({ _count: { riskPredictions: 0 } }));
+    const api = makeReviewApi(makeStatsResponse(provisional));
+
+    await syncCompetition(1, undefined, db, api);
+
+    // Marked complete without entering the review counters.
+    expect(getUpdate(db)).toHaveBeenCalledWith({
+      where: { id: "m1" },
+      data: { risksCompleted: true },
+    });
+    // Stats already present and complete → no stats call spent on it.
+    expect(
+      (api as unknown as { getFixtureStatistics: ReturnType<typeof vi.fn> }).getFixtureStatistics,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("bypasses the review window for AWARDED matches (resolves immediately)", async () => {
+    const db = makeReviewDb(baseMatch({ status: "AWARDED" }));
+    const api = makeReviewApi(makeStatsResponse(provisional));
+
+    await syncCompetition(1, undefined, db, api);
+
+    expect(getUpdate(db)).toHaveBeenCalledWith({
+      where: { id: "m1" },
+      data: { risksCompleted: true },
+    });
+  });
+
+  it("does not settle (or overwrite stats) when the provider returns an empty response", async () => {
+    const db = makeReviewDb(baseMatch());
+    // Provider hasn't aggregated stats yet → empty response array.
+    const api = makeReviewApi({ response: [] } as unknown as ReturnType<typeof makeStatsResponse>);
+
+    await syncCompetition(1, undefined, db, api);
+
+    // Window must NOT advance/close, and provisional stats must NOT be clobbered.
+    expect(getUpdate(db)).not.toHaveBeenCalled();
+    expect(getStatsUpsert(db)).not.toHaveBeenCalled();
+  });
+
+  it("does not complete an AWARDED match until stats are available", async () => {
+    // No stored stats yet and provider returns nothing → keep retrying.
+    const db = makeReviewDb(baseMatch({ status: "AWARDED", stats: null }));
+    const api = makeReviewApi({ response: [] } as unknown as ReturnType<typeof makeStatsResponse>);
+
+    await syncCompetition(1, undefined, db, api);
+
+    expect(getUpdate(db)).not.toHaveBeenCalled();
+  });
+});
+
 describe("parseRoundPrefix", () => {
   it("extracts Apertura from Liga MX round", () => {
     expect(parseRoundPrefix("Apertura - 1")).toBe("Apertura");

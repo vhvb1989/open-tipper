@@ -110,4 +110,19 @@ describe("GET /api/cron/sync-live", () => {
     const res = await GET(req);
     expect(res.status).toBe(200);
   });
+
+  it("includes FINISHED matches still in the review window in contest selection", async () => {
+    mockPrisma.contest.findMany.mockResolvedValue([]);
+
+    const { GET } = await import("./route");
+    const req = new NextRequest("http://localhost:3000/api/cron/sync-live");
+    await GET(req);
+
+    const whereArg = mockPrisma.contest.findMany.mock.calls[0][0].where;
+    const branches = whereArg.OR as Array<{ matches: { some: Record<string, unknown> } }>;
+    const hasReviewBranch = branches.some(
+      (b) => b.matches?.some?.status === "FINISHED" && b.matches?.some?.risksCompleted === false,
+    );
+    expect(hasReviewBranch).toBe(true);
+  });
 });

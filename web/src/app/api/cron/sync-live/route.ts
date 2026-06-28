@@ -56,6 +56,17 @@ export async function GET(request: NextRequest) {
               },
             },
           },
+          // Contests with FINISHED matches still in the post-match review window
+          // (risks not yet resolved). Without this, polling would stop the moment
+          // a match leaves IN_PLAY/PAUSED and the review window could never close.
+          {
+            matches: {
+              some: {
+                status: "FINISHED",
+                risksCompleted: false,
+              },
+            },
+          },
         ],
       },
       select: {

@@ -145,6 +145,22 @@ export function extractMatchStats(response: AfTeamStatistics[]): MatchStatsSumma
   return summary;
 }
 
+/**
+ * Whether a fixture-statistics response actually contains usable data.
+ *
+ * API-Football returns HTTP 200 with an empty `response: []` (or entries whose
+ * `statistics` arrays carry no numeric values) until it has finished aggregating
+ * a fixture's stats. In that state `extractMatchStats` would return all-zero
+ * totals that are indistinguishable from a genuine 0-0-0-0 match. Callers that
+ * need to know "are stats available yet?" (e.g. the post-match review window,
+ * to avoid settling risks against not-yet-aggregated zeros) must gate on this.
+ */
+export function hasMatchStats(response: AfTeamStatistics[]): boolean {
+  return response.some((teamStats) =>
+    teamStats.statistics?.some((item) => typeof item.value === "number"),
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Competitions we support
 // ---------------------------------------------------------------------------

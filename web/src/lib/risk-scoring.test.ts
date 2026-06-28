@@ -2,7 +2,7 @@
  * Risk Scoring Service — Unit Tests
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { resolveRisksForMatch } from "./risk-scoring";
+import { resolveRisksForMatch, resolveRisksForContest } from "./risk-scoring";
 
 // ---------------------------------------------------------------------------
 // Mock Prisma client
@@ -208,5 +208,38 @@ describe("resolveRisksForMatch", () => {
     expect(result).toEqual({ matchId: "match-1", resolved: 4, won: 2, lost: 2 });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((db as any).riskPrediction.update).toHaveBeenCalledTimes(4);
+  });
+});
+
+describe("resolveRisksForContest", () => {
+  let db: ReturnType<typeof createMockDb>;
+
+  beforeEach(() => {
+    db = createMockDb();
+  });
+
+  it("only selects matches whose review window has closed (risksCompleted: true)", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (db as any).match.findMany.mockResolvedValue([]);
+
+    await resolveRisksForContest("contest-1", db);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const whereArg = (db as any).match.findMany.mock.calls[0][0].where;
+    expect(whereArg.risksCompleted).toBe(true);
+    expect(whereArg.contestId).toBe("contest-1");
+    expect(whereArg.status).toEqual({ in: ["FINISHED", "AWARDED"] });
+  });
+
+  it("does not resolve risks while a match is still in review (no matches returned)", async () => {
+    // The gating query excludes reviewing matches, so findMany yields nothing.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (db as any).match.findMany.mockResolvedValue([]);
+
+    const results = await resolveRisksForContest("contest-1", db);
+
+    expect(results).toEqual([]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((db as any).riskPrediction.update).not.toHaveBeenCalled();
   });
 });
