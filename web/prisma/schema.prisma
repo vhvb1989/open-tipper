@@ -166,6 +166,7 @@ model Match {
   // Post-match "Reviewing" window — risks only resolve once stats settle.
   // status stays FINISHED throughout; UI derives a "Reviewing" label from
   // (status == FINISHED && !risksCompleted).
+  finishedAt        DateTime? @map("finished_at") /// first time the match was observed FINISHED (FT); anchors the minimum review wait
   risksCompleted    Boolean @default(false) @map("risks_completed") /// terminal flag: review closed, risks may resolve
   reviewPollCount   Int     @default(0) @map("review_poll_count") /// post-FINISHED stats-refresh polls performed
   reviewStableCount Int     @default(0) @map("review_stable_count") /// consecutive review polls with no stat change
