@@ -10,7 +10,7 @@
 import { PrismaClient, ContestStatus, MatchStatus } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { FootballApiClient, AfFixture, AfTeamRef, SUPPORTED_COMPETITIONS } from "./football-api";
-import { extractMatchStats } from "./football-api";
+import { extractMatchStats, hasMatchStats } from "./football-api";
 import { scoreFinishedMatches, backfillDefaultPredictions } from "./scoring-service";
 import { awardMedalsForContest } from "./medals";
 import { scorePodiumPredictions } from "./podium-scoring";
@@ -342,8 +342,12 @@ export async function syncCompetition(
       for (const match of liveMatches) {
         try {
           const statsResponse = await api.getFixtureStatistics(match.externalId);
-          await upsertStats(match.id, extractMatchStats(statsResponse.response));
-          liveStatsFetched++;
+          // Skip empty/un-aggregated responses so we don't overwrite real
+          // in-game stats with all-zero noise.
+          if (hasMatchStats(statsResponse.response)) {
+            await upsertStats(match.id, extractMatchStats(statsResponse.response));
+            liveStatsFetched++;
+          }
         } catch (error) {
           console.error(`  ✗ Failed to fetch live stats for fixture ${match.externalId}:`, error);
         }
@@ -392,16 +396,17 @@ export async function syncCompetition(
           match.stats.cornerKicks === null ||
           match.stats.offsides === null;
 
-        // Matches that must not wait in the review window:
-        //  - no risk predictions (nothing to settle — save quota), or
-        //  - AWARDED (walkover/awarded result; resolve immediately as before).
-        // Still fetch stats once if missing (for display + awarded resolution).
-        if (!hasRisks || match.status === "AWARDED") {
+        // No risk predictions: nothing to settle. Grab stats once (best-effort,
+        // for display) and close the window immediately so we don't keep polling
+        // a settled match. Skip empty/un-aggregated responses (all-zero noise).
+        if (!hasRisks) {
           if (needsStats) {
             try {
               const statsResponse = await api.getFixtureStatistics(match.externalId);
-              await upsertStats(match.id, extractMatchStats(statsResponse.response));
-              statsFetched++;
+              if (hasMatchStats(statsResponse.response)) {
+                await upsertStats(match.id, extractMatchStats(statsResponse.response));
+                statsFetched++;
+              }
             } catch (error) {
               console.error(`  ✗ Failed to fetch stats for fixture ${match.externalId}:`, error);
             }
@@ -413,9 +418,45 @@ export async function syncCompetition(
           continue;
         }
 
+        // AWARDED (walkover/awarded result): resolve as soon as stats are
+        // available; don't wait for the stability window. If the provider hasn't
+        // aggregated stats yet, leave risksCompleted=false to retry next poll.
+        if (match.status === "AWARDED") {
+          let available = !needsStats;
+          if (needsStats) {
+            try {
+              const statsResponse = await api.getFixtureStatistics(match.externalId);
+              if (hasMatchStats(statsResponse.response)) {
+                await upsertStats(match.id, extractMatchStats(statsResponse.response));
+                statsFetched++;
+                available = true;
+              }
+            } catch (error) {
+              console.error(`  ✗ Failed to fetch stats for fixture ${match.externalId}:`, error);
+            }
+          }
+          if (available) {
+            await prisma.match.update({
+              where: { id: match.id },
+              data: { risksCompleted: true },
+            });
+          }
+          continue;
+        }
+
         // FINISHED with risk predictions: run one review poll.
         try {
           const statsResponse = await api.getFixtureStatistics(match.externalId);
+
+          // The provider returns 200 with an empty response until it has
+          // aggregated the fixture's statistics. Treating that as a settled
+          // 0-0-0-0 result would resolve risks against zeros — exactly the bug
+          // this window prevents. Skip the poll (don't overwrite provisional
+          // stats, don't advance the window) until real stats are available.
+          if (!hasMatchStats(statsResponse.response)) {
+            continue;
+          }
+
           const summary = extractMatchStats(statsResponse.response);
           const changed = statsChanged(match.stats, summary);
           await upsertStats(match.id, summary);

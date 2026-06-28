@@ -418,6 +418,28 @@ describe("syncCompetition — post-match review window", () => {
       data: { risksCompleted: true },
     });
   });
+
+  it("does not settle (or overwrite stats) when the provider returns an empty response", async () => {
+    const db = makeReviewDb(baseMatch());
+    // Provider hasn't aggregated stats yet → empty response array.
+    const api = makeReviewApi({ response: [] } as unknown as ReturnType<typeof makeStatsResponse>);
+
+    await syncCompetition(1, undefined, db, api);
+
+    // Window must NOT advance/close, and provisional stats must NOT be clobbered.
+    expect(getUpdate(db)).not.toHaveBeenCalled();
+    expect(getStatsUpsert(db)).not.toHaveBeenCalled();
+  });
+
+  it("does not complete an AWARDED match until stats are available", async () => {
+    // No stored stats yet and provider returns nothing → keep retrying.
+    const db = makeReviewDb(baseMatch({ status: "AWARDED", stats: null }));
+    const api = makeReviewApi({ response: [] } as unknown as ReturnType<typeof makeStatsResponse>);
+
+    await syncCompetition(1, undefined, db, api);
+
+    expect(getUpdate(db)).not.toHaveBeenCalled();
+  });
 });
 
 describe("parseRoundPrefix", () => {

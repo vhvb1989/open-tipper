@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   extractMatchStats,
+  hasMatchStats,
   FootballApiClient,
   SUPPORTED_COMPETITIONS,
   type AfTeamStatistics,
@@ -180,5 +181,42 @@ describe("extractMatchStats", () => {
       cornerKicks: 0,
       offsides: 0,
     });
+  });
+});
+
+describe("hasMatchStats", () => {
+  const createTeamStats = (statistics: AfTeamStatistics["statistics"]): AfTeamStatistics => ({
+    team: { id: 1, name: "Home", logo: null },
+    statistics,
+  });
+
+  it("returns false for an empty response (not yet aggregated)", () => {
+    expect(hasMatchStats([])).toBe(false);
+  });
+
+  it("returns false when no statistic carries a numeric value", () => {
+    expect(
+      hasMatchStats([
+        createTeamStats([
+          { type: "Yellow Cards", value: null },
+          { type: "Corner Kicks", value: null },
+        ]),
+      ]),
+    ).toBe(false);
+  });
+
+  it("returns true when at least one numeric statistic is present", () => {
+    expect(
+      hasMatchStats([
+        createTeamStats([
+          { type: "Yellow Cards", value: null },
+          { type: "Corner Kicks", value: 4 },
+        ]),
+      ]),
+    ).toBe(true);
+  });
+
+  it("returns true for a genuine 0 value (distinct from absent stats)", () => {
+    expect(hasMatchStats([createTeamStats([{ type: "Yellow Cards", value: 0 }])])).toBe(true);
   });
 });
