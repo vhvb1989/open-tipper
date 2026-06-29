@@ -163,15 +163,25 @@ export default function RaceTab({ groupId }: { groupId: string }) {
                 <span className="w-6 text-right text-sm font-bold text-zinc-400">
                   {row.rank + 1}
                 </span>
-                <span className="w-20 truncate text-sm text-zinc-700 dark:text-zinc-300">
-                  {nameFor(u.id)}
-                </span>
                 <div className="flex-1">
                   <div
-                    className="flex h-8 min-w-[40px] items-center justify-end rounded-md px-2 text-sm font-bold text-white transition-[width] duration-500 ease-out"
+                    className="flex h-9 min-w-[160px] items-center gap-2 rounded-md pr-2 text-sm font-bold text-white transition-[width] duration-500 ease-out"
                     style={{ width: `${width}%`, backgroundColor: color }}
                   >
-                    {row.value}
+                    {u.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={u.image}
+                        alt=""
+                        className="h-7 w-7 shrink-0 rounded-full border border-white/40 object-cover"
+                      />
+                    ) : (
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/40 bg-white/25 text-xs">
+                        {nameFor(u.id).charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                    <span className="truncate">{nameFor(u.id)}</span>
+                    <span className="ml-auto pl-2">{row.value}</span>
                   </div>
                 </div>
               </div>
