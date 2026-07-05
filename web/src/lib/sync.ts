@@ -72,14 +72,23 @@ function seasonFromYear(year: number): string {
 
 /**
  * Parse matchDay number from API-Football's league.round string.
+ *
+ * Only rounds using the "Prefix - N" match-day format yield a number. Named
+ * knockout stages ("Round of 16", "Round of 32", …) return null so they are
+ * treated as playoff stages and ordered by kickoff time rather than by the
+ * incidental number in their name (otherwise "Round of 16" would sort before
+ * "Round of 32").
+ *
  * Examples:
  *   "Regular Season - 14" → 14
+ *   "Group Stage - 1"     → 1
  *   "League Stage - 8"    → 8
  *   "Round of 16"         → null
+ *   "Round of 32"         → null
  *   "Quarter-finals"      → null
  */
-function parseMatchDay(round: string): number | null {
-  const match = round.match(/(\d+)\s*$/);
+export function parseMatchDay(round: string): number | null {
+  const match = round.match(/ - (\d+)\s*$/);
   return match ? parseInt(match[1], 10) : null;
 }
 
