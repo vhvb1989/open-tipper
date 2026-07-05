@@ -17,7 +17,7 @@ vi.mock("@/generated/prisma/client", () => ({
   PrismaClient: vi.fn(),
 }));
 
-import { syncCompetition, parseRoundPrefix } from "./sync";
+import { syncCompetition, parseRoundPrefix, parseMatchDay } from "./sync";
 import type { FootballApiClient } from "./football-api";
 import type { PrismaClient } from "@/generated/prisma/client";
 
@@ -494,5 +494,39 @@ describe("parseRoundPrefix", () => {
 
   it("returns null for empty string", () => {
     expect(parseRoundPrefix("")).toBeNull();
+  });
+});
+
+describe("parseMatchDay", () => {
+  it("parses Regular Season match day", () => {
+    expect(parseMatchDay("Regular Season - 14")).toBe(14);
+  });
+
+  it("parses Group Stage match day", () => {
+    expect(parseMatchDay("Group Stage - 1")).toBe(1);
+  });
+
+  it("parses League Stage match day", () => {
+    expect(parseMatchDay("League Stage - 8")).toBe(8);
+  });
+
+  it("returns null for Round of 16 (does not treat 16 as a match day)", () => {
+    expect(parseMatchDay("Round of 16")).toBeNull();
+  });
+
+  it("returns null for Round of 32 (does not treat 32 as a match day)", () => {
+    expect(parseMatchDay("Round of 32")).toBeNull();
+  });
+
+  it("returns null for Quarter-finals", () => {
+    expect(parseMatchDay("Quarter-finals")).toBeNull();
+  });
+
+  it("returns null for Final", () => {
+    expect(parseMatchDay("Final")).toBeNull();
+  });
+
+  it("returns null for empty string", () => {
+    expect(parseMatchDay("")).toBeNull();
   });
 });
