@@ -3,6 +3,7 @@ import { RiskStatus } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { buildRounds, getRoundLabel } from "@/lib/rounds";
+import { computeEliminatedTeamIds } from "@/lib/team-status";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -254,17 +255,52 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const podiumByUser = new Map<
       string,
       {
-        firstPlaceTeam: { id: string; name: string; crest: string | null } | null;
-        secondPlaceTeam: { id: string; name: string; crest: string | null } | null;
-        thirdPlaceTeam: { id: string; name: string; crest: string | null } | null;
+        firstPlaceTeam: {
+          id: string;
+          name: string;
+          crest: string | null;
+          eliminated: boolean;
+        } | null;
+        secondPlaceTeam: {
+          id: string;
+          name: string;
+          crest: string | null;
+          eliminated: boolean;
+        } | null;
+        thirdPlaceTeam: {
+          id: string;
+          name: string;
+          crest: string | null;
+          eliminated: boolean;
+        } | null;
       }
     >();
     if (podiumLocked) {
+      // Derive which picked teams are eliminated so the UI can gray out their
+      // flags. A team is alive while it has an upcoming match; it becomes
+      // eliminated once it has no upcoming match and lost its last knockout match.
+      const contestMatches = await prisma.match.findMany({
+        where: { contestId: group.contestId },
+        select: {
+          stage: true,
+          status: true,
+          kickoffTime: true,
+          homeTeamId: true,
+          awayTeamId: true,
+          homeGoals: true,
+          awayGoals: true,
+        },
+      });
+      const eliminatedTeamIds = computeEliminatedTeamIds(contestMatches);
+
+      const withStatus = (team: { id: string; name: string; crest: string | null } | null) =>
+        team ? { ...team, eliminated: eliminatedTeamIds.has(team.id) } : null;
+
       for (const pred of podiumPredictions) {
         podiumByUser.set(pred.userId, {
-          firstPlaceTeam: pred.firstPlaceTeam,
-          secondPlaceTeam: pred.secondPlaceTeam,
-          thirdPlaceTeam: pred.thirdPlaceTeam,
+          firstPlaceTeam: withStatus(pred.firstPlaceTeam),
+          secondPlaceTeam: withStatus(pred.secondPlaceTeam),
+          thirdPlaceTeam: withStatus(pred.thirdPlaceTeam),
         });
       }
     }

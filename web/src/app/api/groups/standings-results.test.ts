@@ -89,6 +89,48 @@ describe("Standings API — GET /api/groups/:id/standings", () => {
     expect(data.matchDays).toHaveLength(0);
   });
 
+  it("marks eliminated podium teams when locked and preserves alive ones", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
+    mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1", visibility: "PUBLIC" });
+    mockPrisma.membership.findMany.mockResolvedValue([
+      { user: { id: "user-1", name: "Alice", image: null }, role: "ADMIN" },
+    ]);
+    mockPrisma.prediction.findMany.mockResolvedValue([]);
+    mockPrisma.podiumPrediction.findMany.mockResolvedValue([
+      {
+        userId: "user-1",
+        firstPlaceTeam: { id: "team-champ", name: "Champ", crest: null },
+        secondPlaceTeam: { id: "team-out", name: "Out", crest: null },
+        thirdPlaceTeam: null,
+      },
+    ]);
+    // Podium is locked once a match has started.
+    mockPrisma.match.findFirst.mockResolvedValue({ id: "m-1" });
+    // Contest matches: champ won the final, "out" lost it → out is eliminated.
+    mockPrisma.match.findMany.mockResolvedValue([
+      {
+        stage: "Final",
+        status: "FINISHED",
+        kickoffTime: new Date("2025-07-01T18:00:00Z"),
+        homeTeamId: "team-champ",
+        awayTeamId: "team-out",
+        homeGoals: 2,
+        awayGoals: 0,
+      },
+    ]);
+
+    const { GET } = await import("@/app/api/groups/[id]/standings/route");
+    const req = new NextRequest("http://localhost:3000/api/groups/group-1/standings");
+    const res = await GET(req, routeParams);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    const picks = data.standings[0].podiumPicks;
+    expect(picks.firstPlaceTeam.eliminated).toBe(false);
+    expect(picks.secondPlaceTeam.eliminated).toBe(true);
+    expect(picks.thirdPlaceTeam).toBeNull();
+  });
+
   it("returns ranked standings sorted by total points descending", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockPrisma.group.findUnique.mockResolvedValue({ contestId: "c-1", visibility: "PUBLIC" });

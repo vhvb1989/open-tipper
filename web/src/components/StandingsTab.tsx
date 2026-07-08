@@ -26,6 +26,7 @@ interface PodiumTeam {
   id: string;
   name: string;
   crest: string | null;
+  eliminated?: boolean;
 }
 
 interface PodiumPicks {
@@ -345,18 +346,31 @@ export default function StandingsTab({
                     ]
                       .filter(Boolean)
                       .map((team) => (
-                        <div key={team!.id} title={team!.name}>
+                        <div
+                          key={team!.id}
+                          title={
+                            team!.eliminated
+                              ? `${team!.name} — ${t("podium.eliminated")}`
+                              : team!.name
+                          }
+                        >
                           {team!.crest ? (
                             <Image
                               src={team!.crest}
                               alt={team!.name}
                               width={20}
                               height={20}
-                              className="h-5 w-5 rounded-full border border-white dark:border-zinc-900"
+                              className={`h-5 w-5 rounded-full border border-white dark:border-zinc-900 ${
+                                team!.eliminated ? "opacity-60 grayscale" : ""
+                              }`}
                               unoptimized
                             />
                           ) : (
-                            <div className="flex h-5 w-5 items-center justify-center rounded-full border border-white bg-zinc-200 text-[8px] font-bold text-zinc-500 dark:border-zinc-900 dark:bg-zinc-700 dark:text-zinc-400">
+                            <div
+                              className={`flex h-5 w-5 items-center justify-center rounded-full border border-white bg-zinc-200 text-[8px] font-bold text-zinc-500 dark:border-zinc-900 dark:bg-zinc-700 dark:text-zinc-400 ${
+                                team!.eliminated ? "opacity-60 grayscale" : ""
+                              }`}
+                            >
                               {team!.name[0]}
                             </div>
                           )}
@@ -531,7 +545,11 @@ export default function StandingsTab({
                                 key={team!.id}
                                 className="relative"
                                 style={{ zIndex: 3 - i }}
-                                title={team!.name}
+                                title={
+                                  team!.eliminated
+                                    ? `${team!.name} — ${t("podium.eliminated")}`
+                                    : team!.name
+                                }
                               >
                                 {team!.crest ? (
                                   <Image
@@ -539,11 +557,17 @@ export default function StandingsTab({
                                     alt={team!.name}
                                     width={20}
                                     height={20}
-                                    className="h-5 w-5 rounded-full border border-white dark:border-zinc-900"
+                                    className={`h-5 w-5 rounded-full border border-white dark:border-zinc-900 ${
+                                      team!.eliminated ? "opacity-60 grayscale" : ""
+                                    }`}
                                     unoptimized
                                   />
                                 ) : (
-                                  <div className="flex h-5 w-5 items-center justify-center rounded-full border border-white bg-zinc-200 text-[8px] font-bold text-zinc-500 dark:border-zinc-900 dark:bg-zinc-700 dark:text-zinc-400">
+                                  <div
+                                    className={`flex h-5 w-5 items-center justify-center rounded-full border border-white bg-zinc-200 text-[8px] font-bold text-zinc-500 dark:border-zinc-900 dark:bg-zinc-700 dark:text-zinc-400 ${
+                                      team!.eliminated ? "opacity-60 grayscale" : ""
+                                    }`}
+                                  >
                                     {team!.name[0]}
                                   </div>
                                 )}
