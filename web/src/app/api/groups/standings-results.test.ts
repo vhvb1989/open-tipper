@@ -315,12 +315,14 @@ describe("Standings API — GET /api/groups/:id/standings", () => {
         status: "WON",
         pointsRisked: 5,
         pointsAwarded: 10,
+        match: { matchDay: 1, stage: null },
       },
       {
         userId: "user-2",
         status: "LOST",
         pointsRisked: 4,
         pointsAwarded: 0,
+        match: { matchDay: 1, stage: null },
       },
     ]);
     mockPrisma.match.findMany.mockResolvedValue([]);
@@ -335,9 +337,13 @@ describe("Standings API — GET /api/groups/:id/standings", () => {
     expect(data.standings[0].userName).toBe("Alice");
     expect(data.standings[0].riskPoints).toBe(5);
     expect(data.standings[0].totalPoints).toBe(15);
+    // lastRound = base (10) + net risk (+5)
+    expect(data.standings[0].lastRoundPoints).toBe(15);
     expect(data.standings[1].userName).toBe("Bob");
     expect(data.standings[1].riskPoints).toBe(-4);
     expect(data.standings[1].totalPoints).toBe(8);
+    // lastRound = base (12) + net risk (-4)
+    expect(data.standings[1].lastRoundPoints).toBe(8);
     expect(mockPrisma.riskPrediction.findMany).toHaveBeenCalledWith({
       where: {
         groupId: "group-1",
@@ -350,6 +356,9 @@ describe("Standings API — GET /api/groups/:id/standings", () => {
         status: true,
         pointsRisked: true,
         pointsAwarded: true,
+        match: {
+          select: { matchDay: true, stage: true },
+        },
       },
     });
   });
