@@ -129,4 +129,60 @@ describe("computeEliminatedTeamIds", () => {
     const eliminated = computeEliminatedTeamIds(matches);
     expect(eliminated.has("T")).toBe(true);
   });
+
+  it("aggregates two legs: team advancing on aggregate is not eliminated", () => {
+    const matches: TeamStatusMatch[] = [
+      // Leg 1: A 0 - 2 B
+      match({
+        stage: "Semi-finals",
+        homeTeamId: "A",
+        awayTeamId: "B",
+        homeGoals: 0,
+        awayGoals: 2,
+        status: "FINISHED",
+        kickoffTime: new Date("2025-03-01T00:00:00Z"),
+      }),
+      // Leg 2 (most recent): B 0 - 3 A → aggregate A 3, B 2 → A advances, B out.
+      match({
+        stage: "Semi-finals",
+        homeTeamId: "B",
+        awayTeamId: "A",
+        homeGoals: 0,
+        awayGoals: 3,
+        status: "FINISHED",
+        kickoffTime: new Date("2025-03-08T00:00:00Z"),
+      }),
+    ];
+    const eliminated = computeEliminatedTeamIds(matches);
+    expect(eliminated.has("A")).toBe(false);
+    expect(eliminated.has("B")).toBe(true);
+  });
+
+  it("aggregates two legs: two-legged final champion stays colored despite losing last leg", () => {
+    const matches: TeamStatusMatch[] = [
+      // Leg 1: Champ 4 - 0 Runner
+      match({
+        stage: "Final",
+        homeTeamId: "Champ",
+        awayTeamId: "Runner",
+        homeGoals: 4,
+        awayGoals: 0,
+        status: "FINISHED",
+        kickoffTime: new Date("2025-04-01T00:00:00Z"),
+      }),
+      // Leg 2 (most recent): Runner 1 - 0 Champ → aggregate Champ 4, Runner 1.
+      match({
+        stage: "Final",
+        homeTeamId: "Runner",
+        awayTeamId: "Champ",
+        homeGoals: 1,
+        awayGoals: 0,
+        status: "FINISHED",
+        kickoffTime: new Date("2025-04-08T00:00:00Z"),
+      }),
+    ];
+    const eliminated = computeEliminatedTeamIds(matches);
+    expect(eliminated.has("Champ")).toBe(false);
+    expect(eliminated.has("Runner")).toBe(true);
+  });
 });
