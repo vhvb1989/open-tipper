@@ -299,11 +299,16 @@ model Medal {
   group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
   userId    String   @map("user_id")
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  matchDay  Int      @map("match_day")
-  points    Int      /// Points scored that match day
+  /// Stable round discriminator: "md:<n>" for match days, "stage:<stage>" for playoff rounds.
+  round     String
+  /// Numeric match day for match-day medals; null for playoff-round medals.
+  matchDay  Int?     @map("match_day")
+  /// Full stage string (e.g. "Round of 16") for playoff-round medals; null for match-day medals.
+  stage     String?
+  points    Int      /// Points scored that round
   createdAt DateTime @default(now()) @map("created_at")
 
-  @@unique([groupId, userId, matchDay])
+  @@unique([groupId, userId, round])
   @@index([groupId])
   @@index([userId])
   @@map("medals")

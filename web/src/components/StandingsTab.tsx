@@ -10,7 +10,10 @@ import type { Round } from "@/lib/rounds";
 /* ---------- Types ---------- */
 
 interface MedalEntry {
-  matchDay: number;
+  round: string;
+  matchDay: number | null;
+  stage: string | null;
+  label: string;
   points: number;
 }
 
@@ -367,16 +370,27 @@ export default function StandingsTab({
                   <div className="mt-1 flex flex-wrap gap-1">
                     {entry.medals.map((medal) => (
                       <BadgePopover
-                        key={medal.matchDay}
-                        title={t("standings.medalTitle", { n: medal.matchDay })}
-                        description={t("standings.medalDesc", {
-                          n: medal.matchDay,
-                          pts: medal.points,
-                        })}
+                        key={medal.round}
+                        title={
+                          medal.matchDay != null
+                            ? t("standings.medalTitle", { n: medal.matchDay })
+                            : t("standings.medalStageTitle", { stage: medal.label })
+                        }
+                        description={
+                          medal.matchDay != null
+                            ? t("standings.medalDesc", {
+                                n: medal.matchDay,
+                                pts: medal.points,
+                              })
+                            : t("standings.medalStageDesc", {
+                                stage: medal.label,
+                                pts: medal.points,
+                              })
+                        }
                         points={`+${medal.points} pts`}
                         badge={
                           <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                            🏅{medal.matchDay}
+                            🏅{medal.label}
                           </span>
                         }
                       />
@@ -573,18 +587,27 @@ export default function StandingsTab({
                           <div className="mt-0.5 flex flex-wrap gap-1">
                             {entry.medals.map((medal) => (
                               <BadgePopover
-                                key={medal.matchDay}
-                                title={t("standings.medalTitle", {
-                                  n: medal.matchDay,
-                                })}
-                                description={t("standings.medalDesc", {
-                                  n: medal.matchDay,
-                                  pts: medal.points,
-                                })}
+                                key={medal.round}
+                                title={
+                                  medal.matchDay != null
+                                    ? t("standings.medalTitle", { n: medal.matchDay })
+                                    : t("standings.medalStageTitle", { stage: medal.label })
+                                }
+                                description={
+                                  medal.matchDay != null
+                                    ? t("standings.medalDesc", {
+                                        n: medal.matchDay,
+                                        pts: medal.points,
+                                      })
+                                    : t("standings.medalStageDesc", {
+                                        stage: medal.label,
+                                        pts: medal.points,
+                                      })
+                                }
                                 points={`+${medal.points} pts`}
                                 badge={
                                   <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                                    🏅{medal.matchDay}
+                                    🏅{medal.label}
                                   </span>
                                 }
                               />

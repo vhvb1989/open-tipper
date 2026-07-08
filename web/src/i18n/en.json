@@ -306,7 +306,9 @@
     "you": "(you)",
     "medalTooltip": "Match Day {n} winner — {pts} pts",
     "medalTitle": "Match Day {n} Champion",
-    "medalDesc": "Top scorer for Match Day {n}, earning {pts} points."
+    "medalDesc": "Top scorer for Match Day {n}, earning {pts} points.",
+    "medalStageTitle": "{stage} Champion",
+    "medalStageDesc": "Top scorer for {stage}, earning {pts} points."
   },
   "invite": {
     "label": "Invite link",
