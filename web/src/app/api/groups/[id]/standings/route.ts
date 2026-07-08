@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { RiskStatus } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
-import { buildRounds } from "@/lib/rounds";
+import { buildRounds, getRoundLabel } from "@/lib/rounds";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -179,18 +179,36 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // Fetch medals for this group
+    // Fetch medals for this group (match-day and playoff-round medals)
     const medals = await prisma.medal.findMany({
       where: { groupId },
-      select: { userId: true, matchDay: true, points: true },
-      orderBy: { matchDay: "asc" },
+      select: { userId: true, round: true, matchDay: true, stage: true, points: true },
+      orderBy: { createdAt: "asc" },
     });
 
-    // Group medals by userId
-    const medalsByUser = new Map<string, { matchDay: number; points: number }[]>();
+    // Group medals by userId. Each medal carries a display label: the match-day
+    // number for group-stage rounds, or the stage name for playoff rounds.
+    const medalsByUser = new Map<
+      string,
+      {
+        round: string;
+        matchDay: number | null;
+        stage: string | null;
+        label: string;
+        points: number;
+      }[]
+    >();
     for (const medal of medals) {
       const list = medalsByUser.get(medal.userId) ?? [];
-      list.push({ matchDay: medal.matchDay, points: medal.points });
+      const label =
+        medal.matchDay != null ? String(medal.matchDay) : getRoundLabel(medal.stage ?? "");
+      list.push({
+        round: medal.round,
+        matchDay: medal.matchDay,
+        stage: medal.stage,
+        label,
+        points: medal.points,
+      });
       medalsByUser.set(medal.userId, list);
     }
 

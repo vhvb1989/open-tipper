@@ -2,7 +2,7 @@
  * Medal Service — Unit Tests
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { awardMatchDayMedals, awardMedalsForContest } from "./medals";
+import { awardMatchDayMedals, awardStageMedals, awardMedalsForContest } from "./medals";
 import type { PrismaClient } from "@/generated/prisma/client";
 
 // ---------------------------------------------------------------------------
@@ -48,7 +48,22 @@ describe("awardMatchDayMedals", () => {
     mockPrisma.match.findMany.mockResolvedValue([]);
 
     const result = await awardMatchDayMedals("c1", "g1", 1, db);
-    expect(result).toEqual({ matchDay: 1, groupId: "g1", winnersCount: 0 });
+    expect(result).toEqual({
+      round: "md:1",
+      matchDay: 1,
+      stage: null,
+      groupId: "g1",
+      winnersCount: 0,
+    });
+  });
+
+  it("queries matches for the match day", async () => {
+    mockPrisma.match.findMany.mockResolvedValue([]);
+    await awardMatchDayMedals("c1", "g1", 3, db);
+    expect(mockPrisma.match.findMany).toHaveBeenCalledWith({
+      where: { contestId: "c1", matchDay: 3 },
+      select: { id: true, status: true },
+    });
   });
 
   it("skips when not all matches are finished", async () => {
@@ -96,10 +111,10 @@ describe("awardMatchDayMedals", () => {
     expect(mockPrisma.medal.upsert).toHaveBeenCalledTimes(1);
     expect(mockPrisma.medal.upsert).toHaveBeenCalledWith({
       where: {
-        groupId_userId_matchDay: { groupId: "g1", userId: "u1", matchDay: 1 },
+        groupId_userId_round: { groupId: "g1", userId: "u1", round: "md:1" },
       },
-      create: { groupId: "g1", userId: "u1", matchDay: 1, points: 10 },
-      update: { points: 10 },
+      create: { groupId: "g1", userId: "u1", round: "md:1", matchDay: 1, stage: null, points: 10 },
+      update: { points: 10, matchDay: 1, stage: null },
     });
   });
 
@@ -166,11 +181,11 @@ describe("awardMatchDayMedals", () => {
 
     await awardMatchDayMedals("c1", "g1", 1, db);
 
-    // Should delete medals for non-winners
+    // Should delete medals for non-winners, scoped by round
     expect(mockPrisma.medal.deleteMany).toHaveBeenCalledWith({
       where: {
         groupId: "g1",
-        matchDay: 1,
+        round: "md:1",
         userId: { notIn: ["u1"] },
       },
     });
@@ -192,10 +207,10 @@ describe("awardMatchDayMedals", () => {
     expect(result.winnersCount).toBe(1);
     expect(mockPrisma.medal.upsert).toHaveBeenCalledWith({
       where: {
-        groupId_userId_matchDay: { groupId: "g1", userId: "u2", matchDay: 1 },
+        groupId_userId_round: { groupId: "g1", userId: "u2", round: "md:1" },
       },
-      create: { groupId: "g1", userId: "u2", matchDay: 1, points: 168 },
-      update: { points: 168 },
+      create: { groupId: "g1", userId: "u2", round: "md:1", matchDay: 1, stage: null, points: 168 },
+      update: { points: 168, matchDay: 1, stage: null },
     });
   });
 
@@ -219,10 +234,10 @@ describe("awardMatchDayMedals", () => {
     expect(result.winnersCount).toBe(1);
     expect(mockPrisma.medal.upsert).toHaveBeenCalledWith({
       where: {
-        groupId_userId_matchDay: { groupId: "g1", userId: "u2", matchDay: 1 },
+        groupId_userId_round: { groupId: "g1", userId: "u2", round: "md:1" },
       },
-      create: { groupId: "g1", userId: "u2", matchDay: 1, points: 38 },
-      update: { points: 38 },
+      create: { groupId: "g1", userId: "u2", round: "md:1", matchDay: 1, stage: null, points: 38 },
+      update: { points: 38, matchDay: 1, stage: null },
     });
   });
 
@@ -246,10 +261,10 @@ describe("awardMatchDayMedals", () => {
     expect(result.winnersCount).toBe(1);
     expect(mockPrisma.medal.upsert).toHaveBeenCalledWith({
       where: {
-        groupId_userId_matchDay: { groupId: "g1", userId: "u2", matchDay: 1 },
+        groupId_userId_round: { groupId: "g1", userId: "u2", round: "md:1" },
       },
-      create: { groupId: "g1", userId: "u2", matchDay: 1, points: 25 },
-      update: { points: 25 },
+      create: { groupId: "g1", userId: "u2", round: "md:1", matchDay: 1, stage: null, points: 25 },
+      update: { points: 25, matchDay: 1, stage: null },
     });
   });
 
@@ -271,10 +286,10 @@ describe("awardMatchDayMedals", () => {
     expect(result.winnersCount).toBe(1);
     expect(mockPrisma.medal.upsert).toHaveBeenCalledWith({
       where: {
-        groupId_userId_matchDay: { groupId: "g1", userId: "u1", matchDay: 1 },
+        groupId_userId_round: { groupId: "g1", userId: "u1", round: "md:1" },
       },
-      create: { groupId: "g1", userId: "u1", matchDay: 1, points: 20 },
-      update: { points: 20 },
+      create: { groupId: "g1", userId: "u1", round: "md:1", matchDay: 1, stage: null, points: 20 },
+      update: { points: 20, matchDay: 1, stage: null },
     });
   });
 
@@ -287,6 +302,68 @@ describe("awardMatchDayMedals", () => {
 
     const result = await awardMatchDayMedals("c1", "g1", 1, db);
     expect(result.winnersCount).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// awardStageMedals (playoff rounds)
+// ---------------------------------------------------------------------------
+
+describe("awardStageMedals", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPrisma.group.findUnique.mockResolvedValue({ riskEnabled: false });
+    mockPrisma.riskPrediction.findMany.mockResolvedValue([]);
+  });
+
+  it("queries matches by stage with a null match day", async () => {
+    mockPrisma.match.findMany.mockResolvedValue([]);
+    await awardStageMedals("c1", "g1", "Round of 16", db);
+    expect(mockPrisma.match.findMany).toHaveBeenCalledWith({
+      where: { contestId: "c1", stage: "Round of 16", matchDay: null },
+      select: { id: true, status: true },
+    });
+  });
+
+  it("returns the stage descriptor when no matches exist", async () => {
+    mockPrisma.match.findMany.mockResolvedValue([]);
+    const result = await awardStageMedals("c1", "g1", "Round of 16", db);
+    expect(result).toEqual({
+      round: "stage:Round of 16",
+      matchDay: null,
+      stage: "Round of 16",
+      groupId: "g1",
+      winnersCount: 0,
+    });
+  });
+
+  it("awards a playoff medal keyed on the stage round", async () => {
+    mockPrisma.match.findMany.mockResolvedValue([{ id: "m1", status: "FINISHED" }]);
+    mockPrisma.prediction.count.mockResolvedValue(0);
+    mockPrisma.prediction.findMany.mockResolvedValue([
+      { userId: "u1", pointsAwarded: 12 },
+      { userId: "u2", pointsAwarded: 8 },
+    ]);
+    mockPrisma.medal.deleteMany.mockResolvedValue({ count: 0 });
+    mockPrisma.medal.upsert.mockResolvedValue({});
+
+    const result = await awardStageMedals("c1", "g1", "Round of 16", db);
+
+    expect(result.winnersCount).toBe(1);
+    expect(mockPrisma.medal.upsert).toHaveBeenCalledWith({
+      where: {
+        groupId_userId_round: { groupId: "g1", userId: "u1", round: "stage:Round of 16" },
+      },
+      create: {
+        groupId: "g1",
+        userId: "u1",
+        round: "stage:Round of 16",
+        matchDay: null,
+        stage: "Round of 16",
+        points: 12,
+      },
+      update: { points: 12, matchDay: null, stage: "Round of 16" },
+    });
   });
 });
 
@@ -309,12 +386,13 @@ describe("awardMedalsForContest", () => {
     expect(results).toEqual([]);
   });
 
-  it("processes all groups and match days", async () => {
+  it("processes all groups across match days and playoff stages", async () => {
     mockPrisma.group.findMany.mockResolvedValue([{ id: "g1" }, { id: "g2" }]);
-    // Distinct finished match days
+    // 1st call: distinct match days; 2nd call: distinct stages; rest: per-round matches
     mockPrisma.match.findMany
-      .mockResolvedValueOnce([{ matchDay: 1 }, { matchDay: 2 }]) // distinct query
-      .mockResolvedValue([{ id: "m1", status: "FINISHED" }]); // subsequent per-group calls
+      .mockResolvedValueOnce([{ matchDay: 1 }, { matchDay: 2 }]) // distinct match days
+      .mockResolvedValueOnce([{ stage: "Round of 16" }]) // distinct stages
+      .mockResolvedValue([{ id: "m1", status: "FINISHED" }]); // subsequent per-round calls
 
     mockPrisma.prediction.count.mockResolvedValue(0);
     mockPrisma.prediction.findMany.mockResolvedValue([{ userId: "u1", pointsAwarded: 10 }]);
@@ -322,7 +400,9 @@ describe("awardMedalsForContest", () => {
     mockPrisma.medal.upsert.mockResolvedValue({});
 
     const results = await awardMedalsForContest("c1", db);
-    // 2 groups × 2 match days = 4 medal operations, all winners
-    expect(results.length).toBeGreaterThanOrEqual(1);
+    // 2 groups × (2 match days + 1 stage) = 6 medal operations, all winners
+    expect(results.length).toBe(6);
+    expect(results.some((r) => r.round === "stage:Round of 16")).toBe(true);
+    expect(results.some((r) => r.round === "md:1")).toBe(true);
   });
 });

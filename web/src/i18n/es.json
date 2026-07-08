@@ -306,7 +306,9 @@
     "you": "(tú)",
     "medalTooltip": "Ganador Jornada {n} — {pts} pts",
     "medalTitle": "Campeón de la Jornada {n}",
-    "medalDesc": "Máximo anotador de la Jornada {n}, con {pts} puntos."
+    "medalDesc": "Máximo anotador de la Jornada {n}, con {pts} puntos.",
+    "medalStageTitle": "Campeón de {stage}",
+    "medalStageDesc": "Máximo anotador de {stage}, con {pts} puntos."
   },
   "invite": {
     "label": "Enlace de invitación",

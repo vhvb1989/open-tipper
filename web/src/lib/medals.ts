@@ -1,10 +1,11 @@
 /**
  * Medal Service
  *
- * Awards a medal to the top scorer(s) of each match day within a group.
- * Medals are cosmetic — they don't change points. When all matches in a
- * match day are finished and scored, the member(s) with the highest
- * aggregate points for that match day receive a medal.
+ * Awards a medal to the top scorer(s) of each round within a group. A round
+ * is either a numeric match day (group stage) or a named playoff stage
+ * ("Round of 16", "Quarter-finals", …). Medals are cosmetic — they don't
+ * change points. When all matches in a round are finished and scored, the
+ * member(s) with the highest aggregate points for that round receive a medal.
  *
  * Ties are allowed: every user sharing the top score gets a medal.
  */
@@ -16,9 +17,20 @@ import { PrismaClient, RiskStatus } from "@/generated/prisma/client";
 // ---------------------------------------------------------------------------
 
 export interface AwardMedalsResult {
-  matchDay: number;
+  /** Stable round discriminator: "md:<n>" or "stage:<stage>". */
+  round: string;
+  /** Numeric match day for match-day rounds; null for playoff rounds. */
+  matchDay: number | null;
+  /** Full stage string for playoff rounds; null for match-day rounds. */
+  stage: string | null;
   groupId: string;
   winnersCount: number;
+}
+
+interface RoundDescriptor {
+  round: string;
+  matchDay: number | null;
+  stage: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -26,39 +38,45 @@ export interface AwardMedalsResult {
 // ---------------------------------------------------------------------------
 
 /**
- * Award medals for a specific match day in a specific group.
+ * Award medals for a specific round (match day or playoff stage) in a group.
  *
- * Pre-condition: all matches for this match day must be FINISHED and all
+ * Pre-condition: all matches for this round must be FINISHED/AWARDED and all
  * predictions scored (pointsAwarded != null).
  *
- * Idempotent — uses upsert so re-running is safe.
+ * Idempotent — uses upsert keyed on the round discriminator so re-running is
+ * safe.
  */
-export async function awardMatchDayMedals(
+async function awardRoundMedals(
   contestId: string,
   groupId: string,
-  matchDay: number,
+  descriptor: RoundDescriptor,
   db: PrismaClient,
 ): Promise<AwardMedalsResult> {
-  // 1. Check that ALL matches for this match day are finished
-  const matchDayMatches = await db.match.findMany({
-    where: { contestId, matchDay },
+  const { round, matchDay, stage } = descriptor;
+  const empty: AwardMedalsResult = { round, matchDay, stage, groupId, winnersCount: 0 };
+
+  // 1. Check that ALL matches for this round are finished.
+  //    Match-day rounds are identified by matchDay; playoff rounds by their
+  //    stage string (which always have a null matchDay).
+  const matchWhere =
+    matchDay != null ? { contestId, matchDay } : { contestId, stage, matchDay: null };
+  const roundMatches = await db.match.findMany({
+    where: matchWhere,
     select: { id: true, status: true },
   });
 
-  if (matchDayMatches.length === 0) {
-    return { matchDay, groupId, winnersCount: 0 };
+  if (roundMatches.length === 0) {
+    return empty;
   }
 
-  const allFinished = matchDayMatches.every(
-    (m) => m.status === "FINISHED" || m.status === "AWARDED",
-  );
+  const allFinished = roundMatches.every((m) => m.status === "FINISHED" || m.status === "AWARDED");
 
   if (!allFinished) {
     // Not all matches are done yet — skip medal assignment
-    return { matchDay, groupId, winnersCount: 0 };
+    return empty;
   }
 
-  const matchIds = matchDayMatches.map((m) => m.id);
+  const matchIds = roundMatches.map((m) => m.id);
 
   // Risk points only count toward the score when the group has the risk
   // feature enabled (mirrors the standings calculation).
@@ -79,11 +97,11 @@ export async function awardMatchDayMedals(
 
   if (unscoredCount > 0) {
     // Still have unscored predictions — skip
-    return { matchDay, groupId, winnersCount: 0 };
+    return empty;
   }
 
-  // 3. Aggregate points per user for this match day.
-  //    Match-day score must mirror the standings total: base points
+  // 3. Aggregate points per user for this round.
+  //    Round score must mirror the standings total: base points
   //    (pointsAwarded) + uniqueness bonus (bonusPoints) + net risk points.
   const predictions = await db.prediction.findMany({
     where: {
@@ -98,9 +116,9 @@ export async function awardMatchDayMedals(
     },
   });
 
-  // Resolved risk predictions for this match day (won/lost only — pending
-  // wagers don't affect the score yet). Skipped entirely when the group has
-  // the risk feature disabled.
+  // Resolved risk predictions for this round (won/lost only — pending wagers
+  // don't affect the score yet). Skipped entirely when the group has the risk
+  // feature disabled.
   const riskPredictions = riskEnabled
     ? await db.riskPrediction.findMany({
         where: {
@@ -118,7 +136,7 @@ export async function awardMatchDayMedals(
     : [];
 
   if (predictions.length === 0 && riskPredictions.length === 0) {
-    return { matchDay, groupId, winnersCount: 0 };
+    return empty;
   }
 
   const pointsByUser = new Map<string, number>();
@@ -136,7 +154,7 @@ export async function awardMatchDayMedals(
   }
 
   if (pointsByUser.size === 0) {
-    return { matchDay, groupId, winnersCount: 0 };
+    return empty;
   }
 
   // 4. Find the max score
@@ -144,7 +162,7 @@ export async function awardMatchDayMedals(
 
   if (maxPoints <= 0) {
     // Nobody scored any points — no medal
-    return { matchDay, groupId, winnersCount: 0 };
+    return empty;
   }
 
   // 5. All users with the max score get a medal
@@ -152,12 +170,12 @@ export async function awardMatchDayMedals(
     .filter(([, pts]) => pts === maxPoints)
     .map(([userId]) => userId);
 
-  // 6. Remove any existing medals for this match day + group that are no longer winners
-  //    (handles re-scoring edge case)
+  // 6. Remove any existing medals for this round + group that are no longer
+  //    winners (handles re-scoring edge case)
   await db.medal.deleteMany({
     where: {
       groupId,
-      matchDay,
+      round,
       userId: { notIn: winners },
     },
   });
@@ -166,27 +184,70 @@ export async function awardMatchDayMedals(
   for (const userId of winners) {
     await db.medal.upsert({
       where: {
-        groupId_userId_matchDay: { groupId, userId, matchDay },
+        groupId_userId_round: { groupId, userId, round },
       },
       create: {
         groupId,
         userId,
+        round,
         matchDay,
+        stage,
         points: maxPoints,
       },
       update: {
         points: maxPoints,
+        matchDay,
+        stage,
       },
     });
   }
 
-  return { matchDay, groupId, winnersCount: winners.length };
+  return { round, matchDay, stage, groupId, winnersCount: winners.length };
 }
 
 /**
- * Award medals for ALL completed match days in a contest, for all groups.
+ * Award medals for a specific match day in a specific group.
  *
- * Called after scoring to ensure medals are up-to-date.
+ * Idempotent — safe to re-run.
+ */
+export async function awardMatchDayMedals(
+  contestId: string,
+  groupId: string,
+  matchDay: number,
+  db: PrismaClient,
+): Promise<AwardMedalsResult> {
+  return awardRoundMedals(
+    contestId,
+    groupId,
+    { round: `md:${matchDay}`, matchDay, stage: null },
+    db,
+  );
+}
+
+/**
+ * Award medals for a specific playoff stage in a specific group.
+ *
+ * Idempotent — safe to re-run.
+ */
+export async function awardStageMedals(
+  contestId: string,
+  groupId: string,
+  stage: string,
+  db: PrismaClient,
+): Promise<AwardMedalsResult> {
+  return awardRoundMedals(
+    contestId,
+    groupId,
+    { round: `stage:${stage}`, matchDay: null, stage },
+    db,
+  );
+}
+
+/**
+ * Award medals for ALL completed rounds in a contest, for all groups.
+ *
+ * Covers both numeric match days and playoff stages. Called after scoring to
+ * ensure medals are up-to-date.
  */
 export async function awardMedalsForContest(
   contestId: string,
@@ -211,6 +272,20 @@ export async function awardMedalsForContest(
 
   const matchDays = finishedMatchDays.map((m) => m.matchDay!).sort((a, b) => a - b);
 
+  // Find all distinct playoff stages that have finished matches (matchDay null)
+  const finishedStages = await db.match.findMany({
+    where: {
+      contestId,
+      status: { in: ["FINISHED", "AWARDED"] },
+      matchDay: null,
+      stage: { not: null },
+    },
+    select: { stage: true },
+    distinct: ["stage"],
+  });
+
+  const stages = finishedStages.map((m) => m.stage!);
+
   const results: AwardMedalsResult[] = [];
 
   for (const group of groups) {
@@ -225,6 +300,17 @@ export async function awardMedalsForContest(
           `Failed to award medals for group ${group.id}, match day ${matchDay}:`,
           error,
         );
+      }
+    }
+
+    for (const stage of stages) {
+      try {
+        const result = await awardStageMedals(contestId, group.id, stage, db);
+        if (result.winnersCount > 0) {
+          results.push(result);
+        }
+      } catch (error) {
+        console.error(`Failed to award medals for group ${group.id}, stage ${stage}:`, error);
       }
     }
   }
