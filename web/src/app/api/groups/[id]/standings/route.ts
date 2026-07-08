@@ -89,6 +89,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             status: true,
             pointsRisked: true,
             pointsAwarded: true,
+            match: {
+              select: { matchDay: true, stage: true },
+            },
           },
         })
       : [];
@@ -163,6 +166,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           : -riskPrediction.pointsRisked;
 
       riskPointsByUser.set(riskPrediction.userId, currentRiskPoints + riskDelta);
+
+      // Include risk winnings/losses in the selected round total so that
+      // "last round" reflects the same points that drive the standings
+      // (base + uniqueness bonus + net risk), matching the medal calculation.
+      const inSelectedRound =
+        (selectedMatchDay != null && riskPrediction.match.matchDay === selectedMatchDay) ||
+        (selectedStage != null && riskPrediction.match.stage === selectedStage);
+      if (inSelectedRound) {
+        const entry = totals.get(riskPrediction.userId);
+        if (entry) entry.lastRound += riskDelta;
+      }
     }
 
     // Fetch medals for this group

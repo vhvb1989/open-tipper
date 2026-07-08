@@ -414,7 +414,7 @@ export default function StandingsTab({
                 <div
                   className={`text-xs ${sortBy === "lastRoundPoints" ? "font-bold text-zinc-900 dark:text-zinc-100" : "text-zinc-500 dark:text-zinc-400"}`}
                 >
-                  {entry.lastRoundPoints > 0 ? `+${entry.lastRoundPoints}` : "0"}
+                  {entry.lastRoundPoints > 0 ? `+${entry.lastRoundPoints}` : entry.lastRoundPoints}
                 </div>
                 {riskEnabled && (
                   <div
@@ -628,7 +628,9 @@ export default function StandingsTab({
                     <span
                       className={`text-sm ${sortBy === "lastRoundPoints" ? "font-bold text-zinc-900 dark:text-zinc-100" : "text-zinc-600 dark:text-zinc-400"}`}
                     >
-                      {entry.lastRoundPoints > 0 ? `+${entry.lastRoundPoints}` : "0"}
+                      {entry.lastRoundPoints > 0
+                        ? `+${entry.lastRoundPoints}`
+                        : entry.lastRoundPoints}
                     </span>
                   </td>
 
