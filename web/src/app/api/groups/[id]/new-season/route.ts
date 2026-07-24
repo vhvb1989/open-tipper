@@ -76,7 +76,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Don't create duplicate lineage groups — if this group was already rolled
-    // over, point the admin at the existing new-season group instead.
+    // over, point the admin at the existing new-season group instead. This is a
+    // fast path; the unique constraint on (previousGroupId, contestId) is what
+    // actually guarantees correctness under concurrent requests (handled below).
     const existing = await prisma.group.findFirst({
       where: { previousGroupId: source.id, contestId: targetContest.id },
       select: { id: true, name: true },
@@ -91,56 +93,87 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const created = await prisma.group.create({
-      data: {
-        name,
-        description: source.description,
-        visibility: source.visibility,
-        riskEnabled: source.riskEnabled,
-        contestId: targetContest.id,
-        previousGroupId: source.id,
-        memberships: {
-          create: source.memberships.map((m) => ({ userId: m.userId, role: m.role })),
+    let created: { id: string; name: string };
+    try {
+      created = await prisma.group.create({
+        data: {
+          name,
+          description: source.description,
+          visibility: source.visibility,
+          riskEnabled: source.riskEnabled,
+          contestId: targetContest.id,
+          previousGroupId: source.id,
+          memberships: {
+            create: source.memberships.map((m) => ({ userId: m.userId, role: m.role })),
+          },
+          ...(source.scoringRules
+            ? {
+                scoringRules: {
+                  create: {
+                    exactScore: source.scoringRules.exactScore,
+                    goalDifference: source.scoringRules.goalDifference,
+                    outcome: source.scoringRules.outcome,
+                    oneTeamGoals: source.scoringRules.oneTeamGoals,
+                    totalGoals: source.scoringRules.totalGoals,
+                    reverseGoalDifference: source.scoringRules.reverseGoalDifference,
+                    accumulationMode: source.scoringRules.accumulationMode,
+                    playoffMultiplier: source.scoringRules.playoffMultiplier,
+                    uniqueBonusEnabled: source.scoringRules.uniqueBonusEnabled,
+                    uniqueBonusMultiplier: source.scoringRules.uniqueBonusMultiplier,
+                    ...(source.scoringRules.uniqueBonusEnabled
+                      ? { bonusEnabledAt: new Date() }
+                      : {}),
+                  },
+                },
+              }
+            : {}),
+          ...(source.podiumSettings
+            ? {
+                podiumSettings: {
+                  create: {
+                    enabled: source.podiumSettings.enabled,
+                    firstPlacePoints: source.podiumSettings.firstPlacePoints,
+                    secondPlacePoints: source.podiumSettings.secondPlacePoints,
+                    thirdPlacePoints: source.podiumSettings.thirdPlacePoints,
+                    thirdPlaceEnabled: source.podiumSettings.thirdPlaceEnabled,
+                  },
+                },
+              }
+            : {}),
         },
-        ...(source.scoringRules
-          ? {
-              scoringRules: {
-                create: {
-                  exactScore: source.scoringRules.exactScore,
-                  goalDifference: source.scoringRules.goalDifference,
-                  outcome: source.scoringRules.outcome,
-                  oneTeamGoals: source.scoringRules.oneTeamGoals,
-                  totalGoals: source.scoringRules.totalGoals,
-                  reverseGoalDifference: source.scoringRules.reverseGoalDifference,
-                  accumulationMode: source.scoringRules.accumulationMode,
-                  playoffMultiplier: source.scoringRules.playoffMultiplier,
-                  uniqueBonusEnabled: source.scoringRules.uniqueBonusEnabled,
-                  uniqueBonusMultiplier: source.scoringRules.uniqueBonusMultiplier,
-                  ...(source.scoringRules.uniqueBonusEnabled ? { bonusEnabledAt: new Date() } : {}),
-                },
-              },
-            }
-          : {}),
-        ...(source.podiumSettings
-          ? {
-              podiumSettings: {
-                create: {
-                  enabled: source.podiumSettings.enabled,
-                  firstPlacePoints: source.podiumSettings.firstPlacePoints,
-                  secondPlacePoints: source.podiumSettings.secondPlacePoints,
-                  thirdPlacePoints: source.podiumSettings.thirdPlacePoints,
-                  thirdPlaceEnabled: source.podiumSettings.thirdPlaceEnabled,
-                },
-              },
-            }
-          : {}),
-      },
-      select: { id: true, name: true },
-    });
+        select: { id: true, name: true },
+      });
+    } catch (err) {
+      // Unique (previousGroupId, contestId) violation → a concurrent request
+      // already created the new-season group. Return that one instead.
+      if (isUniqueConstraintError(err)) {
+        const raced = await prisma.group.findFirst({
+          where: { previousGroupId: source.id, contestId: targetContest.id },
+          select: { id: true, name: true },
+        });
+        if (raced) {
+          return NextResponse.json(
+            { error: "A group for the new season already exists", group: raced },
+            { status: 409 },
+          );
+        }
+      }
+      throw err;
+    }
 
     return NextResponse.json({ group: created }, { status: 201 });
   } catch (error) {
     console.error("Failed to start new season:", error);
     return NextResponse.json({ error: "Failed to start new season" }, { status: 500 });
   }
+}
+
+/** Prisma known-request error code for a unique constraint violation. */
+function isUniqueConstraintError(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    (err as { code?: unknown }).code === "P2002"
+  );
 }

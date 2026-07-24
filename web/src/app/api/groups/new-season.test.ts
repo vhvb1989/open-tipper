@@ -142,4 +142,24 @@ describe("POST /api/groups/:id/new-season", () => {
     ]);
     expect(data.scoringRules.create.exactScore).toBe(12);
   });
+
+  it("returns 409 when a concurrent request wins the unique constraint (P2002)", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "u1" } });
+    mockPrisma.group.findUnique.mockResolvedValue(sourceGroup);
+    mockPrisma.contest.findFirst.mockResolvedValue({ id: "c2", season: "2026" });
+    // Pre-check finds nothing, then create races and hits the unique index,
+    // and the follow-up lookup returns the winner.
+    mockPrisma.group.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: "g2", name: "Liga MX 2026" });
+    mockPrisma.group.create.mockRejectedValue({ code: "P2002" });
+
+    const { POST } = await import("@/app/api/groups/[id]/new-season/route");
+    const res = await POST(makePost("g1", { name: "Liga MX 2026" }), {
+      params: Promise.resolve({ id: "g1" }),
+    });
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.group).toEqual({ id: "g2", name: "Liga MX 2026" });
+  });
 });

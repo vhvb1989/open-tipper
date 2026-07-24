@@ -228,6 +228,7 @@ model Group {
   podiumBadges      PodiumBadge[]
   riskPredictions   RiskPrediction[]
 
+  @@unique([previousGroupId, contestId])
   @@index([contestId])
   @@index([inviteCode])
   @@index([previousGroupId])
