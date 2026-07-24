@@ -113,6 +113,7 @@ function makeMockDb() {
       upsert: vi.fn().mockImplementation(({ create }) => {
         return Promise.resolve({ id: "contest-1", ...create });
       }),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     team: {
       upsert: vi.fn().mockImplementation(({ create }) => {
@@ -167,6 +168,19 @@ describe("syncCompetition", () => {
     expect(upsertCall.create.code).toBe("2");
     expect(upsertCall.create.name).toBe("UEFA Champions League");
     expect(upsertCall.create.season).toBe("2025");
+  });
+
+  it("archives prior-season contests for the same league on rollover", async () => {
+    await syncCompetition(2, undefined, mockDb as PrismaClient, mockApi as FootballApiClient);
+
+    const updateMany = (mockDb as unknown as { contest: { updateMany: ReturnType<typeof vi.fn> } })
+      .contest.updateMany;
+    expect(updateMany).toHaveBeenCalledTimes(1);
+    const call = updateMany.mock.calls[0][0];
+    // Same league code, but excluding the just-upserted current-season contest.
+    expect(call.where.code).toBe("2");
+    expect(call.where.id).toEqual({ not: "contest-1" });
+    expect(call.data.status).toBe("COMPLETED");
   });
 
   it("extracts unique teams from fixtures and upserts them", async () => {
@@ -313,6 +327,7 @@ function makeReviewDb(reviewMatch: ReviewMatchRow) {
   return {
     contest: {
       upsert: vi.fn().mockResolvedValue({ id: "contest-1" }),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     match: {
       upsert: vi.fn().mockResolvedValue({ id: "m1" }),

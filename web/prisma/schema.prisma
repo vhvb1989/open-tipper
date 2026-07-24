@@ -125,7 +125,7 @@ model Team {
 
 model Contest {
   id         String        @id @default(cuid())
-  externalId Int           @unique /// API-Football league ID
+  externalId Int /// API-Football league ID (stable across seasons — NOT unique; one contest per season)
   name       String
   code       String /// e.g. CL, WC
   season     String /// e.g. "2025" or "2025/26"
@@ -141,6 +141,7 @@ model Contest {
   groups  Group[]
 
   @@unique([code, season])
+  @@index([externalId])
   @@map("contests")
 }
 
@@ -209,6 +210,12 @@ model Group {
   contestId   String          @map("contest_id")
   contest     Contest         @relation(fields: [contestId], references: [id], onDelete: Cascade)
   riskEnabled Boolean         @default(false) @map("risk_enabled")
+  // Season lineage: links this group to the same group from the previous season.
+  // When a season rolls over, admins clone a group into the new season; the old
+  // group stays as a read-only archive and the two remain navigable via this link.
+  previousGroupId String?     @map("previous_group_id")
+  previousGroup   Group?      @relation("GroupSeasonLineage", fields: [previousGroupId], references: [id], onDelete: SetNull)
+  nextGroups      Group[]     @relation("GroupSeasonLineage")
   createdAt   DateTime        @default(now()) @map("created_at")
   updatedAt   DateTime        @updatedAt @map("updated_at")
 
@@ -221,8 +228,10 @@ model Group {
   podiumBadges      PodiumBadge[]
   riskPredictions   RiskPrediction[]
 
+  @@unique([previousGroupId, contestId])
   @@index([contestId])
   @@index([inviteCode])
+  @@index([previousGroupId])
   @@map("groups")
 }
 

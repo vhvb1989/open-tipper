@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { ARCHIVED_GROUP_MESSAGE, isContestArchived } from "@/lib/group-season";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -106,10 +107,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Verify match exists and belongs to this group's contest
     const group = await prisma.group.findUnique({
       where: { id },
-      select: { contestId: true },
+      select: { contestId: true, contest: { select: { status: true } } },
     });
     if (!group) {
       return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+
+    // Archived (completed-season) groups are read-only.
+    if (isContestArchived(group.contest?.status)) {
+      return NextResponse.json({ error: ARCHIVED_GROUP_MESSAGE }, { status: 403 });
     }
 
     const match = await prisma.match.findUnique({

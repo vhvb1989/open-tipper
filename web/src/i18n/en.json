@@ -65,7 +65,8 @@
     "emptyDescription": "Create a group to start predicting scores with your friends.",
     "createFirstGroup": "Create your first group",
     "adminBadge": "Admin",
-    "memberCount": "{count} member | {count} members"
+    "memberCount": "{count} member | {count} members",
+    "archivedHeading": "Archived — game over"
   },
   "error": {
     "somethingWentWrong": "Something went wrong",
@@ -144,6 +145,21 @@
     "browseGroups": "Browse Groups",
     "publicBadge": "Public",
     "memberCount": "{count} member | {count} members"
+  },
+  "seasonRollover": {
+    "archivedBadge": "Game over",
+    "archivedBanner": "This season is over. The group is now a read-only archive — predictions and changes are locked.",
+    "seePreviousSeason": "← Previous season",
+    "seeCurrentSeason": "Current season →",
+    "startNewSeason": "Start new season",
+    "dialogTitle": "Start a new season",
+    "dialogDescription": "This creates a brand-new group for the current season. All members and settings are copied over. This group stays as a read-only archive.",
+    "nameLabel": "New group name",
+    "namePlaceholder": "e.g. Liga MX 2026",
+    "cancel": "Cancel",
+    "create": "Create group",
+    "creating": "Creating...",
+    "failed": "Failed to start the new season"
   },
   "browse": {
     "heading": "Browse Groups",

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getAvailableBalance } from "@/lib/risk-balance";
+import { ARCHIVED_GROUP_MESSAGE, isContestArchived } from "@/lib/group-season";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -98,10 +99,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     const group = await prisma.group.findUnique({
       where: { id },
-      select: { contestId: true, riskEnabled: true },
+      select: { contestId: true, riskEnabled: true, contest: { select: { status: true } } },
     });
     if (!group) {
       return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+    if (isContestArchived(group.contest?.status)) {
+      return NextResponse.json({ error: ARCHIVED_GROUP_MESSAGE }, { status: 403 });
     }
     if (!group.riskEnabled) {
       return NextResponse.json({ error: "Risk predictions not enabled" }, { status: 400 });

@@ -4,12 +4,18 @@ import { prisma } from "@/lib/db";
 /**
  * GET /api/contests
  *
- * Returns all contests ordered by start date (most recent first).
+ * Returns selectable contests for group creation ordered by start date
+ * (most recent first). COMPLETED seasons are excluded — once a season is over
+ * a new group must be created against the current season's contest. Existing
+ * groups on completed seasons remain accessible as read-only archives.
  * Includes hasStarted flag and code for podium prediction eligibility.
  */
 export async function GET() {
   try {
     const contests = await prisma.contest.findMany({
+      where: {
+        status: { not: "COMPLETED" },
+      },
       orderBy: { startDate: "desc" },
       include: {
         _count: {
