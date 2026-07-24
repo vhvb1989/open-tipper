@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { ARCHIVED_GROUP_MESSAGE, isContestArchived } from "@/lib/group-season";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -171,12 +172,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       where: { id },
       include: {
         podiumSettings: true,
-        contest: { select: { id: true, code: true } },
+        contest: { select: { id: true, code: true, status: true } },
       },
     });
 
     if (!group || !group.podiumSettings?.enabled) {
       return NextResponse.json({ error: "Podium predictions not enabled" }, { status: 400 });
+    }
+
+    // Archived (completed-season) groups are read-only.
+    if (isContestArchived(group.contest.status)) {
+      return NextResponse.json({ error: ARCHIVED_GROUP_MESSAGE }, { status: 403 });
     }
 
     // Check if locked (respects admin override)

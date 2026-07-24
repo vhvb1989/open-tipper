@@ -65,7 +65,8 @@
     "emptyDescription": "Crea un grupo para empezar a predecir resultados con tus amigos.",
     "createFirstGroup": "Crea tu primer grupo",
     "adminBadge": "Admin",
-    "memberCount": "{count} miembro | {count} miembros"
+    "memberCount": "{count} miembro | {count} miembros",
+    "archivedHeading": "Archivados — temporada finalizada"
   },
   "error": {
     "somethingWentWrong": "Algo salió mal",
@@ -144,6 +145,21 @@
     "browseGroups": "Explorar Grupos",
     "publicBadge": "Público",
     "memberCount": "{count} miembro | {count} miembros"
+  },
+  "seasonRollover": {
+    "archivedBadge": "Temporada finalizada",
+    "archivedBanner": "Esta temporada ha terminado. El grupo ahora es un archivo de solo lectura: las predicciones y los cambios están bloqueados.",
+    "seePreviousSeason": "← Temporada anterior",
+    "seeCurrentSeason": "Temporada actual →",
+    "startNewSeason": "Iniciar nueva temporada",
+    "dialogTitle": "Iniciar una nueva temporada",
+    "dialogDescription": "Esto crea un grupo nuevo para la temporada actual. Se copian todos los miembros y la configuración. Este grupo queda como archivo de solo lectura.",
+    "nameLabel": "Nombre del nuevo grupo",
+    "namePlaceholder": "ej. Liga MX 2026",
+    "cancel": "Cancelar",
+    "create": "Crear grupo",
+    "creating": "Creando...",
+    "failed": "No se pudo iniciar la nueva temporada"
   },
   "browse": {
     "heading": "Explorar Grupos",

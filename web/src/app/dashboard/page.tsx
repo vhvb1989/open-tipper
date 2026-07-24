@@ -22,7 +22,7 @@ export default async function DashboardPage() {
     },
     include: {
       contest: {
-        select: { name: true, code: true, season: true, emblem: true },
+        select: { name: true, code: true, season: true, emblem: true, status: true },
       },
       _count: { select: { memberships: true } },
       memberships: {
@@ -32,6 +32,70 @@ export default async function DashboardPage() {
     },
     orderBy: { createdAt: "desc" },
   });
+
+  // Active groups float to the top; archived (completed-season) groups sink to
+  // the bottom as a read-only "game over" archive.
+  const activeGroups = groups.filter((g) => g.contest.status !== "COMPLETED");
+  const archivedGroups = groups.filter((g) => g.contest.status === "COMPLETED");
+
+  type GroupCard = (typeof groups)[number];
+
+  const renderCard = (group: GroupCard) => (
+    <Link
+      key={group.id}
+      href={`/groups/${group.id}`}
+      className="group rounded-xl border border-zinc-200 bg-white p-5 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
+    >
+      <div className="flex items-start justify-between">
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+            {group.name}
+          </h2>
+          {group.description && (
+            <p className="mt-1 line-clamp-2 text-sm text-zinc-500 dark:text-zinc-400">
+              {group.description}
+            </p>
+          )}
+        </div>
+        <div className="ml-2 flex shrink-0 flex-col items-end gap-1">
+          {group.memberships[0]?.role === "ADMIN" && (
+            <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+              {t("dashboard.adminBadge")}
+            </span>
+          )}
+          {group.contest.status === "COMPLETED" && (
+            <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+              {t("seasonRollover.archivedBadge")}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+        <span className="flex items-center gap-1">
+          <svg
+            className="h-3.5 w-3.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-4.5A3.375 3.375 0 0 0 13.125 10.875h-2.25A3.375 3.375 0 0 0 7.5 14.25v4.5m9 0H7.5"
+            />
+          </svg>
+          {t("dashboard.memberCount", { count: group._count.memberships })}
+        </span>
+        <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-medium dark:bg-zinc-800">
+          {group.contest.code}
+        </span>
+        <span>
+          {group.contest.name} {group.contest.season}
+        </span>
+      </div>
+    </Link>
+  );
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -67,56 +131,20 @@ export default async function DashboardPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {groups.map((group) => (
-            <Link
-              key={group.id}
-              href={`/groups/${group.id}`}
-              className="group rounded-xl border border-zinc-200 bg-white p-5 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
-            >
-              <div className="flex items-start justify-between">
-                <div className="min-w-0 flex-1">
-                  <h2 className="truncate text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                    {group.name}
-                  </h2>
-                  {group.description && (
-                    <p className="mt-1 line-clamp-2 text-sm text-zinc-500 dark:text-zinc-400">
-                      {group.description}
-                    </p>
-                  )}
-                </div>
-                {group.memberships[0]?.role === "ADMIN" && (
-                  <span className="ml-2 shrink-0 rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-                    {t("dashboard.adminBadge")}
-                  </span>
-                )}
+        <div className="space-y-8">
+          {activeGroups.length > 0 && (
+            <div className="grid gap-4 sm:grid-cols-2">{activeGroups.map(renderCard)}</div>
+          )}
+          {archivedGroups.length > 0 && (
+            <div>
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                {t("dashboard.archivedHeading")}
+              </h2>
+              <div className="grid gap-4 opacity-75 sm:grid-cols-2">
+                {archivedGroups.map(renderCard)}
               </div>
-              <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
-                <span className="flex items-center gap-1">
-                  <svg
-                    className="h-3.5 w-3.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-4.5A3.375 3.375 0 0 0 13.125 10.875h-2.25A3.375 3.375 0 0 0 7.5 14.25v4.5m9 0H7.5"
-                    />
-                  </svg>
-                  {t("dashboard.memberCount", { count: group._count.memberships })}
-                </span>
-                <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-medium dark:bg-zinc-800">
-                  {group.contest.code}
-                </span>
-                <span>
-                  {group.contest.name} {group.contest.season}
-                </span>
-              </div>
-            </Link>
-          ))}
+            </div>
+          )}
         </div>
       )}
     </div>

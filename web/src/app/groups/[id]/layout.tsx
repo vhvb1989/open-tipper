@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { GroupTabs } from "@/components/GroupTabs";
 import { JoinGroupButton } from "@/components/JoinGroupButton";
+import { NewSeasonButton } from "@/components/NewSeasonButton";
 import { LiveProvider } from "@/components/LiveProvider";
 import { getLocale } from "@/i18n/server";
 import { getT } from "@/i18n";
@@ -24,8 +25,10 @@ export default async function GroupLayout({
     where: { id },
     include: {
       contest: {
-        select: { name: true, code: true, season: true, emblem: true },
+        select: { name: true, code: true, season: true, emblem: true, status: true },
       },
+      previousGroup: { select: { id: true } },
+      nextGroups: { select: { id: true }, take: 1 },
       _count: { select: { memberships: true } },
       ...(userId
         ? {
@@ -44,6 +47,24 @@ export default async function GroupLayout({
 
   const userRole = userId ? (group.memberships[0]?.role ?? null) : null;
   const isMember = !!userRole;
+  const isAdmin = userRole === "ADMIN";
+  const isArchived = group.contest.status === "COMPLETED";
+  const nextGroup = group.nextGroups[0] ?? null;
+
+  // Admins can start a new season only when a current (non-completed) contest
+  // exists for the same league and this group hasn't been rolled over yet.
+  let canStartNewSeason = false;
+  if (isAdmin && !nextGroup) {
+    const target = await prisma.contest.findFirst({
+      where: {
+        code: group.contest.code,
+        status: { not: "COMPLETED" },
+        id: { not: group.contestId },
+      },
+      select: { id: true },
+    });
+    canStartNewSeason = !!target;
+  }
 
   // Private group: only members can see
   if (group.visibility === "PRIVATE" && !isMember) {
@@ -94,6 +115,14 @@ export default async function GroupLayout({
                   </span>
                 </>
               )}
+              {isArchived && (
+                <>
+                  <span>·</span>
+                  <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                    {t("seasonRollover.archivedBadge")}
+                  </span>
+                </>
+              )}
               {userRole && (
                 <>
                   <span>·</span>
@@ -104,14 +133,44 @@ export default async function GroupLayout({
             {group.description && (
               <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{group.description}</p>
             )}
+            {(group.previousGroup || nextGroup) && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {group.previousGroup && (
+                  <Link
+                    href={`/groups/${group.previousGroup.id}`}
+                    className="rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  >
+                    {t("seasonRollover.seePreviousSeason")}
+                  </Link>
+                )}
+                {nextGroup && (
+                  <Link
+                    href={`/groups/${nextGroup.id}`}
+                    className="rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  >
+                    {t("seasonRollover.seeCurrentSeason")}
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Join button for non-members on public groups */}
-          {!isMember && group.visibility === "PUBLIC" && (
-            <JoinGroupButton groupId={id} isAuthenticated={!!userId} />
-          )}
+          {/* Actions: join (non-members) or start-new-season (archived admins) */}
+          <div className="flex flex-col items-end gap-2">
+            {!isMember && group.visibility === "PUBLIC" && (
+              <JoinGroupButton groupId={id} isAuthenticated={!!userId} />
+            )}
+            {canStartNewSeason && <NewSeasonButton groupId={id} />}
+          </div>
         </div>
       </div>
+
+      {/* Read-only archive banner */}
+      {isArchived && (
+        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300">
+          {t("seasonRollover.archivedBanner")}
+        </div>
+      )}
 
       {/* Tabs */}
       <GroupTabs

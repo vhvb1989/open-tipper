@@ -180,6 +180,21 @@ describe("Predictions API", () => {
       expect(res.status).toBe(403);
     });
 
+    it("returns 403 when the group's contest season is COMPLETED (archived)", async () => {
+      mockAuth.mockResolvedValue({ user: { id: "u1" } });
+      mockPrisma.membership.findUnique.mockResolvedValue({ role: "MEMBER" });
+      mockPrisma.group.findUnique.mockResolvedValue({
+        contestId: "c1",
+        contest: { status: "COMPLETED" },
+      });
+      const { PUT } = await import("@/app/api/groups/[id]/predictions/route");
+      const req = makePut("g1", { matchId: "m1", homeGoals: 1, awayGoals: 0 });
+      const res = await PUT(req, { params: Promise.resolve({ id: "g1" }) });
+      expect(res.status).toBe(403);
+      // The archived check runs before the match lookup.
+      expect(mockPrisma.match.findUnique).not.toHaveBeenCalled();
+    });
+
     it("upserts prediction for upcoming match", async () => {
       mockAuth.mockResolvedValue({ user: { id: "u1" } });
       mockPrisma.membership.findUnique.mockResolvedValue({ role: "MEMBER" });

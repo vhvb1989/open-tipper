@@ -225,7 +225,11 @@ export async function syncCompetition(
     const seasonStr = seasonFromYear(currentSeason.year);
     const code = String(league.id);
 
-    // 2. Upsert the contest
+    // 2. Upsert the contest.
+    //    Keyed by (code, season) so a season rollover creates a NEW contest
+    //    (Contest.externalId is intentionally non-unique — one contest per
+    //    season). Re-syncing the same season updates the same contest, so
+    //    ongoing leagues keep the same contest.id and all their links.
     const contest = await prisma.contest.upsert({
       where: {
         code_season: { code, season: seasonStr },
@@ -249,6 +253,21 @@ export async function syncCompetition(
         startDate: currentSeason.start ? new Date(currentSeason.start) : null,
         endDate: currentSeason.end ? new Date(currentSeason.end) : null,
       },
+    });
+
+    // 2b. Season rollover: mark any previous-season contest for the same league
+    //     as COMPLETED. `syncCompetition` always keys the contest to the API's
+    //     current season, so any other same-code contest is by definition an
+    //     older season and should be archived (read-only). This keeps
+    //     `Contest.status` authoritative for the read-only freeze, the group
+    //     creation list and the dashboard's active/archived split.
+    await prisma.contest.updateMany({
+      where: {
+        code,
+        id: { not: contest.id },
+        status: { not: ContestStatus.COMPLETED },
+      },
+      data: { status: ContestStatus.COMPLETED },
     });
 
     // 3. Fetch fixtures
