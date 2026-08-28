@@ -16,6 +16,7 @@ const mockPrisma = {
   match: {
     findUnique: vi.fn(),
     findMany: vi.fn(),
+    update: vi.fn(),
   },
   prediction: {
     findMany: vi.fn(),
@@ -119,6 +120,7 @@ describe("scoreMatch", () => {
       },
     ]);
     mockPrisma.prediction.update.mockResolvedValue({});
+    mockPrisma.match.update.mockResolvedValue({});
 
     const result = await scoreMatch("m1", db);
 
@@ -127,6 +129,10 @@ describe("scoreMatch", () => {
     expect(mockPrisma.prediction.update).toHaveBeenCalledWith({
       where: { id: "p1" },
       data: { pointsAwarded: 25, bonusPoints: 0 },
+    });
+    expect(mockPrisma.match.update).toHaveBeenCalledWith({
+      where: { id: "m1" },
+      data: { scoredHomeGoals: 2, scoredAwayGoals: 1 },
     });
     expect(calculateScore).toHaveBeenCalledTimes(2);
   });
@@ -180,7 +186,24 @@ describe("scoreFinishedMatches", () => {
   });
 
   it("finds and scores finished matches with unscored predictions", async () => {
-    mockPrisma.match.findMany.mockResolvedValue([{ id: "m1" }, { id: "m2" }]);
+    mockPrisma.match.findMany.mockResolvedValue([
+      {
+        id: "m1",
+        homeGoals: 2,
+        awayGoals: 1,
+        scoredHomeGoals: 2,
+        scoredAwayGoals: 1,
+        predictions: [{ id: "p1" }],
+      },
+      {
+        id: "m2",
+        homeGoals: 0,
+        awayGoals: 0,
+        scoredHomeGoals: 0,
+        scoredAwayGoals: 0,
+        predictions: [{ id: "p2" }],
+      },
+    ]);
     mockPrisma.match.findUnique
       .mockResolvedValueOnce({
         id: "m1",
@@ -218,12 +241,84 @@ describe("scoreFinishedMatches", () => {
         },
       ]);
     mockPrisma.prediction.update.mockResolvedValue({});
+    mockPrisma.match.update.mockResolvedValue({});
 
     const results = await scoreFinishedMatches("c1", db);
 
     expect(results).toHaveLength(2);
     expect(results[0].predictionsScored).toBe(1);
     expect(results[1].predictionsScored).toBe(1);
+  });
+
+  it("re-scores predictions when the provider corrects a finished result", async () => {
+    vi.mocked(calculateScore).mockReturnValue({
+      exactScore: 10,
+      goalDifference: 6,
+      outcome: 4,
+      oneTeamGoals: 3,
+      totalGoals: 2,
+      reverseGoalDifference: 0,
+      total: 25,
+    });
+    mockPrisma.match.findMany.mockResolvedValue([
+      {
+        id: "m1",
+        homeGoals: 1,
+        awayGoals: 2,
+        scoredHomeGoals: 1,
+        scoredAwayGoals: 1,
+        predictions: [],
+      },
+    ]);
+    mockPrisma.match.findUnique.mockResolvedValue({
+      id: "m1",
+      homeGoals: 1,
+      awayGoals: 2,
+      status: "FINISHED",
+      stage: null,
+    });
+    mockPrisma.prediction.findMany.mockResolvedValue([
+      {
+        id: "p1",
+        groupId: "g1",
+        homeGoals: 1,
+        awayGoals: 2,
+        isBackfilled: false,
+        group: { scoringRules: null },
+      },
+    ]);
+    mockPrisma.prediction.update.mockResolvedValue({});
+    mockPrisma.match.update.mockResolvedValue({});
+
+    const results = await scoreFinishedMatches("c1", db);
+
+    expect(results).toEqual([{ matchId: "m1", predictionsScored: 1 }]);
+    expect(mockPrisma.prediction.update).toHaveBeenCalledWith({
+      where: { id: "p1" },
+      data: { pointsAwarded: 25, bonusPoints: 0 },
+    });
+    expect(mockPrisma.match.update).toHaveBeenCalledWith({
+      where: { id: "m1" },
+      data: { scoredHomeGoals: 1, scoredAwayGoals: 2 },
+    });
+  });
+
+  it("skips matches already scored against the current result", async () => {
+    mockPrisma.match.findMany.mockResolvedValue([
+      {
+        id: "m1",
+        homeGoals: 1,
+        awayGoals: 2,
+        scoredHomeGoals: 1,
+        scoredAwayGoals: 2,
+        predictions: [],
+      },
+    ]);
+
+    const results = await scoreFinishedMatches("c1", db);
+
+    expect(results).toEqual([]);
+    expect(mockPrisma.match.findUnique).not.toHaveBeenCalled();
   });
 
   it("returns empty array when no finished matches", async () => {

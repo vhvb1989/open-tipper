@@ -189,14 +189,25 @@ export async function scoreMatch(matchId: string, db: PrismaClient): Promise<Sco
     }
   }
 
+  // Record the result used for this scoring pass. If the data provider later
+  // corrects the final score, scoreFinishedMatches will detect the mismatch
+  // and recalculate every prediction for the match.
+  await db.match.update({
+    where: { id: matchId },
+    data: {
+      scoredHomeGoals: match.homeGoals,
+      scoredAwayGoals: match.awayGoals,
+    },
+  });
+
   return { matchId, predictionsScored: scored };
 }
 
 /**
- * Score all predictions for all newly finished matches in a contest.
+ * Score predictions for newly finished matches and corrected final results.
  *
- * Finds matches that are FINISHED but have unscored predictions
- * (pointsAwarded IS NULL), and scores each one.
+ * A match is scored when it has an unscored prediction or when its current
+ * final score differs from the result used by the previous scoring pass.
  *
  * @param contestId - The contest to check for finished matches
  * @param db - Prisma client instance
@@ -206,24 +217,37 @@ export async function scoreFinishedMatches(
   contestId: string,
   db: PrismaClient,
 ): Promise<ScoreMatchResult[]> {
-  // Find finished matches in this contest that have at least one unscored prediction
-  const matchesWithUnscoredPredictions = await db.match.findMany({
+  const finishedMatches = await db.match.findMany({
     where: {
       contestId,
       status: { in: ["FINISHED", "AWARDED"] },
       homeGoals: { not: null },
       awayGoals: { not: null },
+      predictions: { some: {} },
+    },
+    select: {
+      id: true,
+      homeGoals: true,
+      awayGoals: true,
+      scoredHomeGoals: true,
+      scoredAwayGoals: true,
       predictions: {
-        some: {
-          pointsAwarded: null,
-        },
+        where: { pointsAwarded: null },
+        select: { id: true },
+        take: 1,
       },
     },
-    select: { id: true },
   });
 
+  const matchesToScore = finishedMatches.filter(
+    (match) =>
+      match.predictions.length > 0 ||
+      match.scoredHomeGoals !== match.homeGoals ||
+      match.scoredAwayGoals !== match.awayGoals,
+  );
+
   const results: ScoreMatchResult[] = [];
-  for (const match of matchesWithUnscoredPredictions) {
+  for (const match of matchesToScore) {
     try {
       const result = await scoreMatch(match.id, db);
       results.push(result);

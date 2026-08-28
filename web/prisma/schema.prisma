@@ -161,6 +161,8 @@ model Match {
   status      MatchStatus @default(SCHEDULED)
   homeGoals   Int? /// Set when match is finished (regular time)
   awayGoals   Int? /// Set when match is finished (regular time)
+  scoredHomeGoals Int?    @map("scored_home_goals") /// Result snapshot used for the latest prediction scoring pass
+  scoredAwayGoals Int?    @map("scored_away_goals") /// Result snapshot used for the latest prediction scoring pass
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
