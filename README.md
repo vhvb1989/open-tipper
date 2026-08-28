@@ -259,8 +259,12 @@ Add it to `web/.env` as `AUTH_SECRET=<generated-value>`.
 
 1. Go to [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials)
 2. Create an **OAuth 2.0 Client ID** (Web application)
-3. Add **Authorized redirect URI**: `http://localhost:3000/api/auth/callback/google`
-4. Copy the Client ID and Client Secret into your `web/.env`:
+3. Add each application origin under **Authorized JavaScript origins**, such as
+   `http://localhost:3000` and `https://ot.hasdar.com`
+4. Add each callback under **Authorized redirect URIs**, such as
+   `http://localhost:3000/api/auth/callback/google` and
+   `https://ot.hasdar.com/api/auth/callback/google`
+5. Copy the Client ID and Client Secret into your `web/.env`:
 
 ```dotenv
 AUTH_GOOGLE_ID=<your-client-id>

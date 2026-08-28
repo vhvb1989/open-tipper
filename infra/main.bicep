@@ -31,6 +31,9 @@ param postgresStorageSizeGB int = 32
 @description('Auth.js session secret')
 param authSecret string = ''
 
+@description('Public URL used for authentication callbacks and application links')
+param publicAppUrl string = ''
+
 @description('Google OAuth Client ID')
 param authGoogleId string = ''
 
@@ -178,6 +181,7 @@ module web 'app/web.bicep' = {
     postgresDatabaseName: 'sport_predictor'
     storageAccountName: storage.outputs.storageAccountName
     authSecret: authSecret
+    publicAppUrl: publicAppUrl
     authGoogleId: authGoogleId
     authGoogleSecret: authGoogleSecret
     authGithubId: authGithubId

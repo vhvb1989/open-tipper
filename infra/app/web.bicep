@@ -29,6 +29,9 @@ param storageAccountName string
 @secure()
 param authSecret string
 
+@description('Public URL used for authentication callbacks and application links')
+param publicAppUrl string = ''
+
 @description('Google OAuth Client ID')
 param authGoogleId string
 
@@ -61,6 +64,10 @@ param cronKvRef string = ''
 
 @description('Name of the Key Vault to grant read access to')
 param keyVaultName string = ''
+
+var effectivePublicAppUrl = !empty(publicAppUrl)
+  ? publicAppUrl
+  : 'https://${appServiceName}.azurewebsites.net'
 
 // App Service Plan
 resource appServicePlan 'Microsoft.Web/serverfarms@2024-04-01' = {
@@ -157,11 +164,11 @@ resource appService 'Microsoft.Web/sites@2024-04-01' = {
         }
         {
           name: 'AUTH_URL'
-          value: 'https://${appServiceName}.azurewebsites.net'
+          value: effectivePublicAppUrl
         }
         {
           name: 'NEXT_PUBLIC_APP_URL'
-          value: 'https://${appServiceName}.azurewebsites.net'
+          value: effectivePublicAppUrl
         }
         {
           name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
