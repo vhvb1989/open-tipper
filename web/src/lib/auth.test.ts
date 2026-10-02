@@ -68,6 +68,20 @@ describe("Auth configuration", () => {
     expect(config.pages.signIn).toBe("/signin");
   });
 
+  it("configures GitHub's OAuth issuer", async () => {
+    process.env.AUTH_GITHUB_ID = "github-client-id";
+    process.env.AUTH_GITHUB_SECRET = "github-client-secret";
+
+    const GitHub = (await import("next-auth/providers/github")).default;
+    await import("./auth");
+
+    expect(GitHub).toHaveBeenCalledWith(
+      expect.objectContaining({
+        issuer: "https://github.com/login/oauth",
+      }),
+    );
+  });
+
   it("removes empty AUTH_MICROSOFT_ENTRA_ID_ISSUER from env to prevent InvalidEndpoints", async () => {
     process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER = "";
     await import("./auth");
